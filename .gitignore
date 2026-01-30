@@ -1,0 +1,14 @@
+/.Rproj.user
+/01_sent_to_me
+/02_manually_produced
+/99_arkiv
+/annotation_databases
+/apiin_bu
+/biorender
+/input_data
+/standard_peaks
+/standards
+
+.DS_store
+03_psm.Rproj
+intro_till_nya_gruppen.txt

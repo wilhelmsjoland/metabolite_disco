@@ -1,0 +1,14 @@
+# glycosides & aglycones
+glycoside
+aglycone
+apiin
+apigenin
+sugar
+flavo
+phenol
+# bioamines
+seroto
+dopam
+# other
+conjug
+
