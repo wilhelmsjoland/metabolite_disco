@@ -377,14 +377,13 @@ legend(
 invisible(dev.off())
 
 
-# Use this for the betadistribution parameters
+# Use this for the beta-distribution parameters
 xchr_data <- tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peak")
 
 ################################################################################
 # 5. Inspect peaks
 # Extract some peaks here and check quality of peak picking
 ################################################################################
-
 message("Inspecting called peaks...")
 
 # peaks_to_inspect <- as_tibble(chromPeaks(xchr[1:2]), rownames = "peak") %>%
@@ -415,7 +414,6 @@ inspectPeakInt(chr_data = xchr, value = into, save.graph = TRUE)
 
 ################################################################################
 # 5. Refine peaks
-# TODO Just make this into a loop
 # Let these be part of the pipeline as well and as a choice to do or not
 ################################################################################
 
@@ -484,7 +482,6 @@ merged.peaks <- dplyr::anti_join(
 # 6. Align retention times
 # Correspondence, adjust and correspondence again 
 ################################################################################
-
 message("Aligning retention times across samples...")
 
 # TODO Change these to more broad so I don't get a million anchor peaks?
@@ -516,13 +513,12 @@ pgm <- xcms::adjustRtimePeakGroups(
 
 # Evaluate distribution of anchor peaks' rt in the first sample
 # TODO compare this to the full range of retention times from the runs
-
 chrom_peaks5 <- xcms::chromPeaks(xchr5)
 max.rt.time <- max(chrom_peaks5[, "rtmax"], na.rm = TRUE)
 min.rt.time <- min(chrom_peaks5[, "rtmin"], na.rm = TRUE)
 
 # TODO Add a check here as well!
-quantile(pgm[, 1], na.rm = TRUE) # Remove na.rm = TRUE?
+# quantile(pgm[, 1], na.rm = TRUE) # Remove na.rm = TRUE?
 # End of checking for anchor peak rt distribution
 
 # Alignment
@@ -598,7 +594,6 @@ if (check_saved("is_drift_check_after.rds")) {
     saveRDS(object = is.drift.check.after, file = paste0(res.folder, "/objects/is_drift_check_after.rds"))
 }
 
-
 # Checking the adjustment in the IS peak
 pdf(paste0(res.folder, "/graphs/rtime/is_before_after_alignment.pdf"))
 par(mfrow = c(1, 2))
@@ -625,8 +620,6 @@ invisible(dev.off())
 
 ################################################################################
 # 7. Correspondence
-# TODO Do this programmatically
-# Checking for 
 # Extract a chromatogram for a m/z range containing internal standard
 # Test these settings on the extracted slice
 # Do this for several
@@ -667,7 +660,6 @@ invisible(dev.off())
 
 message("Performing correspondence...")
 # Correspondence
-
 if (check_saved("xchr7.rds")) {
     xchr7 <- readRDS(file = paste0(res.folder, "/objects/xchr7.rds"))
 } else {
@@ -712,7 +704,6 @@ invisible(dev.off())
 ################################################################################
 # 8. Gap filling
 ################################################################################
-
 # Checking features
 feat.def <- as_tibble(xcms::featureDefinitions(xchr7), rownames = "feature")
 feat.val <- as_tibble(xcms::featureValues(xchr7, method = "sum"), rownames = "feature")
@@ -791,7 +782,6 @@ if (check_saved("chrs_na.rds")) {
 
 ################################################################################
 # 8. Filtering features and input to SummarizedExperiment
-# TODO - Add also filtering based on beta metrics
 ################################################################################
 
 # Filter features that are uninteresting
@@ -1364,21 +1354,9 @@ for (i in intersecting.feats$feature) {
 
 ################################################################################
 # 12. Predictions of m/z
-
 # 1. First find interesting ones to look at (p.val & logFC)
 # 2. Match for the ones with a hit in the prediction of biotransformations
 # 3. Plot them from the actual data
-
-# TODO Make the plotting here work for pairs of metabolites
-# TODO Make filtering based on whether p.val & logFC as well
-
-# TODO Intersect the ones that exist in every group?
-# These should be constrained to the number of chemical elements within
-# the formula, and e.g. predicted loss of elements should not be able to 
-# be more than the actual chemical formula when matching
-# # After I've done this, now crosscheck against the decomposeMass
-# # I.e. does it even make sense formula wise??
-
 ################################################################################
 
 # TODO Set an optparse argument for:
@@ -1445,15 +1423,6 @@ writexl::write_xlsx(
     use_zip64 = FALSE
 )
 
-# matched.diffs %>%
-#     gt::gt() %>%
-#     gt::opt_stylize(style = 1, color = "gray", add_row_striping = TRUE) %>%
-#     gt::tab_header(
-#         title = md("**Potential biotransformations**"),
-#     ) %>%
-#     gt::cols_align(align = "center") %>%
-#     gt::gtsave(filename = paste0(res.folder, "/tables/matched_diffs.html"))
-
 message("
  based on significant features in contrasts:\n\t",
     paste0(upset.comps, "\n\t"),
@@ -1488,19 +1457,6 @@ writexl::write_xlsx(
     format_headers = TRUE,
     use_zip64 = FALSE
 )
-
-# filt.match.diffs %>%
-#     dplyr::select(-c(
-#         "mz1_forms",
-#         "mz2_forms"
-#     )) %>%
-#     gt::gt() %>%
-#     gt::opt_stylize(style = 1, color = "gray", add_row_striping = TRUE) %>%
-#     gt::tab_header(
-#         title = md("**Filtered potential biotransformations**"),
-#     ) %>%
-#     gt::cols_align(align = "center") %>%
-#     gt::gtsave(filename = paste0(res.folder, "/tables/filt_matched_diffs.html"))
 
 ################################################################################
 # 13. Predictions of m/z vs a database
@@ -1567,8 +1523,6 @@ matches <- MetaboAnnotation::matchValues(
     param = mz_match_param
 )
 
-# TODO
-# Fix that this provides so many of the same metabolite
 anno <- MetaboAnnotation::matchedData(matches) %>%
     tibble::as_tibble(., rownames = "feature") %>%
     dplyr::mutate(abs_score = abs(score)) %>%
@@ -1603,22 +1557,7 @@ if (check_saved("xchr9_filt.rds")) {
     saveRDS(object = xchr9.filt, file = paste0(res.folder, "/objects/xchr9_filt.rds"))
 }
 
-# Add glycoside and aglycone into final.plotting.features
-# glycoside <- getTheoryMz(glycoside_form, adduct = adduct)
-# aglycone <- getTheoryMz(aglycone_form, adduct = adduct)
-# 
-# range.tol <- ppm_to_num(glycoside_ppm)
-# glycone.range <- glycoside + c(-range.tol, +range.tol)
-# aglycone.range <- aglycone + c(-range.tol, +range.tol)
-# 
-# gly.agly2 <- full_raw_filled %>%
-#     dplyr::filter(
-#         dplyr::between(mzmed, min(glycone.range), max(glycone.range)) |
-#             dplyr::between(mzmed, min(aglycone.range), max(aglycone.range))
-#     )
-# 
-# pot.glycosides <- unique(gly.agly$feature)
-
+# Checking specifically for the glycoside anad aglycone m/zs
 glycoside <- MetaboCoreUtils::mass2mz(
     Rdisop::getMass(Rdisop::getMolecule(glycoside_form)),
     adduct = MetaboCoreUtils::adducts(polarity = "negative")
@@ -1635,7 +1574,7 @@ aglycone <- MetaboCoreUtils::mass2mz(
     tibble::as_tibble(., rownames = "adduct") %>%
     dplyr::rename("aglycone" = V1)
 
-range.tol <- ppm_to_num(2000)
+range.tol <- ppm_to_num(glycoside_ppm)
 
 gly.agly.adducts <- glycoside %>%
     dplyr::left_join(
@@ -1655,7 +1594,7 @@ for (i in 1:nrow(gly.agly.adducts)) {
     tmp <- full_raw_filled %>%
         dplyr::filter(
             dplyr::between(mzmed, gly.agly.adducts[i,]$glycoside.min, gly.agly.adducts[i,]$glycoside.max) |
-                dplyr::between(mzmed, gly.agly.adducts[i,]$aglycone.min, gly.agly.adducts[i,]$aglycone.max)
+            dplyr::between(mzmed, gly.agly.adducts[i,]$aglycone.min, gly.agly.adducts[i,]$aglycone.max)
         ) %>%
         dplyr::mutate(adduct = gly.agly.adducts[i,]$adduct) %>%
         dplyr::relocate(adduct, .after = "feature")
@@ -1797,19 +1736,3 @@ if (check_saved("feature_chrs.rds")) {
 #         device = "pdf"
 #     )
 # }
-
-# luteolin
-# anno %>%
-#     dplyr::filter(stringr::str_detect(target_name, regex("luteo", TRUE)))
-#     # dplyr::filter(grepl("C15H10O6", target_formula)) %>%
-# 
-# # TODO
-# # Test luteolin - apigenin
-# # the adduct predicted: 345.0649
-# # ADDUCT CHANGES EVERYTHING - FIX!!!!!!!
-# 
-# MetaboCoreUtils::adductNames(polarity = "negative")
-# 
-# unname(mass2mz(286.0477, "[M+C2H3O2]-")[1, 1])
-# 
-# 345.0616 - getTheoryMz(aglycone_form, "[M-H]-")
