@@ -67,5 +67,3 @@ for (i in unique(collect.tib$feature)) {
     
     readline("Enter for next: ")
 }
-
-matche

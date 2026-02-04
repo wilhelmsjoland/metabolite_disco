@@ -1,3 +1,6 @@
+# ==============================================================================
+# Source dependendencies and load libraries -----------------------------------
+# ==============================================================================
 source("R/functions.R")
 source("R/met_disco_args.R")
 suppressWarnings(
@@ -29,14 +32,10 @@ suppressWarnings(
   })
 )
 
-# BiocParallel::register(SerialParam())
-# bpstop()
-
-################################################################################
-# Create output folders
-################################################################################
-
-folder <- c(
+# ==============================================================================
+# Create output folders --------------------------------------------------------
+# ==============================================================================
+folders <- c(
   "bpc",
   "internal_standard",
   "volcano",
@@ -79,11 +78,12 @@ for (folder in folders) {
 # dir.create(file.path(res.folder, "graphs", "feature_pairs"), FALSE, TRUE)
 # dir.create(file.path(res.folder, "graphs", "glycoside"), FALSE, TRUE)
 # dir.create(file.path(res.folder, "graphs", "glycoside_feature_pairs"), FALSE, TRUE)
+
 dir.create(file.path("annotation_databases"), FALSE, TRUE)
 
-################################################################################
-# Import metadata
-################################################################################
+# ==============================================================================
+# Import metadata --------------------------------------------------------------
+# ==============================================================================
 message("Importing metadata...")
 meta <- importFiles(data.path, meta.file)
 if (check_saved("ms_exp.rds")) {
@@ -96,16 +96,20 @@ if (check_saved("ms_exp.rds")) {
   saveRDS(object = ms.exp, file = file.path(res.folder, "objects/ms_exp.rds"))
 }
 
-################################################################################
+# ==============================================================================
 # Set colors for groups
-################################################################################
+# ==============================================================================
 message("Setting colors for groups...")
 groups.to.use <- unique(MsExperiment::sampleData(ms.exp)$group)
-group.colors <- paste0(brewer.pal(n = length(groups.to.use), "Set1")[1:length(groups.to.use)])
+group.colors <- paste0(
+  brewer.pal(n = length(groups.to.use), 
+  "Set1")[1:length(groups.to.use)]
+)
 group.colors <- setNames(group.colors, groups.to.use)
-################################################################################
+
+# ==============================================================================
 # Create and plot base peak chromatograms
-################################################################################
+# ==============================================================================
 message("Creating base peak chromatograms...")
 if (check_saved("bpcs.rds")) {
   bpcs <- readRDS(file = file.path(res.folder, "objects/bpcs.rds"))
@@ -124,10 +128,10 @@ plot(
 )
 invisible(dev.off())
 
-################################################################################
+# ==============================================================================
 # Create a heatmap of base peak intensities
-################################################################################
-## Calculate correlation on the log2 transformed base peak intensities
+# ==============================================================================
+# Calculate correlation on the log2 transformed base peak intensities
 bpcs_bin <- bin(bpcs, binSize = 1)
 cormat <- cor(
   log2(
@@ -142,11 +146,11 @@ cormat <- cor(
 cormat.rownames <- basename(Biobase::pData(xcms::phenoData(bpcs))$path)
 colnames(cormat) <- rownames(cormat) <- cormat.rownames
 
-## Define which phenodata columns should be highlighted in the plot
+# Define which phenodata columns should be highlighted in the plot
 ann <- data.frame(group = bpcs_bin$group)
 rownames(ann) <- cormat.rownames
 
-## Perform the cluster analysis
+# Perform the cluster analysis
 
 cormat.p <- pheatmap::pheatmap(
   cormat,
@@ -163,12 +167,10 @@ ggplot2::ggsave(
   units = "in"
 )
 
-################################################################################
-# Part 1 - inspect IS prior to peak-calling
-# Inspect the internal standard
+# ==============================================================================
+# Inspect internal standard prior to peak-calling
 # Define the rt and m/z range of the peak area
-################################################################################
-
+# ==============================================================================
 message("Inspecting internal standard peaks prior to peak-calling...")
 mz.theory <- getTheoryMz(chem_form = internal_standard, adduct = adduct)
 mz.range <- getShortMzRange(mz.theory, mz.window = 0.02)
@@ -176,8 +178,8 @@ if (check_saved("is_chr.rds")) {
   is.chr <- readRDS(file = paste0(res.folder, "/objects/is_chr.rds"))
 } else {
   is.chr <- xcms::chromatogram(
-    object = ms.exp, 
-    mz = mz.range, 
+    object = ms.exp,
+    mz = mz.range,
     aggregationFun = "sum"
   )
   saveRDS(object = is.chr, file = paste0(res.folder, "/objects/is_chr.rds"))
@@ -227,46 +229,45 @@ invisible(dev.off())
 # try4 <- findMzError(object = ms.exp, ref_peaks_obj = ranges$data)
 # max(full.tib$max.mz.error)
 
-################################################################################
-# 2. Check if data is centroided
-################################################################################
-
+# ==============================================================================
+# Checking if data is centroided
+# ==============================================================================
 # This filters the amount of speectra not the mz?
-# sps <- spectra(ms.exp) |>
-#     filterRt(getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$rt.range) |> 
+# sps <- spectra(ms.exp) %>%
+#     filterRt(getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$rt.range) %>% 
 #     filterMzRange(mz = getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$mz.range)
 # 
 # Spectra::plotSpectraOverlay(x = sps, lwd = 2, xlim = mz.range)
 # 
-# ms.exp |>
-#     filterRt(getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$rt.range) |> 
-#     filterMzRange(mz = getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$mz.range) |>
+# ms.exp %>%
+#     filterRt(getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$rt.range) %>% 
+#     filterMzRange(mz = getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$mz.range) %>%
 #     plot()
 # 
 # # Looks pretty good but is the data smoothed - it looks that way?
 # # looks like centroid mode
 # # TODO Add the ranges used in this example under
-# ms.exp |>
-#     Spectra::filterRt(rt.range.long) |>
-#     Spectra::filterMzRange(c(is.theory.mz - 0.025, is.theory.mz + 0.025)) |>
+# ms.exp %>%
+#     Spectra::filterRt(rt.range.long) %>%
+#     Spectra::filterMzRange(c(is.theory.mz - 0.025, is.theory.mz + 0.025)) %>%
 #     plot()
 # invisible(dev.off())
 # 
-# srn <- ms.exp[1] |>
-#     filterRt(rt = rt.range.long) |>
+# srn <- ms.exp[1] %>%
+#     filterRt(rt = rt.range.long) %>%
 #     filterMzRange(mz = mz.range)
 # plot(srn)
 # invisible(dev.off())
 # 
-# srn_1 <- srn[1] |>
-#     filterMzRange(c(123.052, 123.040)) |>
+# srn_1 <- srn[1] %>%
+#     filterMzRange(c(123.052, 123.040)) %>%
 #     spectra()
 # 
 # # Calculate the difference in m/z values between scans
-# mz_diff <- srn_1 |>
-#     mz() |>
-#     unlist() |>
-#     diff() |>
+# mz_diff <- srn_1 %>%
+#     mz() %>%
+#     unlist() %>%
+#     diff() %>%
 #     abs()
 # mz_diff
 # 
@@ -284,19 +285,18 @@ invisible(dev.off())
 #     )
 
 # shorter range
-# ms.exp |>
-#     filterRt(rt.range.s) |>
-#     filterMzRange(mz.range) |>
+# ms.exp %>%
+#     filterRt(rt.range.s) %>%
+#     filterMzRange(mz.range) %>%
 #     plot()
 # invisible(dev.off())
 
-################################################################################
-# Part 3 
+# ==============================================================================
 # - Ensure IS peak is chosen
 # - Determine max and min peak width for CentWaveParam() from the IS.
-#  TODO - do this for several peaks and not only the IS
-################################################################################
-
+# TODO
+# do this for several peaks and not only the IS
+# ==============================================================================
 message(
   "Determining minimal and maximal peakwidth ",
   "based on the internal standard..."
@@ -316,7 +316,6 @@ if (check_saved("is_eic_wide.rds")) {
     file = paste0(res.folder, "/objects/is_eic_wide.rds")
   )
 }
-
 
 # Run peak detection on the EIC
 if (check_saved("is_chr2.rds")) {
@@ -343,10 +342,9 @@ if (check_saved("is_chr2.rds")) {
 # Calculate peakwidth
 is.peaks <- tibble::as_tibble(
   xcms::chromPeaks(is.chr2), 
-  rownames = "rownames"
-  ) |>
-  dplyr::rowwise() |>
-  dplyr::mutate(delta_rt = rtmax - rtmin) |>
+  rownames = "rownames") %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(delta_rt = rtmax - rtmin) %>%
   dplyr::ungroup()
 
 
@@ -368,10 +366,9 @@ message(
   sep = ""
 )
 
-################################################################################
-# 4. Call peaks on whole dataset with params
-################################################################################
-
+# ==============================================================================
+# Call peaks on whole dataset with parameters
+# ==============================================================================#
 message("Calling peaks...")
 
 if (check_saved("xchr.rds")) {
@@ -407,22 +404,23 @@ plot(
   bpcs,
   col = group.colors[MsExperiment::sampleData(xchr)$group],
   main = "Base peak chromatogram after peak picking"
-  )
+)
 legend(
   "topright",
   col = unique(group.colors[MsExperiment::sampleData(xchr)$group]), 
-  legend = unique(names(group.colors[MsExperiment::sampleData(ms.exp)$group])), 
+  legend = unique(names(group.colors[MsExperiment::sampleData(ms.exp)$group])),
   pch = 16
-  )
+)
 invisible(dev.off())
 
 # Use this for the beta-distribution parameters
 xchr_data <- tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peak")
 
-################################################################################
-# 5. Inspect peaks
+# ==============================================================================
+# Inspect peaks
+# TODO
 # Extract some peaks here and check quality of peak picking
-################################################################################
+# ==============================================================================
 message("Inspecting called peaks...")
 
 # peaks_to_inspect <- as_tibble(chromPeaks(xchr[1:2]), rownames = "peak") %>%
@@ -451,11 +449,11 @@ message("Inspecting called peaks...")
 # These are the per-sample peak counts
 inspectPeakInt(chr_data = xchr, value = into, save.graph = TRUE)
 
-################################################################################
-# 5. Refine peaks
+# ==============================================================================
+# Refine peaks
+# TODO
 # Let these be part of the pipeline as well and as a choice to do or not
-################################################################################
-
+# ==============================================================================
 if (check_saved("xchr2.rds")) {
   xchr2 <- readRDS(paste0(res.folder, "/objects/xchr2.rds"))
 } else {
@@ -517,10 +515,9 @@ merged.peaks <- dplyr::anti_join(
   by = "peaks"
 )
 
-################################################################################
-# 6. Align retention times
-# Correspondence, adjust and correspondence again 
-################################################################################
+# ==============================================================================
+# Alignment of retention times
+# ==============================================================================
 message("Aligning retention times across samples...")
 
 # TODO Change these to more broad so I don't get a million anchor peaks?
@@ -585,12 +582,12 @@ if (check_saved("bpc_after.rds")) {
   bpc_after <- readRDS(file = paste0(res.folder, "/objects/bpc_after.rds"))
 } else {
   bpc_after <- xcms::chromatogram(
-    xchr6, 
-    aggregationFun = "max", 
+    xchr6,
+    aggregationFun = "max",
     chromPeaks = "none"
   )
   saveRDS(
-    object = bpc_after, 
+    object = bpc_after,
     file = paste0(res.folder, "/objects/bpc_after.rds")
   )
 }
@@ -599,14 +596,14 @@ pdf(paste0(res.folder, "/graphs/rtime/before_after_alignment.pdf"))
 par(mfrow = c(2, 1))
 # Before retention time alignment
 plot(
-  bpcs, 
+  bpcs,
   col = group.colors[MsExperiment::sampleData(xchr6)$group],
   main = "Before retention time alignment"
 )
 
 # After retention time alignment
 plot(
-  bpc_after, 
+  bpc_after,
   col = group.colors[MsExperiment::sampleData(xchr6)$group],
   main = "After retention time alignment"
 )
@@ -614,11 +611,13 @@ invisible(dev.off())
 
 # Checking for retention drift in IS
 if (check_saved("is_drift_check_before.rds")) {
-  is.drift.check.before <- readRDS(file = paste0(res.folder, "/objects/is_drift_check_before.rds"))
+  is.drift.check.before <- readRDS(
+    file = paste0(res.folder, "/objects/is_drift_check_before.rds")
+  )
 } else {
   is.drift.check.before <- xchr %>%
-    Spectra::filterRt(ranges$rt.range) |>
-    Spectra::filterMzRange(ranges$mz.range) |>
+    Spectra::filterRt(ranges$rt.range) %>%
+    Spectra::filterMzRange(ranges$mz.range) %>%
     xcms::chromatogram(
       aggregationFun = "max",
       chromPeaks = "none"
@@ -635,15 +634,15 @@ if (check_saved("is_drift_check_after.rds")) {
   )
 } else {
   is.drift.check.after <- xchr6 %>%
-  Spectra::filterRt(ranges$rt.range) |>
-  Spectra::filterMzRange(ranges$mz.range) |>
-  xcms::chromatogram(
-    aggregationFun = "max",
-    chromPeaks = "none"
-  )
+    Spectra::filterRt(ranges$rt.range) %>%
+    Spectra::filterMzRange(ranges$mz.range) %>%
+    xcms::chromatogram(
+      aggregationFun = "max",
+      chromPeaks = "none"
+    )
   saveRDS(
-  object = is.drift.check.after, 
-  file = paste0(res.folder, "/objects/is_drift_check_after.rds")
+    object = is.drift.check.after, 
+    file = paste0(res.folder, "/objects/is_drift_check_after.rds")
   )
 }
 
@@ -666,17 +665,18 @@ plot(
 invisible(dev.off())
 
 # From Sattely paper
-# Retention time correction was performed using the obiwarp method, with a 
-# step size of m/z 0.5. Peak alignment was performed with bandwidth 
-# of 3 seconds and minimum fraction (minfrac) of samples 
+# Retention time correction was performed using the obiwarp method, with a
+# step size of m/z 0.5. Peak alignment was performed with bandwidth
+# of 3 seconds and minimum fraction (minfrac) of samples
 # necessary for a valid group of 0.5.
 
-################################################################################
-# 7. Correspondence
+# ==============================================================================
+# Correspondence
+# TODO
 # Extract a chromatogram for a m/z range containing internal standard
 # Test these settings on the extracted slice
 # Do this for several
-################################################################################
+# ==============================================================================
 
 message("Producing simulated bandwidth plots...")
 # Check bandwidth
@@ -692,17 +692,21 @@ if (check_saved("chr_1.rds")) {
 }
 
 # Test these settings on the extracted slice
-pdf(paste0(res.folder, "/graphs/internal_standard/is_simul_first_grouping.pdf"))
+pdf(
+  paste0(res.folder, "/graphs/internal_standard/is_simul_first_grouping.pdf")
+)
 density.simul.p <- xcms::plotChromPeakDensity(
-  object = chr_1, 
+  object = chr_1,
   param = xcms::PeakDensityParam(
-    sampleGroups = MsExperiment::sampleData(xchr6)$group, 
+    sampleGroups = MsExperiment::sampleData(xchr6)$group,
     bw = bw_first_grouping
   )
 )
 invisible(dev.off())
 
-pdf(paste0(res.folder, "/graphs/internal_standard/is_simul_second_grouping.pdf"))
+pdf(
+  paste0(res.folder, "/graphs/internal_standard/is_simul_second_grouping.pdf")
+)
 density.simul.p <- xcms::plotChromPeakDensity(
   object = chr_1,
   param = xcms::PeakDensityParam(
@@ -749,19 +753,24 @@ if (check_saved("chr_2.rds")) {
 
 message("Producing second grouping bandwidth plots...")
 # Setting simulate = FALSE to show the actual correspondence results
-pdf(paste0(res.folder, "/graphs/internal_standard/is_non_simul_second_grouping.pdf"))
+pdf(
+  paste0(
+    res.folder,
+    "/graphs/internal_standard/is_non_simul_second_grouping.pdf"
+  )
+)
 density.non.simul.p <- xcms::plotChromPeakDensity(
   object = chr_2,
   simulate = FALSE
 )
 invisible(dev.off())
 
-################################################################################
-# 8. Gap filling
-################################################################################
+# ==============================================================================
+# Gap filling
+# ==============================================================================
 # Checking features
 feat.def <- tibble::as_tibble(
-  xcms::featureDefinitions(xchr7), 
+  xcms::featureDefinitions(xchr7),
   rownames = "feature"
 )
 feat.val <- tibble::as_tibble(
@@ -770,19 +779,19 @@ feat.val <- tibble::as_tibble(
 )
 
 # Extract features with nas for peak filling
-feat.with.na <- feat.val |>
-  tidyr::pivot_longer(cols = 2:ncol(.)) |>
-  dplyr::filter(is.na(value)) |>
-  dplyr::pull(feature) |>
+feat.with.na <- feat.val %>%
+  tidyr::pivot_longer(cols = 2:ncol(.)) %>%
+  dplyr::filter(is.na(value)) %>%
+  dplyr::pull(feature) %>%
   unique(.)
 
 # Filter feature defintions to features with nas
-feat.def.nas <- feat.def |>
+feat.def.nas <- feat.def %>%
   dplyr::filter(feature %in% feat.with.na)
 
 # Create a list for checking the features chromatograms
-feat.def.nas.vals <- feat.def.nas |>
-  dplyr::rowwise() |>
+feat.def.nas.vals <- feat.def.nas %>%
+  dplyr::rowwise() %>%
   dplyr::mutate(feat_extract = rbind(
     c(
       mzmed - 0.0015, 
@@ -790,10 +799,13 @@ feat.def.nas.vals <- feat.def.nas |>
       rtmin - 2,
       rtmax + 2
     ))
-  ) |>
+  ) %>%
   dplyr::pull(feat_extract)
 
-message("Amount of features with NAs prior to gap filling: ", sum(is.na(featureValues(xchr7))))
+message(
+  "Amount of features with NAs prior to gap filling: ",
+  sum(is.na(featureValues(xchr7)))
+)
 
 # Perform gap filling
 if (check_saved("xchr8.rds")) {
@@ -824,10 +836,10 @@ message(
 feat.with.na.after <- tibble::as_tibble(
   xcms::featureValues(xchr8, method = "sum"),
   rownames = "feature"
-  ) |>
-  tidyr::pivot_longer(cols = 2:ncol(.)) |>
-  dplyr::filter(is.na(value)) |>
-  dplyr::pull(feature) |>
+) %>%
+  tidyr::pivot_longer(cols = 2:ncol(.)) %>%
+  dplyr::filter(is.na(value)) %>%
+  dplyr::pull(feature) %>%
   unique(.)
 
 chrs.na.feat <- xcms::featureArea(xchr8, features = feat.with.na.after)
@@ -847,23 +859,17 @@ if (check_saved("chrs_na.rds")) {
   saveRDS(object = chrs_na, file = paste0(res.folder, "/objects/chrs_na.rds"))
 }
 
-################################################################################
-# 8. Filtering features and input to SummarizedExperiment
-################################################################################
-
-# Filter features that are uninteresting
-# TODO https://rformassspectrometry.github.io/Metabonaut/articles/a-end-to-end-untargeted-metabolomics.html#filtering-features-missing-values
-
+# ==============================================================================
+# Filtering features and input to SummarizedExperiment -------------------------
+# ==============================================================================
 message("Filtering features based on missingness...")
-
 group.factor <- MsExperiment::sampleData(xchr8)$group
 group.factor <- as.factor(group.factor)
-
 if (check_saved("xchr9.rds")) {
   xchr9 <- readRDS(file = paste0(res.folder, "/objects/xchr9.rds"))
 } else {
   xchr9 <- QFeatures::filterFeatures(
-    xchr8, 
+    xchr8,
     xcms::PercentMissingFilter(
       threshold = missing_threshold,
       f = group.factor
@@ -872,10 +878,9 @@ if (check_saved("xchr9.rds")) {
   saveRDS(object = xchr9, file = paste0(res.folder, "/objects/xchr9.rds"))
 }
 
-################################################################################
-# 9. Median scaling & PCA
-################################################################################
-
+# ==============================================================================
+# Median scaling & PCA ------------------------------------------------------
+# ==============================================================================
 message("Producing PCA plots...")
 
 res <- xcms::quantify(
@@ -929,10 +934,10 @@ SummarizedExperiment::assays(res)$norm_filled <- sweep(
 )
 
 # Log2 transform and scale data
-vals <- SummarizedExperiment::assay(res, "raw_filled") |>
-  log2() |>
-  t() |>
-  scale(center = TRUE, scale = TRUE) |>
+vals <- SummarizedExperiment::assay(res, "raw_filled") %>%
+  log2() %>%
+  t() %>%
+  scale(center = TRUE, scale = TRUE) %>%
   as.matrix(.)
 
 pca_res <- prcomp(vals, scale = FALSE, center = FALSE)
@@ -944,28 +949,26 @@ pca_raw <- autoplot(
   data = vals_st,
   colour = 'phenotype', 
   scale = 0,
-  size = 3
-  ) +
+  size = 3) +
   ggplot2::scale_color_manual(values = group.colors) +
   ggplot2::theme_bw() +
   ggplot2::labs(title = "Before normalization")
 
 # Data after normalization
-vals_norm <- SummarizedExperiment::assay(res, "norm_filled") |>
-  log2() |>
-  t() |>
-  scale(center = TRUE, scale = TRUE) |>
+vals_norm <- SummarizedExperiment::assay(res, "norm_filled") %>%
+  log2() %>%
+  t() %>%
+  scale(center = TRUE, scale = TRUE) %>%
   as.matrix(.)
 
 pca_res_norm <- prcomp(vals_norm, scale = FALSE, center = FALSE)
 vals_st_norm <- cbind(vals_norm, phenotype = res$group)
 pca_adj <- autoplot(
-  pca_res_norm, 
+  pca_res_norm,
   data = vals_st_norm,
-  colour = 'phenotype', 
+  colour = 'phenotype',
   scale = 0,
-  size = 3
-  ) +
+  size = 3) +
   ggplot2::scale_color_manual(values = group.colors) +
   ggplot2::theme_bw() +
   ggplot2::labs(title = "After normalization")
@@ -990,8 +993,7 @@ pca_raw <- autoplot(
   x = 3,
   y = 4,
   scale = 0,
-  size = 3
-  ) +
+  size = 3) +
   ggplot2::scale_color_manual(values = group.colors) +
   ggplot2::theme_bw() +
   ggplot2::labs(title = "Before normalization")
@@ -1003,8 +1005,7 @@ pca_adj <- autoplot(
   x = 3,
   y = 4,
   scale = 0,
-  size = 3
-  ) +
+  size = 3) +
   ggplot2::scale_color_manual(values = group.colors) +
   ggplot2::theme_bw() +
   ggplot2::labs(title = "After normalization")
@@ -1021,10 +1022,9 @@ ggplot2::ggsave(
   units = "in"
 )
 
-################################################################################
-# 9. Limma
-################################################################################
-
+# ==============================================================================
+# Limnear models using limma
+# ==============================================================================
 message("Running linear models...")
 
 group.used <- factor(meta$group)
@@ -1034,22 +1034,21 @@ colnames(design) <- levels(group.used)
 comparisons <- combn(
   x = levels(group.used),
   m = 2,
-  simplify = TRUE
-  ) |>
-  t(.) |>
-  tibble::as_tibble(.) |>
-  dplyr::mutate(comp = paste0(V1, "-", V2)) |>
+  simplify = TRUE) %>%
+  t(.) %>%
+  tibble::as_tibble(.) %>%
+  dplyr::mutate(comp = paste0(V1, "-", V2)) %>%
   dplyr::pull(comp)
 
 contrasts.mat <- limma::makeContrasts(
   contrasts = comparisons,
   levels = design
-  )
+)
 
 fit <- limma::lmFit(
   log2(SummarizedExperiment::assay(res, "norm")), # don't use imputed
   design = design
-  )
+)
 fit <- limma::contrasts.fit(fit, contrasts.mat)
 fit <- limma::eBayes(fit, trend = TRUE, robust = TRUE)
 
@@ -1060,17 +1059,15 @@ for (i in comparisons) {
     coef = i,
     number = Inf,
     adjust.method = "BH",
-    sort.by = "none"
-  ) |>
-  tibble::as_tibble(., rownames = "feature") |>
-  dplyr::mutate(contrast = i) |>
-  dplyr::left_join(
-    x = .,
-    y = SummarizedExperiment::rowData(res) |>
-    tibble::as_tibble(., rownames = "feature"),
-    by = "feature"
-  )
-
+    sort.by = "none") %>%
+    tibble::as_tibble(., rownames = "feature") %>%
+    dplyr::mutate(contrast = i) %>%
+    dplyr::left_join(
+      x = .,
+      y = SummarizedExperiment::rowData(res) %>%
+        tibble::as_tibble(., rownames = "feature"),
+      by = "feature"
+    )
   limma_res[[i]] <- tmp
 }
 
@@ -1086,29 +1083,28 @@ for (i in names(limma_res)) {
 
   tmp <- limma_res[[i]]
 
-  tmp.tib <- tmp |>
+  tmp.tib <- tmp %>%
     dplyr::mutate(
       label.p = dplyr::if_else(
-        adj.P.Val < p.value.global & abs(logFC) > quantile(abs(logFC), 0.99), # -3 
+        adj.P.Val < p.value.global & abs(logFC) > quantile(abs(logFC), 0.99),
         mzmed,
         NA
       ),
       direction = dplyr::case_when(
-      logFC >= 0 & adj.P.Val < p.value.global ~ "Up",
-      logFC < 0 & adj.P.Val < p.value.global ~ "Down",
-      adj.P.Val >= p.value.global ~ "ns",
-      TRUE ~ as.character("check")
+        logFC >= 0 & adj.P.Val < p.value.global ~ "Up",
+        logFC < 0 & adj.P.Val < p.value.global ~ "Down",
+        adj.P.Val >= p.value.global ~ "ns",
+        TRUE ~ as.character("check")
       )
-    ) |>
+    ) %>%
     dplyr::mutate(direction = forcats::fct_relevel(
       direction,
       c(
         "Up",
         "ns",
         "Down"
-        )
       )
-    ) |>
+    )) %>%
     tidyr::drop_na(logFC)
 
   tmp.p <- tmp.tib %>%
@@ -1118,38 +1114,39 @@ for (i in names(limma_res)) {
         y = -log10(adj.P.Val),
         color = direction
       )) +
-      ggplot2::geom_point() +
-      ggplot2::scale_color_manual(values = c(
-        "Up" = "firebrick",
-        "Down" = "cornflowerblue",
-        "ns" = "grey"
-      )) +
-      ggrepel::geom_label_repel(
-        data = tidyr::drop_na(tmp.tib, label.p) |>
-        dplyr::arrange(dplyr::desc(abs(logFC))) |>
-        dplyr::slice(1:50),
-        ggplot2::aes(label = round(label.p, 2)),
-          size = 3,
-          max.overlaps = 100,
-          box.padding = 0.5,
-          color = "black"
-        ) +
-      ggplot2::theme_bw() +
-      ggplot2::theme(
-        plot.title = ggplot2::element_text(hjust = 0.5),
-        legend.title = ggplot2::element_blank(),
-        plot.subtitle = ggplot2::element_text(hjust = 0.5)
+    ggplot2::geom_point() +
+    ggplot2::scale_color_manual(values = c(
+      "Up" = "firebrick",
+      "Down" = "cornflowerblue",
+      "ns" = "grey"
+    )) +
+    ggrepel::geom_label_repel(
+      data = tidyr::drop_na(tmp.tib, label.p) %>%
+      dplyr::arrange(dplyr::desc(abs(logFC))) %>%
+      dplyr::slice(1:50),
+      ggplot2::aes(
+        label = round(label.p, 2)),
+        size = 3,
+        max.overlaps = 100,
+        box.padding = 0.5,
+        color = "black"
       ) +
-      ggplot2::labs(
-        title = i,
-        subtitle = paste0(
-          "Rounded mass-to-charge ratios with adj.p < ",
-          p.value.global,
-          " are labelled"
-        ),
-        x = "Log2 fold change",
-        y = "-Log10 adjusted p-value"
-      )
+    ggplot2::theme_bw() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5),
+      legend.title = ggplot2::element_blank(),
+      plot.subtitle = ggplot2::element_text(hjust = 0.5)
+    ) +
+    ggplot2::labs(
+      title = i,
+      subtitle = paste0(
+        "Rounded mass-to-charge ratios with adj.p < ",
+        p.value.global,
+        " are labelled"
+      ),
+      x = "Log2 fold change",
+      y = "-Log10 adjusted p-value"
+    )
 
   volc_plot_list[[i]] <- tmp.p
 
@@ -1170,21 +1167,21 @@ assay.names <- names(SummarizedExperiment::assays(res))
 for (i in assay.names) {
   if (i %in% c("norm", "norm_filled")) {
     full_data <- dplyr::left_join(
-      x = SummarizedExperiment::rowData(res) |>
+      x = SummarizedExperiment::rowData(res) %>%
         tibble::as_tibble(., rownames = "feature"),
-      y = SummarizedExperiment::assay(res, i) |>
-        log2() |>
-        t() |>
-        scale(., center = TRUE, scale = TRUE) |>
-        t() |>
+      y = SummarizedExperiment::assay(res, i) %>%
+        log2() %>%
+        t() %>%
+        scale(., center = TRUE, scale = TRUE) %>%
+        t() %>%
         tibble::as_tibble(., rownames = "feature"),
       by = "feature"
     )
   } else if (i %in% c("raw", "raw_filled")) {
     full_data <- dplyr::left_join(
-      x = SummarizedExperiment::rowData(res) |>
+      x = SummarizedExperiment::rowData(res) %>%
         tibble::as_tibble(., rownames = "feature"),
-      y = SummarizedExperiment::assay(res, i) |>
+      y = SummarizedExperiment::assay(res, i) %>%
         tibble::as_tibble(., rownames = "feature"),
       by = "feature"
     )
@@ -1205,18 +1202,16 @@ for (i in assay.names) {
   )
 }
 
-################################################################################
-# 10. Check intersections
-################################################################################
-
+# ==============================================================================
+# Produce upset plots ----------------------------------------------------------
+# ==============================================================================
 message("Producing upset plots...")
-
-upset.tib <- full.limma |>
-  dplyr::select(feature, contrast, adj.P.Val) |>
+upset.tib <- full.limma %>%
+  dplyr::select(feature, contrast, adj.P.Val) %>%
   tidyr::pivot_wider(
     names_from = "contrast",
     values_from = "adj.P.Val"
-  ) |>
+  ) %>%
   dplyr::mutate(
     dplyr::across(
       .cols = 2:ncol(.),
@@ -1228,18 +1223,18 @@ upset.tib <- full.limma |>
     )
   )
 
-upset.p <- upset.tib |>
+upset.p <- upset.tib %>%
   ComplexUpset::upset(
     intersect = comparisons,
     name = paste0("Features with p adjusted < ", p.value.global),
     width_ratio = 0.15,
     base_annotations = list(
       "Intersecting features" = ComplexUpset::intersection_size()
-      )
+    )
   )
 
-# upset.tib |> 
-#     dplyr::select(c("feature", all_of(upset.comps))) |>
+# upset.tib %>% 
+#     dplyr::select(c("feature", all_of(upset.comps))) %>%
 #     ComplexUpset::upset(
 #         intersect = upset.comps,
 #         name = paste0("Features with p adjusted < ", p.value.global),
@@ -1259,12 +1254,10 @@ ggplot2::ggsave(
   units = "in"
 )
 
-################################################################################
-# 11. Find intersecting features
-################################################################################
-
+# ==============================================================================
+# Find intersecting features ---------------------------------------------------
+# ==============================================================================
 message("Finding intersecting features...")
-
 # TODO Create all interesting comparisons
 upset.comp <- c(
   "bu_wt_apiin-bu_wt_control", # 1
@@ -1280,26 +1273,28 @@ intersecting.feats <- findIntersectFeat(
   set = upset.comp,
   full_set = comparisons
 )
-upset.comps[[stringr::str_flatten(upset.comp, collapse = "*")]] <- intersecting.feats$feature
+upset.comps[[
+  stringr::str_flatten(upset.comp, collapse = "*")
+]] <- intersecting.feats$feature
 # TODO END of part that needs fixing
 
-all.int.comps <- upset.tib |>
-  tidyr::pivot_longer(cols = 2:ncol(.)) |>
-  dplyr::filter(value == TRUE) |>
-  dplyr::group_by(feature) |>
-  dplyr::filter(dplyr::n() >= 2) |>
-  dplyr::pull(feature) |>
+all.int.comps <- upset.tib %>%
+  tidyr::pivot_longer(cols = 2:ncol(.)) %>%
+  dplyr::filter(value == TRUE) %>%
+  dplyr::group_by(feature) %>%
+  dplyr::filter(dplyr::n() >= 2) %>%
+  dplyr::pull(feature) %>%
   unique(.)
 
-intersect.data <- full_norm_filled |>
-  tidyr::pivot_longer(cols = tidyselect::all_of(rownames(meta))) |>
-  dplyr::filter(feature %in% intersecting.feats$feature) |>
+intersect.data <- full_norm_filled %>%
+  tidyr::pivot_longer(cols = tidyselect::all_of(rownames(meta))) %>%
+  dplyr::filter(feature %in% intersecting.feats$feature) %>%
   dplyr::left_join(
      x = .,
-    y = meta |>
+    y = meta %>%
       tibble::as_tibble(., rownames = "sample"),
     by = c("name" = "sample")
-  ) |>
+  ) %>%
   dplyr::mutate(group = forcats::fct_relevel(
     group,
     c(
@@ -1310,15 +1305,15 @@ intersect.data <- full_norm_filled |>
     )
   ))
 
-limma.p.res <- full.limma |>
-  dplyr::select(feature, adj.P.Val, contrast) |>
+limma.p.res <- full.limma %>%
+  dplyr::select(feature, adj.P.Val, contrast) %>%
   dplyr::mutate(
     group1 = stringr::str_split_i(contrast, "-", 1),
     group2 = stringr::str_split_i(contrast, "-", 2),
-  ) |>
-  dplyr::select(-contrast) |>
-  dplyr::filter(feature %in% intersecting.feats$feature) |>
-  rstatix::add_significance(p.col = "adj.P.Val") |>
+  ) %>%
+  dplyr::select(-contrast) %>%
+  dplyr::filter(feature %in% intersecting.feats$feature) %>%
+  rstatix::add_significance(p.col = "adj.P.Val") %>%
   find_y_position(
     test.df = .,
     df = intersect.data,
@@ -1330,15 +1325,15 @@ limma.p.res <- full.limma |>
 message("Producing significant intersecting feature boxplots...")
 # Intersecting feats individually
 for (i in intersecting.feats$feature) {
-  tmp.inter.data <- full_norm_filled |>
-    tidyr::pivot_longer(cols = tidyselect::all_of(rownames(meta))) |>
-    dplyr::filter(feature %in% i) |>
+  tmp.inter.data <- full_norm_filled %>%
+    tidyr::pivot_longer(cols = tidyselect::all_of(rownames(meta))) %>%
+    dplyr::filter(feature %in% i) %>%
     dplyr::left_join(
       x = .,
-      y = meta |>
+      y = meta %>%
         tibble::as_tibble(., rownames = "sample"),
       by = c("name" = "sample")
-    ) |>
+    ) %>%
     dplyr::mutate(group = forcats::fct_relevel(
       group,
       c(
@@ -1349,23 +1344,23 @@ for (i in intersecting.feats$feature) {
       ))
     )
 
-  tmp.inter.limma <- full.limma |>
-    dplyr::select(feature, adj.P.Val, contrast) |>
+  tmp.inter.limma <- full.limma %>%
+    dplyr::select(feature, adj.P.Val, contrast) %>%
     dplyr::mutate(
       group1 = stringr::str_split_i(contrast, "-", 1),
       group2 = stringr::str_split_i(contrast, "-", 2),
-    ) |>
-    dplyr::select(-contrast) |>
-    dplyr::filter(feature %in% i) |>
-    rstatix::add_significance(p.col = "adj.P.Val") |>
+    ) %>%
+    dplyr::select(-contrast) %>%
+    dplyr::filter(feature %in% i) %>%
+    rstatix::add_significance(p.col = "adj.P.Val") %>%
     find_y_position(
       test.df = .,
       df = tmp.inter.data,
       formula = "value ~ group",
       fun.data = "max"
     )
-    
-  tmp.inter.p <- tmp.inter.data |>
+
+  tmp.inter.p <- tmp.inter.data %>%
     ggplot2::ggplot(.,
       ggplot2::aes(
         x = group,
@@ -1404,7 +1399,7 @@ for (i in intersecting.feats$feature) {
       ),
       step.increase = 0.1
   )
-    
+
   ggplot2::ggsave(
     filename = paste0(res.folder, "/graphs/feature_boxplot/", i, ".pdf"),
     plot = tmp.inter.p,
@@ -1415,18 +1410,14 @@ for (i in intersecting.feats$feature) {
   )
 }
 
-################################################################################
-# 12. Predictions of m/z
-# 1. First find interesting ones to look at (p.val & logFC)
-# 2. Match for the ones with a hit in the prediction of biotransformations
-# 3. Plot them from the actual data
-################################################################################
-
-# TODO Set an optparse argument for:
-# polarity
+# ==============================================================================
+# Mass-to-charge ratio predictions ---------------------------------------------
+# ==============================================================================
+# TODO 
+# Set an optparse argument for: polarity
 # or by inputting specific adducts
 message("Expanding possible adducts...")
-xchr9.defs <- xcms::featureDefinitions(xchr9) |>
+xchr9.defs <- xcms::featureDefinitions(xchr9) %>%
     tibble::as_tibble(., rownames = "feature")
 
 xchr9.mzs <- xchr9.defs$mzmed
@@ -1435,19 +1426,16 @@ names(xchr9.mzs) <- xchr9.defs$feature
 # TODO Check so correct
 possible.adducts <- MetaboCoreUtils::mz2mass(
   xchr9.mzs, # peak.mz
-  adduct = adducts(polarity = "negative")
-  ) |>
-  tibble::as_tibble(., rownames = "feature") |>
+  adduct = adducts(polarity = "negative")) %>%
+  tibble::as_tibble(., rownames = "feature") %>%
   tidyr::pivot_longer(
     cols = 2:ncol(.),
     names_to = "adduct",
-    values_to = "mass"
-  ) |>
+    values_to = "mass") %>%
   dplyr::left_join(
     x = .,
     y = xchr9.defs,
-    by = "feature"
-  )
+    by = "feature")
 
 if (nrow(xchr9.defs) * 17 == nrow(possible.adducts)) {
   message("Adducts expanded")
@@ -1492,24 +1480,28 @@ message("
   sep = ""
 )
 
-filt.match.diffs <- matched.diffs |>
+filt.match.diffs <- matched.diffs %>%
   dplyr::filter(
     dplyr::if_any(
       dplyr::all_of(c("feat1", "feat2")),
       # ~ .x %in% intersecting.feats$feature
       ~ .x %in% all.int.comps
     )
-  ) |>
+  ) %>%
   dplyr:::mutate(
     pair = purrr::map2(feat1, feat2, ~ c(.x, .y)),
-    mz1_forms = purrr::map(mz1, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))), # or ppm global
-    mz2_forms = purrr::map(mz2, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))) # or ppm global
-  ) |>
+    mz1_forms = purrr::map(
+      mz1, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
+    ), # or ppm global
+    mz2_forms = purrr::map(
+      mz2, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
+    ) # or ppm global
+  ) %>%
   dplyr::filter(grepl("1 x", name))
 
 message("Writing filtered predictions to table...")
 writexl::write_xlsx(
-  x = filt.match.diffs |>
+  x = filt.match.diffs %>%
     dplyr::select(
       -c(
         "mz1_forms",
@@ -1523,22 +1515,18 @@ writexl::write_xlsx(
   use_zip64 = FALSE
 )
 
-################################################################################
-# 13. Predictions of m/z vs a database
-################################################################################
-
+# ==============================================================================
+# Matching m/z's against a databases -------------------------------------------
+# ==============================================================================
 int.mets <- c(filt.match.diffs$feat1, filt.match.diffs$feat2)
 
-peaks_used <- full_norm_filled |>
-  dplyr::select(feature, mzmed, rtmed) |>
-  dplyr::rename("mz" = "mzmed", "rtime" = "rtmed") |>
-  dplyr::filter(feature %in% int.mets) |>
+peaks_used <- full_norm_filled %>%
+  dplyr::select(feature, mzmed, rtmed) %>%
+  dplyr::rename("mz" = "mzmed", "rtime" = "rtmed") %>%
+  dplyr::filter(feature %in% int.mets) %>%
   tibble::column_to_rownames(var = "feature")
 
 peaks_used$peak_id <- rownames(peaks_used) # keep XCMS peak IDs
-
-# Load a compound database via CompDb
-# The chebi import doesn't work
 
 annotation_hub <- AnnotationHub()
 # query(annotation_hub, "CompDb")
@@ -1572,10 +1560,6 @@ target_df <- ProtGenerics::compounds(
   )
 )
 
-# Check potential adducts
-# MetaboCoreUtils::adducts(polarity = "negative")
-# MetaboCoreUtils::adductNames(polarity = "negative")
-
 # parameters to match by
 mz_match_param <- MetaboAnnotation::Mass2MzParam(
   adducts = c(MetaboCoreUtils::adductNames(polarity = "negative")),
@@ -1588,15 +1572,14 @@ matches <- MetaboAnnotation::matchValues(
   param = mz_match_param
 )
 
-anno <- MetaboAnnotation::matchedData(matches) |>
-  tibble::as_tibble(., rownames = "feature") |>
-  dplyr::mutate(abs_score = abs(score)) |>
+anno <- MetaboAnnotation::matchedData(matches) %>%
+  tibble::as_tibble(., rownames = "feature") %>%
+  dplyr::mutate(abs_score = abs(score)) %>%
   dplyr::arrange(abs_score)
 
-################################################################################
-# 14. Filtering chromatogram object
-################################################################################
-
+# ==============================================================================
+# Filtering chromatograms ------------------------------------------------------
+# ==============================================================================
 # TODO
 # Filter this weaker
 # Don't filter as hard, and keep all the significant ones only?
@@ -1629,28 +1612,25 @@ if (check_saved("xchr9_filt.rds")) {
 # Checking specifically for the glycoside anad aglycone m/zs
 glycoside <- MetaboCoreUtils::mass2mz(
   Rdisop::getMass(Rdisop::getMolecule(glycoside_form)),
-  adduct = MetaboCoreUtils::adducts(polarity = "negative")
-  ) |>
-  t() |>
-  tibble::as_tibble(., rownames = "adduct") |>
+  adduct = MetaboCoreUtils::adducts(polarity = "negative")) %>%
+  t() %>%
+  tibble::as_tibble(., rownames = "adduct") %>%
   dplyr::rename("glycoside" = V1)
 
 aglycone <- MetaboCoreUtils::mass2mz(
   Rdisop::getMass(Rdisop::getMolecule(aglycone_form)),
-  adduct = MetaboCoreUtils::adducts(polarity = "negative")
-  ) |>
-  t() |>
-  tibble::as_tibble(., rownames = "adduct") |>
+  adduct = MetaboCoreUtils::adducts(polarity = "negative")) %>%
+  t() %>%
+  tibble::as_tibble(., rownames = "adduct") %>%
   dplyr::rename("aglycone" = V1)
 
 range.tol <- ppm_to_num(glycoside_ppm)
 
-gly.agly.adducts <- glycoside |>
+gly.agly.adducts <- glycoside %>%
   dplyr::left_join(
     x = .,
     y = aglycone,
-    by = "adduct"
-  ) |>
+    by = "adduct") %>%
   dplyr::mutate(
     glycoside.min = glycoside - range.tol,
     glycoside.max = glycoside + range.tol,
@@ -1660,20 +1640,26 @@ gly.agly.adducts <- glycoside |>
 
 gly.agly <- tibble::tibble()
 for (i in 1:nrow(gly.agly.adducts)) {
-  tmp <- full_raw_filled |>
+  tmp <- full_raw_filled %>%
     dplyr::filter(
-      dplyr::between(mzmed, gly.agly.adducts[i,]$glycoside.min, gly.agly.adducts[i,]$glycoside.max) |
-      dplyr::between(mzmed, gly.agly.adducts[i,]$aglycone.min, gly.agly.adducts[i,]$aglycone.max)
-    ) |>
-    dplyr::mutate(adduct = gly.agly.adducts[i,]$adduct) |>
+      dplyr::between(
+        mzmed, 
+        gly.agly.adducts[i,]$glycoside.min, 
+        gly.agly.adducts[i,]$glycoside.max
+      ) |
+      dplyr::between(
+        mzmed, 
+        gly.agly.adducts[i,]$aglycone.min, 
+        gly.agly.adducts[i,]$aglycone.max
+      )
+    ) %>%
+    dplyr::mutate(adduct = gly.agly.adducts[i,]$adduct) %>%
     dplyr::relocate(adduct, .after = "feature")
-    
+
   gly.agly <- bind_rows(gly.agly, tmp)
 }
 
 pot.glycosides <- unique(gly.agly$feature)
-
-# TODO Change this to match the Adduct one
 matched.diffs2 <- predictBiotransfAdductsSubset(
   data = possible.adducts,
   biotransf.data = bio.transf,
@@ -1681,9 +1667,9 @@ matched.diffs2 <- predictBiotransfAdductsSubset(
   feat_filt = pot.glycosides
 )
 
-filt.match.diffs2 <- matched.diffs2 |>
-  dplyr::rowwise() |>
-  dplyr::mutate(pair = list(c(feat1, feat2))) |>
+filt.match.diffs2 <- matched.diffs2 %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(pair = list(c(feat1, feat2))) %>%
   dplyr::ungroup()
 
 glycoside.pairs <- unique(c(filt.match.diffs2$feat1, filt.match.diffs2$feat2))
@@ -1691,13 +1677,12 @@ glycoside.pairs <- unique(c(filt.match.diffs2$feat1, filt.match.diffs2$feat2))
 xchr9.filt$final.plotting.features <- unique(c(
   glycoside.pairs, 
   xchr9.filt$final.plotting.features
-  )
+)
 )
 
-################################################################################
-# 14. Plotting interesting features
-################################################################################
-
+# ==============================================================================
+# Plotting features ------------------------------------------------------------
+# ==============================================================================
 message("Producing feature chromatograms...")
 if (check_saved("feature_chrs.rds")) {
   feature.chrs <- readRDS(file = paste0(res.folder, "/objects/feature_chrs.rds"))
