@@ -357,12 +357,14 @@ min.peak.width <- quantile(is.peaks$delta_rt, 0.05, na.rm = TRUE) * 0.3 # 0.3
 max.peak.width <- quantile(is.peaks$delta_rt, 0.95, na.rm = TRUE) * 4 # 4
 
 message(
-  "Internal standard: ", "C7H8O2", ", Theoretical m/z: ", mz.theory,
-  "\n\tMinimal peak width of IS: ", is.min.peak.width,
-  "\n\tMaximal peak width of IS: ", is.max.peak.width,
+  "===========================================================================",
+  "Internal standard: ", "C7H8O2", ", Theoretical m/z: ", round(mz.theory, 3),
+  "\n\tMinimal peak width of IS: ", round(is.min.peak.width, 3),
+  "\n\tMaximal peak width of IS: ", round(is.max.peak.width, 3),
   "\nPeak widths used for peak picking: ",
-  "\n\t Minimal width: ", min.peak.width,
-  "\n\t Maximal width: ", max.peak.width,
+  "\n\t Minimal width: ", round(min.peak.width, 3),
+  "\n\t Maximal width: ", round(max.peak.width, 3),
+  "===========================================================================",
   sep = ""
 )
 
@@ -1445,6 +1447,17 @@ if (nrow(xchr9.defs) * 17 == nrow(possible.adducts)) {
 
 message("Importing biotransformation file...")
 bio.transf <- importBiotransfMeta(file = paste0(data.path, "/", biotransf.file))
+# TODO FIX This and move it to the start of the script
+if (!exists("biotransf.append")) {
+  source("R/rpairs_parse.R")
+} else {
+  "'biotransf.append' already exists."
+}
+
+bio.transf2 <- dplyr::bind_rows(
+  bio.transf,
+  biotransf.append
+)
 
 message(
   "Predicting potential biotransformations based on:\n\t", 
@@ -1460,7 +1473,7 @@ message(
 # Fix so the observed ppm is added
 matched.diffs <- predictBiotransfAdducts(
   data = possible.adducts,
-  biotransf.data = bio.transf,
+  biotransf.data = bio.transf2, # bio.transf
   tolerance_ppm = 1 # ppm.global
 )
 
@@ -1489,13 +1502,14 @@ filt.match.diffs <- matched.diffs %>%
     )
   ) %>%
   dplyr:::mutate(
-    pair = purrr::map2(feat1, feat2, ~ c(.x, .y)),
-    mz1_forms = purrr::map(
-      mz1, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
-    ), # or ppm global
-    mz2_forms = purrr::map(
-      mz2, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
-    ) # or ppm global
+    pair = purrr::map2(feat1, feat2, ~ c(.x, .y))
+    # This is way too slow for 380 million comparisons
+    # mz1_forms = purrr::map(
+    #   mz1, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
+    # ), 
+    # mz2_forms = purrr::map(
+    #   mz2, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
+    # )
   ) %>%
   dplyr::filter(grepl("1 x", name))
 
@@ -1504,8 +1518,8 @@ writexl::write_xlsx(
   x = filt.match.diffs %>%
     dplyr::select(
       -c(
-        "mz1_forms",
-        "mz2_forms",
+        # "mz1_forms",
+        # "mz2_forms",
         "pair"
       )
     ),
@@ -1516,7 +1530,7 @@ writexl::write_xlsx(
 )
 
 # ==============================================================================
-# Matching m/z's against a databases -------------------------------------------
+# Matching m/z's against databases -------------------------------------------
 # ==============================================================================
 int.mets <- c(filt.match.diffs$feat1, filt.match.diffs$feat2)
 
@@ -1587,12 +1601,12 @@ anno <- MetaboAnnotation::matchedData(matches) %>%
 # For the plotting of individuals features -> use only the all.int.comps
 
 message(sprintf(
-  "Filtering features with sn: %s, beta_cor: %s, beta_snr: %s", 
-  sn_threshold, 
-  beta_cor_threshold, 
+  "Filtering features with sn: %s, beta_cor: %s, beta_snr: %s",
+  sn_threshold,
+  beta_cor_threshold,
   beta_snr_threshold
-  )
-)
+))
+
 if (check_saved("xchr9_filt.rds")) {
   xchr9.filt <- readRDS(file = paste0(res.folder, "/objects/xchr9_filt.rds"))
 } else {
@@ -1644,12 +1658,12 @@ for (i in 1:nrow(gly.agly.adducts)) {
     dplyr::filter(
       dplyr::between(
         mzmed, 
-        gly.agly.adducts[i,]$glycoside.min, 
+        gly.agly.adducts[i,]$glycoside.min,
         gly.agly.adducts[i,]$glycoside.max
       ) |
       dplyr::between(
         mzmed, 
-        gly.agly.adducts[i,]$aglycone.min, 
+        gly.agly.adducts[i,]$aglycone.min,
         gly.agly.adducts[i,]$aglycone.max
       )
     ) %>%
@@ -1662,7 +1676,7 @@ for (i in 1:nrow(gly.agly.adducts)) {
 pot.glycosides <- unique(gly.agly$feature)
 matched.diffs2 <- predictBiotransfAdductsSubset(
   data = possible.adducts,
-  biotransf.data = bio.transf,
+  biotransf.data = bio.transf2, # bio.transf
   tolerance_ppm = 15, # glycoside_ppm
   feat_filt = pot.glycosides
 )
@@ -1675,17 +1689,18 @@ filt.match.diffs2 <- matched.diffs2 %>%
 glycoside.pairs <- unique(c(filt.match.diffs2$feat1, filt.match.diffs2$feat2))
 
 xchr9.filt$final.plotting.features <- unique(c(
-  glycoside.pairs, 
+  glycoside.pairs,
   xchr9.filt$final.plotting.features
-)
-)
+))
 
 # ==============================================================================
 # Plotting features ------------------------------------------------------------
 # ==============================================================================
 message("Producing feature chromatograms...")
 if (check_saved("feature_chrs.rds")) {
-  feature.chrs <- readRDS(file = paste0(res.folder, "/objects/feature_chrs.rds"))
+  feature.chrs <- readRDS(
+    file = paste0(res.folder, "/objects/feature_chrs.rds")
+  )
 } else {
   feature.chrs <- xcms::featureChromatograms(
     object = xchr9,
