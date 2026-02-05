@@ -51,7 +51,6 @@ folders <- c(
   "glycoside",
   "glycoside_feature_pairs"
 )
-
 dir.create(res.folder, FALSE, TRUE)
 dir.create(file.path(res.folder, "objects"), FALSE, TRUE)
 dir.create(file.path(res.folder, "tables"), FALSE, TRUE)
@@ -64,21 +63,6 @@ for (folder in folders) {
     recursive = TRUE
   )
 }
-# dir.create(file.path(res.folder, "graphs", "bpc"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "internal_standard"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "volcano"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "upset"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "feature_boxplot"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "rtime"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "filled_peaks"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "pca"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "feature_chromatogram_intensity"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "per_sample_peaks"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "features"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "feature_pairs"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "glycoside"), FALSE, TRUE)
-# dir.create(file.path(res.folder, "graphs", "glycoside_feature_pairs"), FALSE, TRUE)
-
 dir.create(file.path("annotation_databases"), FALSE, TRUE)
 
 # ==============================================================================
@@ -102,7 +86,7 @@ if (check_saved("ms_exp.rds")) {
 message("Setting colors for groups...")
 groups.to.use <- unique(MsExperiment::sampleData(ms.exp)$group)
 group.colors <- paste0(
-  brewer.pal(n = length(groups.to.use), 
+  brewer.pal(n = length(groups.to.use),
   "Set1")[1:length(groups.to.use)]
 )
 group.colors <- setNames(group.colors, groups.to.use)
@@ -155,7 +139,8 @@ rownames(ann) <- cormat.rownames
 cormat.p <- pheatmap::pheatmap(
   cormat,
   annotation = ann,
-  annotation_color = list(group = group.colors)
+  annotation_color = list(group = group.colors),
+  silent = TRUE
 )
 
 ggplot2::ggsave(
@@ -212,84 +197,23 @@ legend("topleft", legend = names(group.colors), col = group.colors, pch = 16)
 invisible(dev.off())
 
 # Individual IS XICs
-# for (i in 1:ncol(is.eic)) {
-#     plot(
-#         x = is.eic[, i],
-#         col = group.colors[names(group.colors) %in% dplyr::filter(meta, rownames(meta) == colnames(bpcs)[i])$group],
-#         lwd = 3,
-#         main = colnames(bpcs)[i]
-#     )
-#     readline("Enter for next: ")
-# }
-# invisible(dev.off())
-
-
-# TODO FIX
-# The estimation of the ppm should be fixed
-# try4 <- findMzError(object = ms.exp, ref_peaks_obj = ranges$data)
-# max(full.tib$max.mz.error)
-
-# ==============================================================================
-# Checking if data is centroided
-# ==============================================================================
-# This filters the amount of speectra not the mz?
-# sps <- spectra(ms.exp) %>%
-#     filterRt(getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$rt.range) %>% 
-#     filterMzRange(mz = getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$mz.range)
-# 
-# Spectra::plotSpectraOverlay(x = sps, lwd = 2, xlim = mz.range)
-# 
-# ms.exp %>%
-#     filterRt(getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$rt.range) %>% 
-#     filterMzRange(mz = getRtMzRange(chromatogram = is.chr, rt_window = 0.02)$mz.range) %>%
-#     plot()
-# 
-# # Looks pretty good but is the data smoothed - it looks that way?
-# # looks like centroid mode
-# # TODO Add the ranges used in this example under
-# ms.exp %>%
-#     Spectra::filterRt(rt.range.long) %>%
-#     Spectra::filterMzRange(c(is.theory.mz - 0.025, is.theory.mz + 0.025)) %>%
-#     plot()
-# invisible(dev.off())
-# 
-# srn <- ms.exp[1] %>%
-#     filterRt(rt = rt.range.long) %>%
-#     filterMzRange(mz = mz.range)
-# plot(srn)
-# invisible(dev.off())
-# 
-# srn_1 <- srn[1] %>%
-#     filterMzRange(c(123.052, 123.040)) %>%
-#     spectra()
-# 
-# # Calculate the difference in m/z values between scans
-# mz_diff <- srn_1 %>%
-#     mz() %>%
-#     unlist() %>%
-#     diff() %>%
-#     abs()
-# mz_diff
-# 
-# # Differences in m/z values expressed as ppm
-# mz_error <- mz_diff * 1e6 / mean(unlist(mz(srn_1)))
-# 
-# max_error <- max(mz_error, na.rm = TRUE)
-# round_max_error <- round(max_error, -1)
-# round_max_error <- 60 # just use this for now
-
-# message(
-#     "Calculated max error: ", max_error, " ppm", 
-#     "\nUsing rounded max error: ", round_max_error, " ppm",
-#     sep = ""
-#     )
-
-# shorter range
-# ms.exp %>%
-#     filterRt(rt.range.s) %>%
-#     filterMzRange(mz.range) %>%
-#     plot()
-# invisible(dev.off())
+for (i in 1:ncol(is.eic)) {
+  plot(
+    x = is.eic[, i],
+    col = group.colors[
+      names(group.colors) %in% dplyr::filter(
+        meta,
+        rownames(meta) == colnames(bpcs)[i])$group
+    ],
+    lwd = 3,
+    main = colnames(bpcs)[i]
+  )
+  stop_loop <- readline("Enter for next, 'break' for stop: ")
+  if (stop_loop == "break") {
+    break
+  }
+}
+invisible(dev.off())
 
 # ==============================================================================
 # - Ensure IS peak is chosen
@@ -1674,6 +1598,8 @@ for (i in 1:nrow(gly.agly.adducts)) {
 }
 
 pot.glycosides <- unique(gly.agly$feature)
+# Only for testing right now
+pot.glycosides <- c("FT02089", "FT08181", "FT08191")
 matched.diffs2 <- predictBiotransfAdductsSubset(
   data = possible.adducts,
   biotransf.data = bio.transf2, # bio.transf
