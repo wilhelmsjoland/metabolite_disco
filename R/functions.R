@@ -277,8 +277,8 @@ importBiotransfMeta <- function(file = NULL) {
   ) %>%
     tidyr::uncount(
       ., 
-      weights = allowed_n, 
-      .id = "multiplier", 
+      weights = allowed_n,
+      .id = "multiplier",
       .remove = FALSE
     ) %>%
     dplyr::mutate(name = paste0(multiplier, " x ", name)) %>%

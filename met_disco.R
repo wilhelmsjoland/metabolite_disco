@@ -1352,16 +1352,19 @@ names(xchr9.mzs) <- xchr9.defs$feature
 # TODO Check so correct
 possible.adducts <- MetaboCoreUtils::mz2mass(
   xchr9.mzs, # peak.mz
-  adduct = adducts(polarity = "negative")) %>%
+  adduct = adducts(polarity = "negative")
+  ) %>%
   tibble::as_tibble(., rownames = "feature") %>%
   tidyr::pivot_longer(
     cols = 2:ncol(.),
     names_to = "adduct",
-    values_to = "mass") %>%
+    values_to = "mass"
+  ) %>%
   dplyr::left_join(
     x = .,
     y = xchr9.defs,
-    by = "feature")
+    by = "feature"
+  )
 
 if (nrow(xchr9.defs) * 17 == nrow(possible.adducts)) {
   message("Adducts expanded")
@@ -1397,7 +1400,7 @@ message(
 # Fix so the observed ppm is added
 matched.diffs <- predictBiotransfAdducts(
   data = possible.adducts,
-  biotransf.data = bio.transf2, # bio.transf
+  biotransf.data = bio.transf, # bio.transf2
   tolerance_ppm = 1 # ppm.global
 )
 
