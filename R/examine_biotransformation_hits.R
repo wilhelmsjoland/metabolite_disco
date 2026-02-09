@@ -567,7 +567,7 @@ apigenin.sims <- mol_similarity(
   fingerprint = "circular",
   circular_type = "ECFP6",
   method = "tanimoto"
-  ) %>%
+) %>%
   dplyr::left_join(
     x = .,
     y = anno,
@@ -625,3 +625,5 @@ apigenin.sims %>%
     legend.title = ggplot2::element_blank()
   ) +
   ggplot2::labs(y = "Tanimoto similarity")
+
+  

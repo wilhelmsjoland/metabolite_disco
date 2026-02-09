@@ -9,6 +9,7 @@
 /standard_peaks
 /standards
 /biotransformer3.0jar
+/predict_metabolism/*
 
 .DS_store
 03_psm.Rproj

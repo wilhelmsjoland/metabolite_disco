@@ -46,7 +46,7 @@ mol_similarity <- function(
         feature = .y,
         sim = fingerprint::distance(
           fp1 = .x,
-          fp2 = query.fp,
+          fp2 = query_fp,
           method = "tanimoto"
         )
       )

@@ -2,6 +2,7 @@
 # Source dependendencies and load libraries -----------------------------------
 # ==============================================================================
 source("R/functions.R")
+source("R/chem_functions.R")
 source("R/met_disco_args.R")
 suppressWarnings(
   suppressPackageStartupMessages({
@@ -29,6 +30,14 @@ suppressWarnings(
     library(patchwork)
     library(AnnotationHub)
     library(optparse)
+
+    # for examine_biotransformations_hits.R
+    library(ComplexHeatmap)
+    library(circlize)
+    library(rcdk)
+    library(rJava)
+    library(fingerprint)
+
   })
 )
 
