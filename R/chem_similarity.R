@@ -242,7 +242,7 @@ print(anno.peak.chr$combined)
 smiles <- anno$target_smiles
 names(smiles) <- anno$feature
 
-mols <- parse.smiles(
+mols <- rcdk::parse.smiles(
     smiles = smiles,
     omit.nulls = TRUE
     )
@@ -255,10 +255,10 @@ mols <- parse.smiles(
 # cls <- hclust(as.dist(fp.dist))
 # plot(cls, labels=FALSE)
 
-query.mol <- parse.smiles("C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O")[[1]]
+query.mol <- rcdk::parse.smiles("C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O")[[1]]
 target.mols <- mols
-query.fp <- get.fingerprint(query.mol, type = 'circular')
-target.fps <- lapply(target.mols, get.fingerprint, type = 'circular')
+query.fp <- get.fingerprint(query.mol, type = 'pubchem') # circular
+target.fps <- lapply(target.mols, get.fingerprint, type = 'pubchem') # circular
 sims <- data.frame(
     sim = do.call(rbind, 
                   lapply(

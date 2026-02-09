@@ -208,7 +208,8 @@ for (i in 1:ncol(is.eic)) {
     lwd = 3,
     main = colnames(bpcs)[i]
   )
-  stop_loop <- readline("Enter for next, 'break' for stop: ")
+  # stop_loop <- readline("Enter for next, 'break' for stop: ")
+  stop_loop <- "break"
   if (stop_loop == "break") {
     break
   }

@@ -8,7 +8,10 @@
 /input_data
 /standard_peaks
 /standards
+/biotransformer3.0jar
 
 .DS_store
 03_psm.Rproj
 intro_till_nya_gruppen.txt
+*.pdf
+*.svg

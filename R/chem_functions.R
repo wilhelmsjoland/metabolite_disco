@@ -1,33 +1,66 @@
-findSimilarity <- function(
-        smiles.obj = NULL,
-        query.smiles = NULL,
-        anno.obj = NULL,
-        type = "circular",
-        method = "tanimoto"
-        ) {
-    
-    target.mols <- parse.smiles(smiles = smiles.obj, omit.nulls = TRUE)
-    query.mol <- parse.smiles(query.smiles)[[1]]
-    query.fp <- get.fingerprint(query.mol, type = type)
-    target.fps <- lapply(target.mols, get.fingerprint, type = type)
-    
-    sims <- data.frame(
-        sim = do.call(rbind, 
-                      lapply(
-                          target.fps,
-                          fingerprint::distance,
-                          fp2 = query.fp, 
-                          method = method
-                      )
-        ))
-    
-    sims <- tibble::as_tibble(sims, rownames = "smiles") %>%
-        dplyr::arrange(desc(sim)) %>%
-        dplyr::left_join(
-            x = .,
-            y = anno.obj,
-            by = c("smiles" = "feature")
+mol_similarity <- function(
+  query_smiles = NULL,
+  target_smiles = NULL,
+  anno_obj = NULL,
+  kekulise = TRUE,
+  omit_nulls = TRUE,
+  fingerprint = "circular",
+  circular_type = "ECFP6",
+  method = "tanimoto"
+) {
+
+  query_mol <- rcdk::parse.smiles(
+    smiles = query_smiles,
+    kekulise = kekulise,
+    omit.nulls = omit_nulls
+  )[[1]]
+
+  target_mols <- rcdk::parse.smiles(
+    smiles = target_smiles,
+    kekulise = kekulise,
+    omit.nulls = omit_nulls
+  )
+
+  query_fp <- rcdk::get.fingerprint(
+    molecule = query_mol,
+    type = fingerprint,
+    circular.type = circular_type
+  )
+
+  target_fps <- lapply(
+    X = target_mols,
+    FUN = function(x) {
+      rcdk::get.fingerprint(
+        molecule = x,
+        type = fingerprint,
+        circular.type = circular_type
+      )
+    }
+  )
+
+  sims <- target_fps %>%
+    purrr::map2(
+      .x = .,
+      .y = names(.),
+      .f = ~ tibble::tibble(
+        feature = .y,
+        sim = fingerprint::distance(
+          fp1 = .x,
+          fp2 = query.fp,
+          method = "tanimoto"
         )
-    
-    return(sims)
+      )
+    ) %>%
+    purrr::list_rbind() %>%
+    dplyr::arrange(desc(sim))
+
+  return(sims)
 }
+
+# TODO
+# check later -> hclust of similarity
+# fps <- lapply(mols, get.fingerprint, type='circular')
+# fp.sim <- fingerprint::fp.sim.matrix(fps, method='tanimoto')
+# fp.dist <- 1 - fp.sim
+# cls <- hclust(as.dist(fp.dist))
+# plot(cls, labels=FALSE)
