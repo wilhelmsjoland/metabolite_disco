@@ -1,8 +1,8 @@
 importFiles <- function(
   data.path = NULL,
   meta.file = NULL
-  ) {
-  
+) {
+
   mzml.files <- list.files(
     data.path, 
     # pattern = ".test",
@@ -1028,7 +1028,7 @@ filtFeatures <- function(
     tidyr::unnest(peakidx) %>%
     dplyr::filter(peakidx %in% filt.chrompeaks.tib$feature2) %>%
     tidyr::nest(data = peakidx)
-    
+
   filt.sig.features.tib <- filt.features.tib %>%
     # Added so we don't remove interesting ones
     # that don't have a predicted biotransformation

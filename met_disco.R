@@ -80,20 +80,20 @@ dir.create(file.path("annotation_databases"), FALSE, TRUE)
 message("Importing metadata...")
 meta <- importFiles(data.path, meta.file)
 if (check_saved("ms_exp.rds")) {
-  ms.exp <- readRDS(file = file.path(res.folder, "objects/ms_exp.rds"))
+  ms_exp <- readRDS(file = file.path(res.folder, "objects/ms_exp.rds"))
 } else {
-  ms.exp <- MsExperiment::readMsExperiment(
+  ms_exp <- MsExperiment::readMsExperiment(
     spectraFiles = meta$path,
     sampleData = meta
   )
-  saveRDS(object = ms.exp, file = file.path(res.folder, "objects/ms_exp.rds"))
+  saveRDS(object = ms_exp, file = file.path(res.folder, "objects/ms_exp.rds"))
 }
 
 # ==============================================================================
 # Set colors for groups
 # ==============================================================================
 message("Setting colors for groups...")
-groups.to.use <- unique(MsExperiment::sampleData(ms.exp)$group)
+groups.to.use <- unique(MsExperiment::sampleData(ms_exp)$group)
 group.colors <- paste0(
   brewer.pal(n = length(groups.to.use),
   "Set1")[1:length(groups.to.use)]
@@ -107,7 +107,7 @@ message("Creating base peak chromatograms...")
 if (check_saved("bpcs.rds")) {
   bpcs <- readRDS(file = file.path(res.folder, "objects/bpcs.rds"))
 } else {
-  bpcs <- xcms::chromatogram(ms.exp, aggregationFun = "max")
+  bpcs <- xcms::chromatogram(ms_exp, aggregationFun = "max")
   saveRDS(object = bpcs, file = file.path(res.folder, "objects/bpcs.rds"))
 }
 
@@ -116,7 +116,7 @@ pdf(file.path(res.folder, "graphs/bpc/raw_bpc.pdf"))
 par(mar = c(4, 4, 3, 2))
 plot(
   x = bpcs,
-  col = group.colors[MsExperiment::sampleData(ms.exp)$group],
+  col = group.colors[MsExperiment::sampleData(ms_exp)$group],
   main = "Base peak chromatogram"
 )
 invisible(dev.off())
@@ -172,7 +172,7 @@ if (check_saved("is_chr.rds")) {
   is.chr <- readRDS(file = paste0(res.folder, "/objects/is_chr.rds"))
 } else {
   is.chr <- xcms::chromatogram(
-    object = ms.exp,
+    object = ms_exp,
     mz = mz.range,
     aggregationFun = "sum"
   )
@@ -191,7 +191,7 @@ if (check_saved("is_eic.rds")) {
   is.eic <- readRDS(file = paste0(res.folder, "/objects/is_eic.rds"))
 } else {
   is.eic <- xcms::chromatogram(
-    object = ms.exp,
+    object = ms_exp,
     mz = ranges$mz.range,
     rt = ranges$rt.range,
     aggregationFun = "sum"
@@ -240,7 +240,7 @@ if (check_saved("is_eic_wide.rds")) {
   is.eic.wide <- readRDS(file = paste0(res.folder, "/objects/is_eic_wide.rds"))
 } else {
   is.eic.wide <- xcms::chromatogram(
-    ms.exp,
+    ms_exp,
     mz = mz.range + c(-0.05, 0.05),
     rt = ranges$rt.range + c(-16, 16),
     aggregationFun = "sum"
@@ -311,7 +311,7 @@ if (check_saved("xchr.rds")) {
   xchr <- readRDS(file = paste0(res.folder, "/objects/xchr.rds"))
 } else {
   xchr <- xcms::findChromPeaks(
-    object = ms.exp,
+    object = ms_exp,
     BPPARAM = BiocParallel::bpparam(),
     return.type = "XCMSnExp",
     msLevel = 1L,
@@ -344,7 +344,7 @@ plot(
 legend(
   "topright",
   col = unique(group.colors[MsExperiment::sampleData(xchr)$group]), 
-  legend = unique(names(group.colors[MsExperiment::sampleData(ms.exp)$group])),
+  legend = unique(names(group.colors[MsExperiment::sampleData(ms_exp)$group])),
   pch = 16
 )
 invisible(dev.off())
@@ -1408,6 +1408,7 @@ message(
 # CHECK THIS FOR SURE
 # TODO
 # Fix so the observed ppm is added
+# Also filter noisy features with the filtFeatures() function I made
 matched.diffs <- predictBiotransfAdducts(
   data = possible.adducts,
   biotransf.data = bio.transf, # bio.transf2
@@ -1550,12 +1551,12 @@ if (check_saved("xchr9_filt.rds")) {
   xchr9.filt <- filtFeatures(
     object = xchr9,
     sn_threshold = sn_threshold,
-    beta_cor_threshold = beta_cor_threshold, 
+    beta_cor_threshold = beta_cor_threshold,
     beta_snr_threshold = beta_snr_threshold,
     filt_vector = all.int.comps
   )
   saveRDS(
-    object = xchr9.filt, 
+    object = xchr9.filt,
     file = paste0(res.folder, "/objects/xchr9_filt.rds")
   )
 }
@@ -1581,7 +1582,8 @@ gly.agly.adducts <- glycoside %>%
   dplyr::left_join(
     x = .,
     y = aglycone,
-    by = "adduct") %>%
+    by = "adduct"
+  ) %>%
   dplyr::mutate(
     glycoside.min = glycoside - range.tol,
     glycoside.max = glycoside + range.tol,
@@ -1594,12 +1596,12 @@ for (i in 1:nrow(gly.agly.adducts)) {
   tmp <- full_raw_filled %>%
     dplyr::filter(
       dplyr::between(
-        mzmed, 
+        mzmed,
         gly.agly.adducts[i,]$glycoside.min,
         gly.agly.adducts[i,]$glycoside.max
       ) |
       dplyr::between(
-        mzmed, 
+        mzmed,
         gly.agly.adducts[i,]$aglycone.min,
         gly.agly.adducts[i,]$aglycone.max
       )
