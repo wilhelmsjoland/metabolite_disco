@@ -1,5 +1,5 @@
 
-hits <- filt.match.diffs2 %>%
+hits <- filt_match_diffs2 %>%
   dplyr::mutate(obs_ppm = num_to_ppm(abs(delta_mass - obs_delta_mass))) %>%
   dplyr::filter(feat1 != feat2) %>%
   dplyr::arrange(obs_ppm)
@@ -62,7 +62,7 @@ if (file.exists(
   )
 )) {
   int_pairs <- read_tsv(
-  file = file.path(res.folder, "graphs", "saved_pairs", "saved_pairs.tsv")
+    file = file.path(res.folder, "graphs", "saved_pairs", "saved_pairs.tsv")
   )
 } else {
   # int_pairs <- tibble::tibble()
@@ -87,12 +87,12 @@ if (file.exists(
       "Feature Y ± ", df[idx, ]$name2,
       "\nFeat1: ", hits[i, ][["feat1"]], ", Feat2: ", hits[i, ][["feat2"]],
       "\nDelta_form: ", hits[i, ][["chem_change"]],
-      "\nAdduct1: ", hits[i, ][["adduct1"]], 
+      "\nAdduct1: ", hits[i, ][["adduct1"]],
       ", Adduct2: ", hits[i, ][["adduct2"]],
       "\nObs ppm: ", hits[i, ][["obs_ppm"]],
       "\nRclass: ", df[idx, ][["entry"]],
       "\nRpair: ", df[idx, ][["rpair"]]
-    ) 
+    )
 
     print(hits[i, ])
     stop_loop <- readline("Enter for next, 'break' for stop, 'save' for save: ")
@@ -173,16 +173,25 @@ test3 <- test2 %>%
   dplyr::select(name, dplyr::all_of(int_pair_feats)) %>%
   # group_by(group_var) %>%
   summarize(
-    results = list({
-      dat <- dplyr::pick(dplyr::all_of(int_pair_feats))  # data.frame of just the cols
-      purrr::map_dfr(
-        .x = combn(int_pair_feats, 2, simplify = FALSE),
-        .f = function(p) {
-          broom::tidy(cor.test(dat[[p[1]]], dat[[p[2]]], method = "pearson")) %>%
-            dplyr::mutate(var1 = p[1], var2 = p[2], .before = 1)
-        }
-      )
-    }),
+    results = list(
+      {
+        # data.frame of just the cols
+        dat <- dplyr::pick(dplyr::all_of(int_pair_feats))
+        purrr::map_dfr(
+          .x = combn(int_pair_feats, 2, simplify = FALSE),
+          .f = function(p) {
+            broom::tidy(
+              cor.test(
+                dat[[p[1]]],
+                dat[[p[2]]],
+                method = "pearson"
+              )
+            ) %>%
+              dplyr::mutate(var1 = p[1], var2 = p[2], .before = 1)
+          }
+        )
+      }
+    ),
     .groups = "drop"
   ) %>%
   tidyr::unnest(results)
@@ -218,9 +227,9 @@ test4 %>%
     x = guide_axis(angle = -45)
   )
 
-ind.int.fts <- sort(unique(c(test4$var1, test4$var2)))
+ind_int_fts <- sort(unique(c(test4$var1, test4$var2)))
 
-for (i in ind.int.fts) {
+for (i in ind_int_fts) {
   tmp_feat_corr <- plotFeatChrInt(
     feature_chrom = hits_chrs,
     feature = i,
@@ -272,7 +281,7 @@ test5 <- full_norm_filled %>% # full_norm_filled
     )
   ) %>%
   tidyr::pivot_longer(cols = contains(".mzML")) %>%
-  dplyr::filter(feature %in% ind.int.fts) %>%
+  dplyr::filter(feature %in% ind_int_fts) %>%
   # dplyr::mutate(feature_sample = paste0(feature, "_", name)) %>%
   dplyr::left_join(
     x = .,
@@ -285,15 +294,23 @@ test5 <- full_norm_filled %>% # full_norm_filled
 # ==============================================================================
 mat_cor <- test5 %>%
   dplyr::select(feature, name, value) %>%
-  tidyr::pivot_wider(names_from = name, values_from = value, values_fill = 0) %>%
+  tidyr::pivot_wider(
+    names_from = name,
+    values_from = value,
+    values_fill = 0
+  ) %>%
   tibble::column_to_rownames("feature") %>%
   as.matrix()
 
-d_samp_cor <- as.dist(1 - cor(mat_cor,  use = "pairwise.complete.obs", method = "pearson"))
+d_samp_cor <- as.dist(
+  1 - cor(mat_cor,  use = "pairwise.complete.obs", method = "pearson")
+)
 hc_samp_cor <- hclust(d_samp_cor, method = "average")
 name_order_cor <- colnames(mat_cor)[hc_samp_cor$order]
 
-d_feat_cor <- as.dist(1 - cor(t(mat_cor), use = "pairwise.complete.obs", method = "pearson"))
+d_feat_cor <- as.dist(
+  1 - cor(t(mat_cor), use = "pairwise.complete.obs", method = "pearson")
+)
 hc_feat_cor <- hclust(d_feat_cor, method = "average")
 feature_order_cor <- rownames(mat_cor)[hc_feat_cor$order]
 
@@ -334,7 +351,11 @@ draw(ht_cor, heatmap_legend_side = "right", annotation_legend_side = "right")
 # =============================================================================
 mat_ht <- test5 %>%
   dplyr::select(feature, name, value) %>%
-  tidyr::pivot_wider(names_from = name, values_from = value, values_fill = 0) %>%
+  tidyr::pivot_wider(
+    names_from = name,
+    values_from = value,
+    values_fill = 0
+  ) %>%
   tibble::column_to_rownames("feature") %>%
   as.matrix()
 
@@ -372,7 +393,7 @@ draw(ht, heatmap_legend_side = "right", annotation_legend_side = "right")
 # Molecular similarity ---------------------------------------------------------
 # =============================================================================
 # from the heatmap
-int.bio.fts <- c(
+int_bio_fts <- c(
   "FT11675",
   "FT08181",
   "FT08191",
@@ -385,7 +406,7 @@ int.bio.fts <- c(
   "FT06679"
 )
 
-int.annos <- c(
+int_annos <- c(
   "FT02161",
   "FT00292",
   "FT03755",
@@ -538,25 +559,25 @@ anno$peak_id[is.na(anno$target_smiles)]
 
 # 648 rows
 # 1,592
-anno.filt <- anno %>%
+anno_filt <- anno %>%
   # TODO
   # DO A more intelligent filtering than this based on
   # how much information is available in all the rows
   dplyr::group_by(adduct) %>% # Think this might have fixed the loss of same
   dplyr::distinct(target_inchikey, .keep_all = TRUE) %>%
-  dplyr::filter(peak_id %in% int.annos) # int.bio.feats
+  dplyr::filter(peak_id %in% int_annos) # int.bio.feats
 
-smiles <- anno.filt$target_smiles
-names(smiles) <- anno.filt$feature
+smiles <- anno_filt$target_smiles
+names(smiles) <- anno_filt$feature
 
-apigenin.smiles <- "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O"
-apiin.smiles <- paste0(
+apigenin_smiles <- "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O"
+apiin_smiles <- paste0(
   "C1[C@@]([C@H]([C@@H](O1)O[C@@H]2[C@H]([C@@H]([C@H]",
   "(O[C@H]2OC3=CC(=C4C(=C3)OC(=CC4=O)C5=CC=C(C=C5)O)O)CO)O)O)O)(CO)O"
 )
 
-apigenin.sims <- mol_similarity(
-  query_smiles = apigenin.smiles,
+apigenin_sims <- mol_similarity(
+  query_smiles = apigenin_smiles,
   target_smiles = smiles,
   kekulise = TRUE, # parsing incorrect smiles with electrons
   omit_nulls = TRUE,
@@ -572,7 +593,7 @@ apigenin.sims <- mol_similarity(
   dplyr::filter(sim > 0.15)
 
 # Get names for individual inchikey
-inchi_ks <- paste0(apigenin.sims$target_inchikey, collapse = ",")
+inchi_ks <- paste0(apigenin_sims$target_inchikey, collapse = ",")
 cmd <- paste0(
   "curl -s -d \"inchikey=", inchi_ks, "\" ",
   "\"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchikey/property/",
@@ -582,12 +603,12 @@ cmd <- paste0(
 results <- system(cmd, intern = TRUE)
 inchikey_map <- read_csv(file = paste0(results, collapse = "\n"))
 
-apigenin.sims %>%
+apigenin_sims %>%
   dplyr::left_join(
     x = .,
     y = inchikey_map,
     by = c("target_inchikey" = "InChIKey")
-  ) %>% 
+  ) %>%
   dplyr::mutate(Title = forcats::fct_reorder( # target_name
     .f = Title, # target_name
     .x = sim,
@@ -604,10 +625,10 @@ apigenin.sims %>%
   # because there are duplicates - just choose the best one
   ggplot2::geom_col(
     aes(fill = peak_id),
-      stat = "summary",
-      fun = "max",
-      color = "black",
-      position = ggplot2::position_dodge()
+    stat = "summary",
+    fun = "max",
+    color = "black",
+    position = ggplot2::position_dodge()
   ) +
   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
   ggplot2::scale_y_continuous(
@@ -621,4 +642,3 @@ apigenin.sims %>%
     legend.title = ggplot2::element_blank()
   ) +
   ggplot2::labs(y = "Tanimoto similarity")
-

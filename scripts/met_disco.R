@@ -1455,7 +1455,6 @@ writexl::write_xlsx(
 # ==============================================================================
 # Checking specifically for the glycoside anad aglycone m/zs
 glycoside2 <- MetaboCoreUtils::mass2mz(
-  # Rdisop::getMass(Rdisop::getMolecule(glycoside_form)),
   MetaboCoreUtils::calculateMass(glycoside_form)[[1]],
   adduct = MetaboCoreUtils::adducts(polarity = polarity)) %>%
   t() %>%
@@ -1463,7 +1462,6 @@ glycoside2 <- MetaboCoreUtils::mass2mz(
   dplyr::rename("glycoside" = V1)
 
 aglycone <- MetaboCoreUtils::mass2mz(
-  # Rdisop::getMass(Rdisop::getMolecule(aglycone_form)),
   MetaboCoreUtils::calculateMass(aglycone_form)[[1]],
   adduct = MetaboCoreUtils::adducts(polarity = polarity)) %>%
   t() %>%
@@ -1498,7 +1496,7 @@ for (i in seq_along(gly_agly_adducts)) {
           mzmed,
           gly_agly_adducts[i, ]$aglycone_min,
           gly_agly_adducts[i, ]$aglycone_max
-      )
+        )
     ) %>%
     dplyr::mutate(adduct = gly_agly_adducts[i, ]$adduct) %>%
     dplyr::relocate(adduct, .after = "feature")

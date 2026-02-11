@@ -1,5 +1,5 @@
 # TODO
-# Check intersection between significantly different 
+# Check intersection between significantly different
 # by mutant and annotated metabolites
 
 source("scripts/chem_functions.R")
