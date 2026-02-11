@@ -1,5 +1,5 @@
 data <- readr::read_tsv(
-  "parse_kegg/search_compounds/output/rpairs.tsv",
+  "scripts/search_compounds/output/rpairs.tsv",
   show_col_types = FALSE
 )
 

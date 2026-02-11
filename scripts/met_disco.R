@@ -1387,7 +1387,7 @@ bio_transf <- import_biotransform_meta(
 )
 
 if (!exists("biotransf_append")) {
-  source("R/rpairs_parse.R")
+  source("scripts/rpairs_parse.R")
 } else {
   "'biotransf_append' already exists."
 }

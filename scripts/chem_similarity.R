@@ -1,7 +1,8 @@
 # TODO
-# Check intersection between significantly different by mutant and annotated metabolites
+# Check intersection between significantly different 
+# by mutant and annotated metabolites
 
-source("R/chem_functions.R")
+source("scripts/chem_functions.R")
 library(rcdk)
 library(rJava)
 library(fingerprint)

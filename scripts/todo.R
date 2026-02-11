@@ -5,7 +5,7 @@
 # Fix under "14. plotting interesting feature"
 # Filter harder!! and make this a selection in the original pipeline call
 # Update the annotation database to the prepackaged full one!
-    # Later fix and build my own one
+# Later fix and build my own one
 
 
 # Create a a table of all genes that are different in all comparisons
@@ -16,11 +16,12 @@
 # right now only handle if they are 1 negative/positive charge
 # Check all the chromatogram objects and see if
 # they include filled peaks with the parameter "filled = TRUE"
-# Filter what I put into the feature.chrs object 
+# Filter what I put into the feature.chrs object
 # Mabye based on beta gaussian etc etc or something?
 # Fix so the path isn't hardcoded in check_saved() and
 # that it follows any path input
-# Change the plotting in the standard_disco to ggplots -> take the idea from 251230_sqarc.R
+# Change the plotting in the standard_disco to ggplots ->
+# take the idea from 251230_sqarc.R
 # Do this also for the plotting functions -> may be faster
 # Add the content from 251230_sqarc.R into the standard_disco.R and met_disco.R
 # Fix the glycoside script so I can always use that as well!

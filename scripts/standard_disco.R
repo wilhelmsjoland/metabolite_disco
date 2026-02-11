@@ -1,36 +1,43 @@
-source("R/functions.R")
-source("R/standard_disco_args.R")
+source("scripts/functions.R")
+source("scripts/standard_disco_args.R")
 suppressWarnings(
-    suppressPackageStartupMessages({
-        library(dplyr)
-        # library(MSnbase)
-        library(xcms)
-        library(MsExperiment)
-        library(optparse)
-        library(writexl)
-        library(BiocParallel)
-    })
+  suppressPackageStartupMessages({
+    library(dplyr)
+    # library(MSnbase)
+    library(xcms)
+    library(MsExperiment)
+    library(optparse)
+    library(writexl)
+    library(BiocParallel)
+  })
 )
 
-dir.create(file.path(stds.output.path, "peaks"), FALSE, TRUE)
+dir.create(file.path(stds_output_path, "peaks"), FALSE, TRUE)
 
-stds <- importFiles(data.path = data.path, meta.file = meta.file)
+stds <- import_mzml(data_path = data_path, meta_file = meta_file)
 
-if (file.exists(file.path(stds.output.path, "stds_exp.rds"))) {
-    stds.exp <- readRDS(file.path(stds.output.path, "stds_exp.rds"))
+if (file.exists(file.path(stds_output_path, "stds_exp.rds"))) {
+  stds_exp <- readRDS(file.path(stds_output_path, "stds_exp.rds"))
 } else {
-    stds.exp <- MsExperiment::readMsExperiment(spectraFiles = stds$path, sampleData = stds)
-    saveRDS(stds.exp, file.path(stds.output.path, "stds_exp.rds"))
+  stds_exp <- MsExperiment::readMsExperiment(
+    spectraFiles = stds$path,
+    sampleData = stds
+  )
+  saveRDS(stds_exp, file.path(stds_output_path, "stds_exp.rds"))
 }
 
-std.mz.theory <- getTheoryMz(chem_form = glycoside.form, adduct = std.adduct)
-std.mz.range <- getShortMzRange(std.mz.theory, mz.window = 0.02)
+std_mz_theory <- get_theory_mz(chem_form = glycoside_form, adduct = std_adduct)
+std_mz_range <- get_short_mz_range(std_mz_theory, mz_window = 0.02)
 
-if (file.exists(file.path(stds.output.path, "std_chr_wide.rds"))) {
-    std.chr <- readRDS(file.path(stds.output.path, "std_chr_wide.rds"))
+if (file.exists(file.path(stds_output_path, "std_chr_wide.rds"))) {
+  std_chr <- readRDS(file.path(stds_output_path, "std_chr_wide.rds"))
 } else {
-    std.chr <- xcms::chromatogram(object = stds.exp, mz = std.mz.range, aggregationFun = "max")
-    saveRDS(std.chr, file.path(stds.output.path, "std_chr_wide.rds"))
+  std_chr <- xcms::chromatogram(
+    object = stds_exp,
+    mz = std_mz_range,
+    aggregationFun = "max"
+  )
+  saveRDS(std_chr, file.path(stds_output_path, "std_chr_wide.rds"))
 }
 
 # open a plotting window when running via Rscript/Rterm
@@ -46,102 +53,108 @@ if (!interactive()) {
 }
 
 # Individual IS XICs
-full.rm.samp <- c()
-for (i in 1:ncol(std.chr)) {
-    samp.idx <- which(colnames(std.chr)[i] == rownames(stds))
-    plot(
-        x = std.chr[, i],
-        lwd = 3,
-        main = paste0(
-            stds$group[samp.idx], "\n",
-            colnames(std.chr)[i]
-        )
+full_rm_samp <- c()
+for (i in seq_along(std_chr)) {
+  samp_idx <- which(colnames(std_chr)[i] == rownames(stds))
+  plot(
+    x = std_chr[, i],
+    lwd = 3,
+    main = paste0(
+      stds$group[samp_idx], "\n",
+      colnames(std_chr)[i]
     )
-    if (interactive()) {
-        rm.samp <- readline("Selection: Good [1] Bad [2] ")
-    } else if (!interactive()) {
-        cat("Selection: Good [1] Bad [2] ")
-        rm.samp <- readLines("stdin", n = 1)
-    }
+  )
+  if (interactive()) {
+    rm_samp <- readline("Selection: Good [1] Bad [2] ")
+  } else if (!interactive()) {
+    cat("Selection: Good [1] Bad [2] ")
+    rm_samp <- readLines("stdin", n = 1)
+  }
 
-    rm.samp2 <- setNames(colnames(std.chr)[i], rm.samp)
+  rm_samp2 <- setNames(colnames(std_chr)[i], rm_samp)
 
-    full.rm.samp <- c(full.rm.samp, rm.samp2)
+  full_rm_samp <- c(full_rm_samp, rm_samp2)
 }
 invisible(dev.off())
 
-good.samps <- full.rm.samp[which(names(full.rm.samp) == "1")]
-good.chr <- std.chr[,which(colnames(std.chr) %in% good.samps)]
+good_samps <- full_rm_samp[which(names(full_rm_samp) == "1")]
+good_chr <- std_chr[, which(colnames(std_chr) %in% good_samps)]
 
-std.ranges <- getRtMzRange(chromatogram = good.chr, rt_window = 0.02)
+std_ranges <- get_rt_mz_range(chromatogram = good_chr, rt_window = 0.02)
 
 # Get the IS XIC
-if (file.exists(file.path(stds.output.path, "std_eic_wide.rds"))) {
-    std.eic.wide <- readRDS(file.path(stds.output.path, "std_eic_wide.rds"))
+if (file.exists(file.path(stds_output_path, "std_eic_wide.rds"))) {
+  std_eic_wide <- readRDS(file.path(stds_output_path, "std_eic_wide.rds"))
 } else {
-    std.eic.wide <- xcms::chromatogram(
-        stds.exp,
-        mz = std.ranges$mz.range + c(-expand.mz, expand.mz),
-        rt = std.ranges$rt.range + c(-expand.rt, expand.rt),
-        aggregationFun = "sum"
-    )
-    saveRDS(std.eic.wide, file.path(stds.output.path, "std_eic_wide.rds"))
+  std_eic_wide <- xcms::chromatogram(
+    stds_exp,
+    mz = std_ranges$mz_range + c(-expand_mz, expand_mz),
+    rt = std_ranges$rt_range + c(-expand_rt, expand_rt),
+    aggregationFun = "sum"
+  )
+  saveRDS(std_eic_wide, file.path(stds_output_path, "std_eic_wide.rds"))
 }
 
-if (file.exists(file.path(stds.output.path, "std_chroms.rds"))) {
-    std.chr2 <- readRDS(file.path(stds.output.path, "std_chroms.rds"))
+if (file.exists(file.path(stds_output_path, "std_chroms.rds"))) {
+  std_chr2 <- readRDS(file.path(stds_output_path, "std_chroms.rds"))
 } else {
-    # Run peak detection on the EIC
-    std.chr2 <- findChromPeaks(
-        object = std.eic.wide,
-        param = CentWaveParam(
-            ppm = std.ppm,
-            peakwidth = c(1, 50),
-            prefilter = c(1, 1),
-            snthresh = 1,
-            mzCenterFun = "wMean",
-            mzdiff = 0.001, # -0.001,
-            integrate = 2,
-            noise = 0,
-            verboseBetaColumns = TRUE
-        ),
-        msLevel = 1
-    )
-    saveRDS(std.chr2, file.path(stds.output.path, "std_chroms.rds"))
+  # Run peak detection on the EIC
+  std_chr2 <- findChromPeaks(
+    object = std_eic_wide,
+    param = CentWaveParam(
+      ppm = std_ppm,
+      peakwidth = c(1, 50),
+      prefilter = c(1, 1),
+      snthresh = 1,
+      mzCenterFun = "wMean",
+      mzdiff = 0.001, # -0.001,
+      integrate = 2,
+      noise = 0,
+      verboseBetaColumns = TRUE
+    ),
+    msLevel = 1
+  )
+  saveRDS(std_chr2, file.path(stds_output_path, "std_chroms.rds"))
 }
 
-for (i in 1:ncol(std.chr2)) {
-    file.nm <- colnames(std.chr2)[i]
-    samp.idx <- which(file.nm == rownames(stds))
-    group.nm <- stds$group[samp.idx]
-    clean.file.nm <- gsub(".mzML", "", file.nm)
+for (i in seq_along(std_chr2)) {
+  file_nm <- colnames(std_chr2)[i]
+  samp_idx <- which(file_nm == rownames(stds))
+  group_nm <- stds$group[samp_idx]
+  clean_file_nm <- gsub(".mzML", "", file_nm)
 
-    save.file <- file.path(stds.output.path, "peaks", paste0(group.nm, "_", clean.file.nm, ".pdf"))
-    pdf(save.file, width = 4, height = 4)
-    plot(
-        x = std.chr2[, i],
-        lwd = 3,
-        main = paste0(
-            group.nm, "\n",
-            file.nm
-        )
+  save_file <- file.path(
+    stds_output_path, "peaks", paste0(group_nm, "_", clean_file_nm, ".pdf")
+  )
+  pdf(save_file, width = 4, height = 4)
+  plot(
+    x = std_chr2[, i],
+    lwd = 3,
+    main = paste0(
+      group_nm, "\n",
+      file_nm
     )
-    invisible(dev.off())
+  )
+  invisible(dev.off())
 }
 
 # TODO Double-check so this is correct later
-std.chr.peaks <- tibble::as_tibble(chromPeaks(std.chr2), rownames = "peak_id") %>%
-    dplyr::mutate(file = Biobase::sampleNames(std.chr2)[column]) %>%
-    dplyr::left_join(
-        x = .,
-        y = as_tibble(stds, rownames = "file"),
-        by = "file"
-    )
+std_chr_peaks <- tibble::as_tibble(
+  chromPeaks(std_chr2),
+  rownames = "peak_id"
+) %>%
+  dplyr::mutate(file = Biobase::sampleNames(std_chr2)[column]) %>%
+  dplyr::left_join(
+    x = .,
+    y = as_tibble(stds, rownames = "file"),
+    by = "file"
+  )
 
 write_xlsx(
-    x = std.chr.peaks,
-    path = file.path(stds.output.path, "std_chr_peaks.xlsx"),
-    col_names = TRUE,
-    format_headers = TRUE,
-    use_zip64 = FALSE
+  x = std_chr_peaks,
+  path = file.path(stds_output_path, "std_chr_peaks.xlsx"),
+  col_names = TRUE,
+  format_headers = TRUE,
+  use_zip64 = FALSE
 )
+message("Done.")

@@ -1,9 +1,0 @@
-rclass           KEGG Reaction Class Database
-rc               Release 117.0+/01-27, Jan 26
-                 Kanehisa Laboratories / Kyoto University Bioinformatics Center
-                 3,208 entries
-
-linked db        pathway
-                 ko
-                 reaction
-                 enzyme
