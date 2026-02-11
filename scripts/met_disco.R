@@ -1,9 +1,9 @@
 # ==============================================================================
 # Source dependendencies and load libraries -----------------------------------
 # ==============================================================================
-source("R/functions.R")
-source("R/chem_functions.R")
-source("R/met_disco_args.R")
+source("scripts/functions.R")
+source("scripts/chem_functions.R")
+source("scripts/met_disco_args.R")
 suppressWarnings(
   suppressPackageStartupMessages({
     library(tidyverse)
@@ -1350,11 +1350,8 @@ for (i in intersecting_feats$feature) {
 }
 
 # ==============================================================================
-# Mass-to-charge ratio predictions ---------------------------------------------
+# m/z predictions all ----------------------------------------------------------
 # ==============================================================================
-# TODO
-# Set an optparse argument for: polarity
-# or by inputting specific adducts
 message("Expanding possible adducts...")
 xchr9_defs <- xcms::featureDefinitions(xchr9) %>%
   tibble::as_tibble(., rownames = "feature")
@@ -1362,10 +1359,9 @@ xchr9_defs <- xcms::featureDefinitions(xchr9) %>%
 xchr9_mzs <- xchr9_defs$mzmed
 names(xchr9_mzs) <- xchr9_defs$feature
 
-# TODO Check so correct
 possible_adducts <- MetaboCoreUtils::mz2mass(
-  xchr9_mzs, # peak.mz
-  adduct = adducts(polarity = "negative")
+  xchr9_mzs,
+  adduct = adducts(polarity = polarity)
 ) %>%
   tibble::as_tibble(., rownames = "feature") %>%
   tidyr::pivot_longer(
@@ -1389,7 +1385,7 @@ message("Importing biotransformation file...")
 bio_transf <- import_biotransform_meta(
   file = paste0(data_path, "/", biotransf_file)
 )
-# TODO FIX This and move it to the start of the script
+
 if (!exists("biotransf_append")) {
   source("R/rpairs_parse.R")
 } else {
@@ -1410,8 +1406,6 @@ message(
 
 # TODO
 # CHECK IF THIS MAKES SENSE NOW!!!!!
-# CHECK THIS FOR SURE
-# TODO
 # Fix so the observed ppm is added
 # Also filter noisy features with the filt_features() function I made
 matched_diffs <- pred_biot(
@@ -1420,7 +1414,6 @@ matched_diffs <- pred_biot(
   tolerance_ppm = 1 # ppm_global
 )
 
-# TODO This is slow for now
 message("Writing predictions to table...")
 writexl::write_xlsx(
   x = matched_diffs,
@@ -1444,33 +1437,91 @@ filt_match_diffs <- matched_diffs %>%
       ~ .x %in% all.int.comps
     )
   ) %>%
-  dplyr:::mutate(
-    pair = purrr::map2(feat1, feat2, ~ c(.x, .y))
-    # This is way too slow for 380 million comparisons
-    # mz1_forms = purrr::map(
-    #   mz1, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
-    # ),
-    # mz2_forms = purrr::map(
-    #   mz2, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
-    # )
-  ) %>%
+  dplyr:::mutate(pair = purrr::map2(feat1, feat2, ~ c(.x, .y))) %>%
   dplyr::filter(grepl("1 x", name))
 
 message("Writing filtered predictions to table...")
 writexl::write_xlsx(
   x = filt_match_diffs %>%
-    dplyr::select(
-      -c(
-        # "mz1_forms",
-        # "mz2_forms",
-        "pair"
-      )
-    ),
+    dplyr::select(-c("pair")),
   path = paste0(res_folder, "/tables/filt_matched_diffs.xlsx"),
   col_names = TRUE,
   format_headers = TRUE,
   use_zip64 = FALSE
 )
+
+# ==============================================================================
+# m/z predictions subset -------------------------------------------------------
+# ==============================================================================
+# Checking specifically for the glycoside anad aglycone m/zs
+glycoside2 <- MetaboCoreUtils::mass2mz(
+  # Rdisop::getMass(Rdisop::getMolecule(glycoside_form)),
+  MetaboCoreUtils::calculateMass(glycoside_form)[[1]],
+  adduct = MetaboCoreUtils::adducts(polarity = polarity)) %>%
+  t() %>%
+  tibble::as_tibble(., rownames = "adduct") %>%
+  dplyr::rename("glycoside" = V1)
+
+aglycone <- MetaboCoreUtils::mass2mz(
+  # Rdisop::getMass(Rdisop::getMolecule(aglycone_form)),
+  MetaboCoreUtils::calculateMass(aglycone_form)[[1]],
+  adduct = MetaboCoreUtils::adducts(polarity = polarity)) %>%
+  t() %>%
+  tibble::as_tibble(., rownames = "adduct") %>%
+  dplyr::rename("aglycone" = V1)
+
+range_tol <- ppm_to_num(glycoside_ppm)
+
+gly_agly_adducts <- glycoside %>%
+  dplyr::left_join(
+    x = .,
+    y = aglycone,
+    by = "adduct"
+  ) %>%
+  dplyr::mutate(
+    glycoside_min = glycoside - range_tol,
+    glycoside_max = glycoside + range_tol,
+    aglycone_min = aglycone - range_tol,
+    aglycone_max = aglycone + range_tol
+  )
+
+gly_agly <- tibble::tibble()
+for (i in seq_along(gly_agly_adducts)) {
+  tmp <- full_raw_filled %>%
+    dplyr::filter(
+      dplyr::between(
+        mzmed,
+        gly_agly_adducts[i, ]$glycoside_min,
+        gly_agly_adducts[i, ]$glycoside_max
+      ) |
+        dplyr::between(
+          mzmed,
+          gly_agly_adducts[i, ]$aglycone_min,
+          gly_agly_adducts[i, ]$aglycone_max
+      )
+    ) %>%
+    dplyr::mutate(adduct = gly_agly_adducts[i, ]$adduct) %>%
+    dplyr::relocate(adduct, .after = "feature")
+
+  gly_agly <- bind_rows(gly_agly, tmp)
+}
+
+pot_glycosides <- unique(gly_agly$feature)
+# Only for testing right now
+pot_glycosides <- c("FT02089", "FT08181", "FT08191")
+matched_diffs2 <- pred_biot_subset(
+  data = possible_adducts,
+  biotransf_data = bio_transf2, # bio_transf
+  tolerance_ppm = ppm_global, # glycoside_ppm
+  feat_filt = pot_glycosides
+)
+
+filt_match_diffs2 <- matched_diffs2 %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(pair = list(c(feat1, feat2))) %>%
+  dplyr::ungroup()
+
+glycoside_pairs <- unique(c(filt_match_diffs2$feat1, filt_match_diffs2$feat2))
 
 # ==============================================================================
 # Matching m/z's against databases -------------------------------------------
@@ -1519,8 +1570,8 @@ target_df <- ProtGenerics::compounds(
 
 # parameters to match by
 mz_match_param <- MetaboAnnotation::Mass2MzParam(
-  adducts = c(MetaboCoreUtils::adductNames(polarity = "negative")),
-  ppm = ppm_global # 10
+  adducts = c(MetaboCoreUtils::adductNames(polarity = polarity)),
+  ppm = ppm_global
 )
 
 matches <- MetaboAnnotation::matchValues(
@@ -1537,12 +1588,6 @@ anno <- MetaboAnnotation::matchedData(matches) %>%
 # ==============================================================================
 # Filtering chromatograms ------------------------------------------------------
 # ==============================================================================
-# TODO
-# Filter this weaker
-# Don't filter as hard, and keep all the significant ones only?
-# For the delta m/z comparisons -> use filt.features + all.int.comps
-# For the plotting of individuals features -> use only the all.int.comps
-
 message(sprintf(
   "Filtering features with sn: %s, beta_cor: %s, beta_snr: %s",
   sn_threshold,
@@ -1566,74 +1611,6 @@ if (check_saved("xchr9_filt.rds")) {
   )
 }
 
-# Checking specifically for the glycoside anad aglycone m/zs
-glycoside <- MetaboCoreUtils::mass2mz(
-  Rdisop::getMass(Rdisop::getMolecule(glycoside_form)),
-  adduct = MetaboCoreUtils::adducts(polarity = "negative")) %>%
-  t() %>%
-  tibble::as_tibble(., rownames = "adduct") %>%
-  dplyr::rename("glycoside" = V1)
-
-aglycone <- MetaboCoreUtils::mass2mz(
-  Rdisop::getMass(Rdisop::getMolecule(aglycone_form)),
-  adduct = MetaboCoreUtils::adducts(polarity = "negative")) %>%
-  t() %>%
-  tibble::as_tibble(., rownames = "adduct") %>%
-  dplyr::rename("aglycone" = V1)
-
-range.tol <- ppm_to_num(glycoside_ppm)
-
-gly_agly_adducts <- glycoside %>%
-  dplyr::left_join(
-    x = .,
-    y = aglycone,
-    by = "adduct"
-  ) %>%
-  dplyr::mutate(
-    glycoside.min = glycoside - range.tol,
-    glycoside.max = glycoside + range.tol,
-    aglycone.min = aglycone - range.tol,
-    aglycone.max = aglycone + range.tol
-  )
-
-gly_agly <- tibble::tibble()
-for (i in seq_along(gly_agly_adducts)) {
-  tmp <- full_raw_filled %>%
-    dplyr::filter(
-      dplyr::between(
-        mzmed,
-        gly_agly_adducts[i, ]$glycoside.min,
-        gly_agly_adducts[i, ]$glycoside.max
-      ) |
-        dplyr::between(
-          mzmed,
-          gly_agly_adducts[i, ]$aglycone.min,
-          gly_agly_adducts[i, ]$aglycone.max
-      )
-    ) %>%
-    dplyr::mutate(adduct = gly_agly_adducts[i, ]$adduct) %>%
-    dplyr::relocate(adduct, .after = "feature")
-
-  gly_agly <- bind_rows(gly_agly, tmp)
-}
-
-pot_glycosides <- unique(gly_agly$feature)
-# Only for testing right now
-pot_glycosides <- c("FT02089", "FT08181", "FT08191")
-matched_diffs2 <- pred_biot_subset(
-  data = possible_adducts,
-  biotransf_data = bio_transf2, # bio_transf
-  tolerance_ppm = 15, # glycoside_ppm
-  feat_filt = pot_glycosides
-)
-
-filt_match_diffs2 <- matched_diffs2 %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(pair = list(c(feat1, feat2))) %>%
-  dplyr::ungroup()
-
-glycoside_pairs <- unique(c(filt_match_diffs2$feat1, filt_match_diffs2$feat2))
-
 xchr9_filt$final.plotting.features <- unique(c(
   glycoside_pairs,
   xchr9_filt$final.plotting.features
@@ -1655,8 +1632,8 @@ if (check_saved("feature_chrs.rds")) {
     aggregationFun = "sum",
     filled = TRUE,
     features = xchr9_filt$final.plotting.features,
-    missing = 0,
     # features = rownames(xcms::featureDefinitions(xchr9)),
+    missing = 0,
     return.type = "XChromatograms"
   )
   saveRDS(
@@ -1693,16 +1670,16 @@ if (check_saved("feature_chrs.rds")) {
 # )
 
 # message("Writing feature chromatograms and intensity boxplots...")
-# # feats.to.plot <- rownames(xcms::featureDefinitions(feature_chrs))
-# feats.to.plot <- xchr9_filt$filt.sig.features
-# for (i in feats.to.plot) {
-#   ft.p <- plot_feat_chrom_int(
+# feats_to_plot <- rownames(xcms::featureDefinitions(feature_chrs))
+# feats_to_plot <- xchr9_filt$filt.sig.features
+# for (i in feats_to_plot) {
+#   ft_p <- plot_feat_chrom_int(
 #     feature_chrom = feature_chrs,
 #     feature = i,
 #     method = "sum",
 #     value = "into",
 #     filled = TRUE,
-#     missing = "rowmin_half",
+#     missing = 0,
 #     ms_level = 1,
 #     save_loc = "/graphs/feature_chromatogram_intensity/",
 #     device = "pdf",
@@ -1711,10 +1688,10 @@ if (check_saved("feature_chrs.rds")) {
 # }
 
 # message("Plotting feature pairs in filtered biotransformations...")
-# for (i in seq_len(nrow(xchr9_filt$biot.filt.sig.features.tib))) {
-#   ft.pair.p <- plot_feature_pairs(
+# for (i in seq_len(nrow(xchr9_filt$biot_filt_sig_features_tib))) {
+#   ft_pair_p <- plot_feature_pairs(
 #     feature_chrom = feature_chrs,
-#     filt.match.row = xchr9_filt$biot.filt.sig.features.tib[i,],
+#     filt_match_row = xchr9_filt$biot_filt_sig_features_tib[i, ],
 #     method = "sum",
 #     value = "into",
 #     filled = TRUE,
@@ -1730,13 +1707,13 @@ if (check_saved("feature_chrs.rds")) {
 #   "for glycosides/aglycones..."
 # )
 # for (i in pot_glycosides) {
-#   ft.p <- plot_feat_chrom_int(
+#   ft_p <- plot_feat_chrom_int(
 #     feature_chrom = feature_chrs,
 #     feature = i,
 #     method = "sum",
 #     value = "into",
 #     filled = TRUE,
-#     missing = "rowmin_half",
+#     missing = 0,
 #     ms_level = 1,
 #     save_loc = "/graphs/glycoside/",
 #     device = "pdf",
@@ -1746,9 +1723,9 @@ if (check_saved("feature_chrs.rds")) {
 
 # message("Plotting glycoside/aglycone feature pairs biotransformations...")
 # for (i in seq_len(nrow(filt_match_diffs2))) {
-#   ft.pair.p <- plot_feature_pairs(
+#   ft_pair_p <- plot_feature_pairs(
 #     feature_chrom = feature_chrs,
-#     filt.match.row = filt_match_diffs2[i,],
+#     filt_match_row = filt_match_diffs2[i, ],
 #     method = "sum",
 #     value = "into",
 #     filled = TRUE,

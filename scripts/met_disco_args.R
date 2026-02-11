@@ -36,6 +36,12 @@ option_list <- list(
     help = "Chemical formula of the internal standard [default: %default]"
   ),
   optparse::make_option(
+    c("-p", "--polarity"),
+    type = "character",
+    default = "negative",
+    help = "Polarity for adduct formation [default: %default]"
+  ),
+  optparse::make_option(
     c("--glycoside"),
     type = "character",
     default = "C26H28O14",
@@ -139,6 +145,7 @@ glycoside_form <- opt$glycoside
 aglycone_form <- opt$aglycone
 glycoside_ppm <- opt$glycoside_ppm
 adduct <- opt$adduct
+polarity <- opt$polarity
 ppm_global <- opt$ppm_global
 bw_first_grouping <- opt$bw_first_grouping
 bw_second_grouping <- opt$bw_second_grouping

@@ -25,8 +25,6 @@ import_mzml <- function(
     file = meta_file,
     show_col_types = FALSE
   )
-  # %>%
-  # dplyr::bind_rows(tibble(sample = "x.mzML", group = "y"))
 
   meta_matched <- dplyr::left_join(
     x = meta,
@@ -65,7 +63,7 @@ multiply_chem <- function(chem_formula = NULL, multiply_by = 1) {
     "\\11"
   )
   multiply_by <- multiply_by
-  for (i in seq_along(split_form_append)) { # 1:length
+  for (i in seq_along(split_form_append)) {
     chem_letter <- stringr::str_extract_all(
       split_form_append[i],
       "[A-Za-z]+"
@@ -166,109 +164,6 @@ find_y_position <- function(
   return(final_df)
 }
 
-# pred_biot <- function(
-#   data = NULL,
-#   biotransf_data = NULL,
-#   tolerance_ppm = NULL,
-#   tolerance = NULL
-# ) {
-
-#   if (is.null(tolerance) & is.null(tolerance_ppm)) {
-#     stop("Both tolerance and tolerance_ppm are NULL")
-#   } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
-#     stop("Either tolerance or tolerance_ppm need to be set to NULL")
-#   }
-
-#   if (is.null(tolerance)) {
-#     tol_used = ppm_to_num(tolerance_ppm)
-#   }
-#   if (is.null(tolerance_ppm)) {
-#     tol_used = tolerance
-#   }
-
-#   ## 1. Prepare peaks table (all peaks, sorted by m/z)
-#   peaks <- data %>%
-#     # needs to be sorted for findInterval() indexing
-#     dplyr::arrange(mzmed) %>%
-#     dplyr::mutate(
-#       peak_id = dplyr::row_number(),    # simple integer ID
-#       feature,
-#       mzmed
-#     )
-
-#   n_peaks <- nrow(peaks)
-
-#   # convenience vectors so we don't keep indexing peaks$...
-#   mz_vec <- peaks$mzmed
-#   rt_vec <- peaks$rtmed
-#   id_vec <- peaks$peak_id
-#   feat_vec <- peaks$feature
-#   n_trans <- nrow(biotransf_data)
-
-#   ## 3. For each biotransformation, find all matching peak pairs
-#   all_matches <- vector("list", n_trans)
-
-#   for (k in 1:n_trans) {
-
-#     # current transformation
-#     delta <- biotransf_data$delta_mass[k]
-#     this_name <- biotransf_data$name[k]
-#     this_formula <- biotransf_data$chem_formula[k]
-
-#     # for each peak i, valid partners j must have:
-#     # mz_vec[j] in [mz_vec[i] + delta - tol, mz_vec[i] + delta + tol]
-#     target_lower <- mz_vec + delta - tol_used
-#     target_upper <- mz_vec + delta + tol_used
-
-#     # find, for each i, the index range [start_i, end_i] in the sorted mz_vec
-#     # that lies within [target_lower[i], target_upper[i]]
-#     idx_start <- findInterval(target_lower, mz_vec) + 1L
-#     idx_end <- findInterval(target_upper, mz_vec)
-
-#     # collect matches for this transformation here
-#     res_list <- vector("list", n_peaks)
-
-#     for (i in 1:n_peaks) {
-#       start_idx <- idx_start[i]
-#       end_idx <- idx_end[i]
-
-#       # no overlap for this i -> skip
-#       if (start_idx > end_idx) next
-
-#       # candidate partner indices
-#       partner_idx <- seq.int(start_idx, end_idx)
-
-#       # avoid self-pairs and symmetric duplicates (i,j) vs (j,i)
-#       partner_idx <- partner_idx[partner_idx > i]
-#       if (length(partner_idx) == 0) next
-
-#       # build rows for all partners of peak i
-#       res_list[[i]] <- tibble::tibble(
-#         name = this_name,
-#         chem_change = this_formula,
-#         delta_mass = delta,
-#         feat1 = feat_vec[i],
-#         feat2 = feat_vec[partner_idx],
-#         mz1 = mz_vec[i],
-#         mz2 = mz_vec[partner_idx],
-#         rt1 = rt_vec[i],
-#         rt2 = rt_vec[partner_idx],
-#         obs_delta_mass = mz_vec[partner_idx] - mz_vec[i],
-#         peak1_id = id_vec[i],
-#         peak2_id = id_vec[partner_idx]
-#       )
-#     }
-
-#     # bind all i-level results for this transformation
-#     all_matches[[k]] <- dplyr::bind_rows(res_list)
-#   }
-
-#   # 4. Final table of all matched pairs
-#   matched_diffs <- dplyr::bind_rows(all_matches)
-
-#   return(matched_diffs)
-# }
-
 import_biotransform_meta <- function(file = NULL) {
   biotransf_meta <- readr::read_csv(
     file = file,
@@ -334,10 +229,10 @@ get_rt_mz_range <- function(
   ref_tib <- tibble::tibble()
   for (samp_n in 1:length(chromatogram)) {
     ref_peak_intensity <- max(intensity(chromatogram[1, samp_n]), na.rm = TRUE)
-    max.intensity.idx <- which(
+    max_intensity_idx <- which(
       intensity(chromatogram[1, samp_n]) == ref_peak_intensity
     )
-    ref_peak_rt <- Spectra::rtime(chromatogram[1, samp_n])[[max.intensity.idx]]
+    ref_peak_rt <- Spectra::rtime(chromatogram[1, samp_n])[[max_intensity_idx]]
     mzmin <- min(Spectra::mz(chromatogram[1, samp_n]), na.rm = TRUE)
     mzmax <- max(Spectra::mz(chromatogram[1, samp_n]), na.rm = TRUE)
     rt_window_min <- c((1 - rt_window) * ref_peak_rt)
@@ -350,7 +245,7 @@ get_rt_mz_range <- function(
       ref_peak_rt,
       rt_window_min,
       rt_window_max,
-      max.intensity.idx,
+      max_intensity_idx,
       mzmin,
       mzmax,
       samp_n
@@ -372,65 +267,6 @@ get_rt_mz_range <- function(
 }
 
 # TODO
-# Rewrite this
-# Could loop over all samples to identify which
-# intensities for a rt are most consistent later
-# findMzError <- function(
-#         object = NULL,
-#         ref_peaks_obj = NULL
-#         ) {
-#
-#     rt_range <- c(min(ref_peaks_obj$rt_window_min), max(ref_peaks_obj$rt_window_max))
-#     mz_range <- c(min(ref_peaks_obj$mzmin, na.rm = TRUE), max(ref_peaks_obj$mzmax, na.rm = TRUE))
-#     
-#     srn <- object |> 
-#         Spectra::filterRt(rt = rt_range) |>
-#         Spectra::filterMzRange(mz_range)
-#     
-#     print(plot(srn))
-#     
-#     min.filter <- readline("Write min: ")
-#     max.filter <- readline("Write max: ")
-#     
-#     full.tmp_tib <- tibble()
-#     for (i in 1:length(srn)) {
-#         srn_1 <- srn[i] |> 
-#             Spectra::filterRt(rt = rt_range) |>
-#             Spectra::filterMzRange(c(min.filter, max.filter)) |>
-#             spectra()
-#         
-#         try3 <- srn_1 |>
-#             Spectra::mz() |>
-#             unlist() |>
-#             diff() |>
-#             abs()
-#         
-#         # Differences in m/z values expressed as ppm
-#         mz.error <- try3 * 1e6 / mean(unlist(mz(srn_1)))
-#         
-#         max.mz.error <- max(mz.error, na.rm = TRUE)
-#         min.mz.error <- max(mz.error, na.rm = TRUE)
-#         
-#         spectra.data <- Spectra::spectraData(srn_1)
-#         spectra.origin <- unique(spectra.data$dataOrigin)
-#         spectra.basename <- basename(spectra.origin)
-#         
-#         tmp_tib <- tibble(
-#             max.mz.error,
-#             min.mz.error,
-#             i,
-#             spectra.basename,
-#             min.filter,
-#             max.filter
-#         )
-#         
-#         full.tmp_tib <- bind_rows(full.tmp_tib, tmp_tib)
-#     }
-#     
-#     return(full.tmp_tib)
-# }
-
-# TODO 
 # Add colors to the plotting as well
 inspect_peak <- function(
   chromatogram = NULL,
@@ -588,8 +424,6 @@ plot_chrom_intensity <- function(
   peaks_or_feats = c("features", "peaks")
 ) {
   seq_plots <- seq.int(from = 0, to = nrow(chromatogram), by = 20)
-  # TODO This doesn't work when divisible by 20
-  # chrs_na_seq_slices <- c(seq_plots, nrow(chromatogram)) # add until last val
   chrs_na_seq_slices <- pmin(seq_plots + 20 - 1, seq_plots)
 
   if (is.null(amount)) {
@@ -599,10 +433,8 @@ plot_chrom_intensity <- function(
   }
 
   for (i in 1:length_chrs_na_seq_slices) {
-    # choose slices e.g. 1 : 20, 21:40, 41:60
-    # remove first value of end to not plot same value twice
-    first_slice <- chrs_na_seq_slices[i] + 1 # starts from 0
-    second_slice <- chrs_na_seq_slices[i + 1] # access next part of slice
+    first_slice <- chrs_na_seq_slices[i] + 1
+    second_slice <- chrs_na_seq_slices[i + 1]
 
     sliced_chr <- chromatogram[first_slice:second_slice, ]
 
@@ -614,10 +446,10 @@ plot_chrom_intensity <- function(
       stop("'peaks_or_feats' needs to be either 'features' or 'peaks")
     }
 
-    min.mz <- min(slice_chr_peaks$mzmin, na.rm = TRUE)
-    max.mz <- max(slice_chr_peaks$mzmax, na.rm = TRUE)
+    min_mz <- min(slice_chr_peaks$mzmin, na.rm = TRUE)
+    max_mz <- max(slice_chr_peaks$mzmax, na.rm = TRUE)
 
-    file_name <- paste0(round(min.mz, 3), "-", round(max.mz, 3))
+    file_name <- paste0(round(min_mz, 3), "-", round(max_mz, 3))
 
     pdf(
       file = paste0(res_folder, save_loc, file_name, ".pdf"),
@@ -666,56 +498,6 @@ plot_feat_chrom_int <- function(
   keep_peaks <- xcms::hasChromPeaks(lone_feat)
   lone_feat_peaks <- xcms::hasChromPeaks(lone_feat)[, keep_peaks]
   base_group_colors <- meta$group[match(names(lone_feat_peaks), rownames(meta))]
-
-  # full.tib <- tibble::tibble()
-  # for (i in 1:ncol(lone_feat)) {
-  #     lone_samp <- lone_feat[[1, i]]
-  #     
-  #     tmp_tib <- tibble::tibble(
-  #         rt = Spectra::rtime(lone_samp),
-  #         int = Spectra::intensity(lone_samp),
-  #         file_idx = MSnbase::fromFile(lone_samp),
-  #         file = colnames(lone_feat)[i],
-  #         mz = stringr::str_flatten(paste0(round(Spectra::mz(lone_samp), 3)), " - ")
-  #     )
-  #     
-  #     full.tib <- bind_rows(full.tib, tmp_tib)
-  # }
-  # 
-  # p1.data <- full.tib %>%
-  #     dplyr::left_join(
-  #         x = .,
-  #         y = tibble::as_tibble(meta, rownames = "file") %>%
-  #             dplyr::select(file, group),
-  #         by = c("file" = "file")
-  #     )
-  # 
-  # p1 <- p1.data %>%
-  #     ggplot2::ggplot(.,
-  #            ggplot2::aes(
-  #                x = rt,
-  #                y = int,
-  #                group = file,
-  #                color = group
-  #            )) +
-  #     ggplot2::geom_line(lwd = 1) +
-  #     ggplot2::theme_bw() +
-  #     ggplot2::theme(
-  #         legend.title = ggplot2::element_blank()
-  #     ) +
-  #     ggplot2::labs(
-  #         title = paste0(
-  #             "Feature: ", feature, 
-  #             ", M/z: ", unique(p1.data$mz),
-  #             ", RT: ", 
-  #             round(min(p1.data$rt), 3),
-  #             " - ",
-  #             round(max(p1.data$rt), 3)
-  #         ),
-  #         y = "Intensity",
-  #         x = "Retention time"
-  #     ) +
-  #     ggplot2::scale_color_manual(values = group_colors)
 
   if (isTRUE(feat_pairs)) {
     p1 <- function() {
@@ -778,7 +560,7 @@ plot_feat_chrom_int <- function(
     method = method,
     value = value,
     filled = filled,
-    missing = missing, # 0 # NA
+    missing = missing,
     ms_level = ms_level
   ) %>%
     tibble::as_tibble(., rownames = "feature") %>%
@@ -793,7 +575,7 @@ plot_feat_chrom_int <- function(
   p2 <- p2_data %>%
     ggplot2::ggplot(.,
       ggplot2::aes(
-        x = group, # name
+        x = group,
         y = value,
         fill = group
       )
@@ -824,17 +606,6 @@ plot_feat_chrom_int <- function(
       )
     )
 
-    # p3 <- p1 / p2 +
-    #     patchwork::plot_layout(
-    #         axes = "collect",
-    #         guides = "collect",
-    #         heights = c(
-    #             0.55,
-    #             0.45
-    #         )
-    #     )
-
-  # TODO Change to patchwork?
   p3 <- cowplot::plot_grid(
     p1,
     p2,
@@ -908,25 +679,6 @@ plot_feature_pairs <- function(
     feat_pairs = TRUE
   )
 
-    # This is for the old ggplot + ggplot version
-    # ft_pair_p <- (
-    #     feat1$chromatogram + ggplot2::labs(title = "") | 
-    #         feat2$chromatogram + ggplot2::labs(title = "")
-    # ) /
-    #     (
-    #         feat1$boxplot + ggplot2::labs(caption = "") | 
-    #             feat2$boxplot + ggplot2::labs(caption = "")
-    #     ) +
-    #     patchwork::plot_layout(guides = "collect") +
-    #     patchwork::plot_annotation(
-    #         title = paste0(
-    #             ft_pair[1], " & ", 
-    #             ft_pair[2], "\n",
-    #             "Potential ", filt_match_row$name, " ", filt_match_row$chem_change
-    #         )
-    #     )
-    
-  # This is for the base + ggplot version
   ft_pair_p <- ((
     cowplot::ggdraw(feat1$chromatogram) /
       (feat1$boxplot + ggplot2::labs(caption = ""))
@@ -973,7 +725,6 @@ feat_to_idx <- function(feature_idx = NULL) {
   return(clean_idx)
 }
 
-# TODO FIX This so the path isn't hardcoded
 check_saved <- function(filename = NULL) {
   object_bool <- file.exists(file.path(res_folder, "objects", filename))
   return(object_bool)
@@ -1002,11 +753,6 @@ filt_features <- function(
   sn_threshold = 10,
   filt_vector = NULL
 ) {
-
-  # Poor peaks: beta_cor < 0.5 (or even < 0.2
-  # Good peaks: beta_snr > 7
-  # Keep signal to noise at 10, and filter by beta_cor < 0.5, and beta_snr > 7?
-
   filt_chrompeaks_tib <- tibble::as_tibble(
     xcms::chromPeaks(object),
     rownames = "feature"
@@ -1040,7 +786,7 @@ filt_features <- function(
   # one significantly different feature
   biot_filt_sig_feature_tib <- matched_diffs %>%
     dplyr::filter(
-      dplyr::if_any( # if_any for if only one is significant
+      dplyr::if_any(
         tidyselect::all_of(c("feat1", "feat2")),
         ~ .x %in% filt_sig_features
       )
@@ -1055,29 +801,6 @@ filt_features <- function(
         mz2, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))
       )
     )
-
-    # TODO OLD version where I filder 
-    # all.int.comps in the biotransformation tibble
-    # filt_sig_features <- matched_diffs %>%
-    #     dplyr::filter(
-    #         dplyr::if_any(
-    #             tidyselect::all_of(c("feat1", "feat2")),
-    #             ~ .x %in% filt.features$feature
-    #         )
-    #     ) %>%
-    #     dplyr::filter(
-    #         dplyr::if_any(
-    #             tidyselect::all_of(c("feat1", "feat2")),
-    #             ~ .x %in% all.int.comps
-    #         )
-    #     ) %>%
-    #     dplyr:::mutate(
-    #         pair = purrr::map2(feat1, feat2, ~ c(.x, .y)),
-    #         # or ppm global
-    #         mz1_forms = purrr::map(mz1, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0))),
-    #         mz2_forms = purrr::map(mz2, ~ Rdisop::getFormula(Rdisop::decomposeMass(.x, ppm = 0)))
-    #     ) # %>%
-    # # dplyr::filter(grepl("1 x", name))
 
   biot_filt_sig_features <- unique(
     c(
@@ -1119,104 +842,6 @@ filt_features <- function(
   return(filt_list)
 
 }
-
-# pred_biot_subset <- function(
-#   data = NULL,
-#   biotransf_data = NULL,
-#   tolerance_ppm = NULL,
-#   tolerance = NULL,
-#   feat_filt = NULL
-# ) {
-
-#   if (is.null(tolerance) & is.null(tolerance_ppm)) {
-#     stop("Both tolerance and tolerance_ppm are NULL")
-#   } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
-#     stop("Either tolerance or tolerance_ppm need to be set to NULL")
-#   }
-
-#   if (is.null(tolerance)) {
-#     tol_used = ppm_to_num(tolerance_ppm)
-#   }
-#   if (is.null(tolerance_ppm)) {
-#     tol_used = tolerance
-#   }
-
-#   ## 1. Prepare peaks table (all peaks, sorted by m/z)
-#   peaks <- data %>%
-#     # needs to be sorted for findInterval() indexing
-#     dplyr::arrange(mzmed) %>%
-#     dplyr::mutate(
-#       peak_id = dplyr::row_number(),    # simple integer ID
-#       feature,
-#       mzmed
-#     )
-#   n_peaks <- nrow(peaks)
-
-#   # convenience vectors so we don't keep indexing peaks$...
-#   mz_vec <- peaks$mzmed
-#   rt_vec <- peaks$rtmed
-#   id_vec <- peaks$peak_id
-#   feat_vec <- peaks$feature
-#   n_trans <- nrow(biotransf_data)
-
-#   ## ONLY do comparisons for FT02089
-#   anchor_i <- which(feat_vec %in% feat_filt)
-
-#   ## 3. For each biotransformation, find all matching peak pairs
-#   all_matches <- vector("list", n_trans)
-
-#   for (k in 1:n_trans) {
-#     # current transformation
-#     delta <- biotransf_data$delta_mass[k]
-#     this_name <- biotransf_data$name[k]
-#     this_formula <- biotransf_data$chem_formula[k]
-
-#     # ONLY compute windows for anchor peaks (not all peaks)
-#     target_lower <- mz_vec[anchor_i] + delta - tol_used
-#     target_upper <- mz_vec[anchor_i] + delta + tol_used
-
-#     # ONLY compute interval bounds for anchor peaks
-#     idx_start <- findInterval(target_lower, mz_vec) + 1L
-#     idx_end <- findInterval(target_upper, mz_vec)
-
-#     # ONLY allocate list for anchors
-#     res_list <- vector("list", length(anchor_i))
-
-#     for (a in seq_along(anchor_i)) {
-#       i <- anchor_i[a]
-#       start_idx <- idx_start[a]
-#       end_idx <- idx_end[a]
-
-#       # no overlap for this i -> skip
-#       if (start_idx > end_idx) next
-
-#       # candidate partner indices
-#       partner_idx <- seq.int(start_idx, end_idx)
-
-#       # keep your original duplicate-avoidance logic
-#       partner_idx <- partner_idx[partner_idx > i]
-#       if (length(partner_idx) == 0) next
-
-#       res_list[[a]] <- tibble::tibble(
-#         name = this_name,
-#         chem_change = this_formula,
-#         delta_mass = delta,
-#         feat1 = feat_vec[i],
-#         feat2 = feat_vec[partner_idx],
-#         mz1 = mz_vec[i],
-#         mz2 = mz_vec[partner_idx],
-#         rt1 = rt_vec[i],
-#         rt2 = rt_vec[partner_idx],
-#         obs_delta_mass = mz_vec[partner_idx] - mz_vec[i],
-#         peak1_id = id_vec[i],
-#         peak2_id = id_vec[partner_idx]
-#       )
-#     }
-#     all_matches[[k]] <- dplyr::bind_rows(res_list)
-#   }
-#   matched_diffs <- dplyr::bind_rows(all_matches)
-#   return(matched_diffs)
-# }
 
 pred_biot_subset <- function(
   data = NULL,
@@ -1326,121 +951,6 @@ pred_biot_subset <- function(
   matched_diffs <- dplyr::bind_rows(all_matches)
   return(matched_diffs)
 }
-
-# pred_biot_subset <- function(
-#         data = NULL,
-#         biotransf_data = NULL,
-#         tolerance_ppm = NULL,
-#         tolerance = NULL,
-#         feat_filt = NULL
-# ) {
-    
-#     if (is.null(tolerance) & is.null(tolerance_ppm)) {
-#         stop("Both tolerance and tolerance_ppm are NULL")
-#     } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
-#         stop("Either tolerance or tolerance_ppm need to be set to NULL")
-#     }
-    
-#     if (is.null(tolerance)) {
-#         tol_used = ppm_to_num(tolerance_ppm)
-#     }
-#     if (is.null(tolerance_ppm)) {
-#         tol_used = tolerance
-#     }
-    
-#     ## 1. Prepare peaks table (all peaks, sorted by m/z)
-#     peaks <- data %>%
-#         # needs to be sorted for findInterval() indexing
-#         dplyr::arrange(mass) %>%
-#         dplyr::mutate(
-#             peak_id = dplyr::row_number(),    # simple integer ID
-#             feature,
-#             mass
-#         )
-#     n_peaks <- nrow(peaks)
-    
-#     # convenience vectors so we don't keep indexing peaks$...
-#     mz_vec <- peaks$mzmed
-#     rt_vec <- peaks$rtmed
-#     adduct_vec <- peaks$adduct
-#     mass_vec <- peaks$mass
-#     id_vec <- peaks$peak_id
-#     feat_vec <- peaks$feature
-#     n_trans <- nrow(biotransf_data)
-    
-#     ## ONLY do comparisons for feat_filt
-#     anchor_i <- which(feat_vec %in% feat_filt)
-    
-#     ## 3. For each biotransformation, find all matching peak pairs
-#     all_matches <- vector("list", n_trans)
-    
-#     for (k in 1:n_trans) {
-        
-#         # current transformation
-#         delta <- biotransf_data$delta_mass[k]
-#         this_name <- biotransf_data$name[k]
-#         this_formula <- biotransf_data$chem_formula[k]
-        
-#         # for each peak i, valid partners j must have:
-#         # mz_vec[j] in [mz_vec[i] + delta - tol, mz_vec[i] + delta + tol]
-#         target_lower <- mass_vec[anchor_i] + delta - tol_used
-#         target_upper <- mass_vec[anchor_i] + delta + tol_used
-        
-#         # find, for each i, the index range [start_i, end_i] in the sorted mz_vec
-#         # that lies within [target_lower[i], target_upper[i]]
-#         idx_start <- findInterval(target_lower, mass_vec) + 1L
-#         idx_end <- findInterval(target_upper, mass_vec)
-        
-#         # ONLY allocate list for anchors
-#         res_list <- vector("list", length(anchor_i))
-        
-#         for (a in seq_along(anchor_i)) {
-            
-#             i <- anchor_i[a]
-#             start_idx <- idx_start[a]
-#             end_idx <- idx_end[a]
-            
-#             # no overlap for this i -> skip
-#             if (start_idx > end_idx) next
-            
-#             # candidate partner indices
-#             partner_idx <- seq.int(start_idx, end_idx)
-            
-#             # keep your original duplicate-avoidance logic
-#             partner_idx <- partner_idx[partner_idx > i]
-#             if (length(partner_idx) == 0) next
-            
-#             res_list[[a]] <- tibble::tibble(
-#                 name = this_name,
-#                 chem_change = this_formula,
-#                 feat1 = feat_vec[i],
-#                 feat2 = feat_vec[partner_idx],
-#                 mz1 = mz_vec[i],
-#                 mz2 = mz_vec[partner_idx],
-                
-#                 adduct1 = adduct_vec[i],
-#                 adduct2 = adduct_vec[partner_idx],
-#                 mass1 = mass_vec[i],
-#                 mass2 = mass_vec[partner_idx],
-                
-#                 rt1 = rt_vec[i],
-#                 rt2 = rt_vec[partner_idx],
-#                 delta_mass = delta,
-#                 obs_delta_mass = mass_vec[partner_idx] - mass_vec[i],
-#                 peak1_id = id_vec[i],
-#                 peak2_id = id_vec[partner_idx]
-#             )
-#         }
-        
-#         # bind all i-level results for this transformation
-#         all_matches[[k]] <- dplyr::bind_rows(res_list)
-#     }
-    
-#     # 4. Final table of all matched pairs
-#     matched_diffs <- dplyr::bind_rows(all_matches)
-    
-#     return(matched_diffs)
-# }
 
 pred_biot <- function(
   data = NULL,

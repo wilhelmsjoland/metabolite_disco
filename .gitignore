@@ -9,6 +9,7 @@
 /standards
 /biotransformer3.0jar
 /predict_metabolism/*
+/scripts/ignore/
 
 .DS_store
 03_psm.Rproj
