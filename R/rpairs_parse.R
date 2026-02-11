@@ -10,7 +10,7 @@ df <- data %>%
   dplyr::relocate(rpair_num, .before = "entry") %>%
   dplyr::mutate(
     across(
-      .cols = all_of(c("name1", "name2")),
+      .cols = tidyselect::all_of(c("name1", "name2")),
       .fns = ~ stringr::str_trim(stringr::str_extract(., "^[^;]+"))
     )
   ) %>%
@@ -21,10 +21,10 @@ df <- data %>%
     MetaboCoreUtils::subtractElements(formula2, formula1)
   ))
 
-biotransf.append.redundant <- df %>%
+biotransf_append_redundant <- df %>%
   dplyr::mutate(allowed_n = 1) %>%
   tidyr::uncount(
-    data = ., 
+    data = .,
     weights = allowed_n,
     .id = "multiplier",
     .remove = FALSE
@@ -32,7 +32,7 @@ biotransf.append.redundant <- df %>%
   dplyr::rowwise() %>%
   dplyr::mutate(delta_formula = {
     if (!is.na(delta_formula) && delta_mass != 0) {
-      multChem(delta_formula, multiplier)
+      multiply_chem(delta_formula, multiplier)
     } else {
       NA
     }
@@ -41,7 +41,7 @@ biotransf.append.redundant <- df %>%
   dplyr::ungroup() %>%
   dplyr::select(rpair_num, delta_formula, allowed_n, multiplier, delta_mass)
 
-biotransf.append <- biotransf.append.redundant %>%
+biotransf_append <- biotransf_append_redundant %>%
   dplyr::group_by(delta_formula, delta_mass) %>%
   dplyr::summarize(
     rpair_nums = paste(sort(unique(rpair_num)), collapse = ", "),

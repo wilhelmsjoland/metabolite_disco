@@ -51,7 +51,7 @@ mol_similarity <- function(
       )
     ) %>%
     purrr::list_rbind() %>%
-    dplyr::arrange(desc(sim))
+    dplyr::arrange(dplyr::desc(sim))
 
   return(sims)
 }

@@ -1,88 +1,88 @@
-importFiles <- function(
-  data.path = NULL,
-  meta.file = NULL
+import_mzml <- function(
+  data_path = NULL,
+  meta_file = NULL
 ) {
 
-  mzml.files <- list.files(
-    data.path, 
+  mzml_files <- list.files(
+    data_path,
     # pattern = ".test",
-    pattern = "\\.mzML$|\\.mzml$", 
-    full.names = TRUE, 
-    recursive = TRUE, 
+    pattern = "\\.mzML$|\\.mzml$",
+    full.names = TRUE,
+    recursive = TRUE,
     ignore.case = TRUE
   )
 
-  if (length(mzml.files) == 0) {
+  if (length(mzml_files) == 0) {
     stop("No .mzML files found in path")
   }
 
-  mzml.tib <- data.frame(
-    sample = basename(mzml.files),
-    path = mzml.files
+  mzml_tib <- data.frame(
+    sample = basename(mzml_files),
+    path = mzml_files
   )
 
   meta <<- readr::read_csv(
-    file = meta.file,
+    file = meta_file,
     show_col_types = FALSE
   )
   # %>%
   # dplyr::bind_rows(tibble(sample = "x.mzML", group = "y"))
 
-  meta.matched <- dplyr::left_join(
+  meta_matched <- dplyr::left_join(
     x = meta,
-    y = mzml.tib,
+    y = mzml_tib,
     na_matches = "never",
     relationship = "one-to-one",
     by = dplyr::join_by(sample)
   )
 
-  samp.lacking.file <- meta.matched$sample[
-    !meta.matched$sample %in% basename(mzml.files)
+  samp_lacking_file <- meta_matched$sample[
+    !meta_matched$sample %in% basename(mzml_files)
   ]
-  if(length(samp.lacking.file) > 0) {
-    stop(paste0("Samples in metadata lacking files:", "\n", samp.lacking.file))
+  if (length(samp_lacking_file) > 0) {
+    stop(paste0("Samples in metadata lacking files:", "\n", samp_lacking_file))
   }
-  non.used.files <- mzml.files[!mzml.files %in% meta.matched$path]
-  if (length(non.used.files) > 0) {
-    warning("\nFiles in path not in metadata:", paste0("\n", non.used.files))
+  non_used_files <- mzml_files[!mzml_files %in% meta_matched$path]
+  if (length(non_used_files) > 0) {
+    warning("\nFiles in path not in metadata:", paste0("\n", non_used_files))
   }
 
-  meta.matched.filt <- meta.matched %>%
-    dplyr::filter(!sample %in% samp.lacking.file) %>%
+  meta_matched_filt <- meta_matched %>%
+    dplyr::filter(!sample %in% samp_lacking_file) %>%
     tibble::column_to_rownames(var = "sample")
 
-  return(meta.matched.filt)
+  return(meta_matched_filt)
 }
 
-multChem <- function(chem_formula = NULL, multiply_by = 1) {
-  split.form <- stringr::str_extract_all(
+multiply_chem <- function(chem_formula = NULL, multiply_by = 1) {
+  split_form <- stringr::str_extract_all(
     chem_formula,
     "[A-Z][a-z]?[0-9]*"
   )[[1]]
-  split.form.append <- stringr::str_replace_all(
-    split.form,
+  split_form_append <- stringr::str_replace_all(
+    split_form,
     "([A-Za-z])$",
     "\\11"
   )
-  multiply.by <- multiply_by
-  for (i in seq_along(split.form.append)) { # 1:length
-    chem.letter <- stringr::str_extract_all(
-      split.form.append[i],
+  multiply_by <- multiply_by
+  for (i in seq_along(split_form_append)) { # 1:length
+    chem_letter <- stringr::str_extract_all(
+      split_form_append[i],
       "[A-Za-z]+"
     )[[1]]
-    chem.number <- as.integer(stringr::str_extract_all(
-      split.form.append[i],
+    chem_number <- as.integer(stringr::str_extract_all(
+      split_form_append[i],
       "[0-9]+$"
     )[[1]])
-    split.form.append[i] <- paste0(chem.letter, chem.number * multiply.by)
+    split_form_append[i] <- paste0(chem_letter, chem_number * multiply_by)
   }
-  split.form.append <- stringr::str_flatten(split.form.append)
-  clean.form <- Rdisop::getFormula(Rdisop::getMolecule(split.form.append))
-  return(clean.form)
+  split_form_append <- stringr::str_flatten(split_form_append)
+  clean_form <- Rdisop::getFormula(Rdisop::getMolecule(split_form_append))
+  return(clean_form)
 }
 
-findIntersectFeat <- function(data = NULL, set = NULL, full_set = NULL) {
-  filt.data <- data %>%
+find_intersect_feat <- function(data = NULL, set = NULL, full_set = NULL) {
+  filt_data <- data %>%
     dplyr::filter(
       dplyr::if_all(
         .cols = tidyselect::all_of(full_set[full_set %in% set]),
@@ -93,18 +93,18 @@ findIntersectFeat <- function(data = NULL, set = NULL, full_set = NULL) {
         .fns = ~ .x == FALSE
       )
     )
-  return(filt.data)
+  return(filt_data)
 }
 
 find_y_position <- function(
-  test.df, 
-  df, 
-  formula, 
-  fun.data, 
+  test_df,
+  df,
+  formula,
+  fun_data,
   grouping = NULL
 ) {
 
-  if (!fun.data %in% c(
+  if (!fun_data %in% c(
     "max",
     "mean",
     "min",
@@ -113,48 +113,48 @@ find_y_position <- function(
     "lower_bound",
     "upper_bound"
   )) {
-    stop("Incorrect specification of fun.data")
+    stop("Incorrect specification of fun_data")
   }
 
-  num.col <- stringr::str_trim(stringr::str_split_i(formula, "~", 1))
-  group.col <- stringr::str_trim(stringr::str_split_i(formula, "~", 2))
+  num_col <- stringr::str_trim(stringr::str_split_i(formula, "~", 1))
+  group_col <- stringr::str_trim(stringr::str_split_i(formula, "~", 2))
 
-  sum.df <- df %>%
-    dplyr::group_by(.data[[group.col]]) %>%
+  sum_df <- df %>%
+    dplyr::group_by(.data[[group_col]]) %>%
     dplyr::summarize(
-      max = max(.data[[num.col]], na.rm = TRUE),
-      mean = mean(.data[[num.col]], na.rm = TRUE),
-      min = min(.data[[num.col]], na.rm = TRUE),
-      mean_sem = mean + sd(.data[[num.col]])/sqrt(length(.data[[num.col]])),
-      max_sem = max + sd(.data[[num.col]])/sqrt(length(.data[[num.col]])),
-      Q1 = quantile(.data[[num.col]], 0.25, na.rm = TRUE),
-      Q3 = quantile(.data[[num.col]], 0.75, na.rm = TRUE),
-      IQR.val = IQR(.data[[num.col]], na.rm = TRUE),
+      max = max(.data[[num_col]], na.rm = TRUE),
+      mean = mean(.data[[num_col]], na.rm = TRUE),
+      min = min(.data[[num_col]], na.rm = TRUE),
+      mean_sem = mean + sd(.data[[num_col]]) / sqrt(length(.data[[num_col]])),
+      max_sem = max + sd(.data[[num_col]]) / sqrt(length(.data[[num_col]])),
+      Q1 = quantile(.data[[num_col]], 0.25, na.rm = TRUE),
+      Q3 = quantile(.data[[num_col]], 0.75, na.rm = TRUE),
+      IQR.val = IQR(.data[[num_col]], na.rm = TRUE),
       lower_bound = Q1 - 1.5 * IQR.val,
       upper_bound = Q3 + 1.5 * IQR.val
     )
 
-  sum.df <- sum.df %>%
-    dplyr::select(.data[[group.col]], tidyselect::all_of(fun.data)) %>%
-    dplyr::rename("y.pos" = .data[[fun.data]])
+  sum_df <- sum_df %>%
+    dplyr::select(.data[[group_col]], tidyselect::all_of(fun_data)) %>%
+    dplyr::rename("y.pos" = .data[[fun_data]])
 
-  group1.names <- setNames(group.col, "group1")
-  group2.names <- setNames(group.col, "group2")
+  group1_names <- setNames(group_col, "group1")
+  group2_names <- setNames(group_col, "group2")
 
-  final.df <- test.df %>%
+  final_df <- test_df %>%
     dplyr::left_join(
       x = .,
-      y = sum.df,
-      by = group1.names
+      y = sum_df,
+      by = group1_names
     ) %>%
     dplyr::left_join(
       x = .,
-      y = sum.df,
-      by = group2.names
+      y = sum_df,
+      by = group2_names
     ) %>%
     {
       if (!is.null(grouping)) {
-        dplyr::group_by(., dplyr::across(dplyr::all_of(grouping)))
+        dplyr::group_by(., dplyr::across(tidyselect::all_of(grouping)))
       } else {
         .
       }
@@ -163,209 +163,209 @@ find_y_position <- function(
     dplyr::mutate(y.pos = base::max(y.pos.x, y.pos.y, na.rm = TRUE)) %>%
     dplyr::select(-c("y.pos.x", "y.pos.y"))
 
-  return(final.df)
+  return(final_df)
 }
 
-predictBiotransf <- function(
-  data = NULL,
-  biotransf.data = NULL,
-  tolerance_ppm = NULL,
-  tolerance = NULL
-) {
+# pred_biot <- function(
+#   data = NULL,
+#   biotransf_data = NULL,
+#   tolerance_ppm = NULL,
+#   tolerance = NULL
+# ) {
 
-  if (is.null(tolerance) & is.null(tolerance_ppm)) {
-    stop("Both tolerance and tolerance_ppm are NULL")
-  } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
-    stop("Either tolerance or tolerance_ppm need to be set to NULL")
-  }
+#   if (is.null(tolerance) & is.null(tolerance_ppm)) {
+#     stop("Both tolerance and tolerance_ppm are NULL")
+#   } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
+#     stop("Either tolerance or tolerance_ppm need to be set to NULL")
+#   }
 
-  if (is.null(tolerance)) {
-    tol_used = ppm_to_num(tolerance_ppm)
-  }
-  if (is.null(tolerance_ppm)) {
-    tol_used = tolerance
-  }
+#   if (is.null(tolerance)) {
+#     tol_used = ppm_to_num(tolerance_ppm)
+#   }
+#   if (is.null(tolerance_ppm)) {
+#     tol_used = tolerance
+#   }
 
-  ## 1. Prepare peaks table (all peaks, sorted by m/z)
-  peaks <- data %>%
-    # needs to be sorted for findInterval() indexing
-    dplyr::arrange(mzmed) %>%
-    dplyr::mutate(
-      peak_id = dplyr::row_number(),    # simple integer ID
-      feature,
-      mzmed
-    )
+#   ## 1. Prepare peaks table (all peaks, sorted by m/z)
+#   peaks <- data %>%
+#     # needs to be sorted for findInterval() indexing
+#     dplyr::arrange(mzmed) %>%
+#     dplyr::mutate(
+#       peak_id = dplyr::row_number(),    # simple integer ID
+#       feature,
+#       mzmed
+#     )
 
-  n_peaks <- nrow(peaks)
+#   n_peaks <- nrow(peaks)
 
-  # convenience vectors so we don't keep indexing peaks$...
-  mz_vec <- peaks$mzmed
-  rt_vec <- peaks$rtmed
-  id_vec <- peaks$peak_id
-  feat_vec <- peaks$feature
-  n_trans <- nrow(biotransf.data)
+#   # convenience vectors so we don't keep indexing peaks$...
+#   mz_vec <- peaks$mzmed
+#   rt_vec <- peaks$rtmed
+#   id_vec <- peaks$peak_id
+#   feat_vec <- peaks$feature
+#   n_trans <- nrow(biotransf_data)
 
-  ## 3. For each biotransformation, find all matching peak pairs
-  all_matches <- vector("list", n_trans)
+#   ## 3. For each biotransformation, find all matching peak pairs
+#   all_matches <- vector("list", n_trans)
 
-  for (k in 1:n_trans) {
+#   for (k in 1:n_trans) {
 
-    # current transformation
-    delta <- biotransf.data$delta_mass[k]
-    this_name <- biotransf.data$name[k]
-    this_formula <- biotransf.data$chem_formula[k]
+#     # current transformation
+#     delta <- biotransf_data$delta_mass[k]
+#     this_name <- biotransf_data$name[k]
+#     this_formula <- biotransf_data$chem_formula[k]
 
-    # for each peak i, valid partners j must have:
-    # mz_vec[j] in [mz_vec[i] + delta - tol, mz_vec[i] + delta + tol]
-    target_lower <- mz_vec + delta - tol_used
-    target_upper <- mz_vec + delta + tol_used
+#     # for each peak i, valid partners j must have:
+#     # mz_vec[j] in [mz_vec[i] + delta - tol, mz_vec[i] + delta + tol]
+#     target_lower <- mz_vec + delta - tol_used
+#     target_upper <- mz_vec + delta + tol_used
 
-    # find, for each i, the index range [start_i, end_i] in the sorted mz_vec
-    # that lies within [target_lower[i], target_upper[i]]
-    idx_start <- findInterval(target_lower, mz_vec) + 1L
-    idx_end <- findInterval(target_upper, mz_vec)
+#     # find, for each i, the index range [start_i, end_i] in the sorted mz_vec
+#     # that lies within [target_lower[i], target_upper[i]]
+#     idx_start <- findInterval(target_lower, mz_vec) + 1L
+#     idx_end <- findInterval(target_upper, mz_vec)
 
-    # collect matches for this transformation here
-    res_list <- vector("list", n_peaks)
+#     # collect matches for this transformation here
+#     res_list <- vector("list", n_peaks)
 
-    for (i in 1:n_peaks) {
-      start_idx <- idx_start[i]
-      end_idx <- idx_end[i]
+#     for (i in 1:n_peaks) {
+#       start_idx <- idx_start[i]
+#       end_idx <- idx_end[i]
 
-      # no overlap for this i -> skip
-      if (start_idx > end_idx) next
+#       # no overlap for this i -> skip
+#       if (start_idx > end_idx) next
 
-      # candidate partner indices
-      partner_idx <- seq.int(start_idx, end_idx)
+#       # candidate partner indices
+#       partner_idx <- seq.int(start_idx, end_idx)
 
-      # avoid self-pairs and symmetric duplicates (i,j) vs (j,i)
-      partner_idx <- partner_idx[partner_idx > i]
-      if (length(partner_idx) == 0) next
+#       # avoid self-pairs and symmetric duplicates (i,j) vs (j,i)
+#       partner_idx <- partner_idx[partner_idx > i]
+#       if (length(partner_idx) == 0) next
 
-      # build rows for all partners of peak i
-      res_list[[i]] <- tibble::tibble(
-        name = this_name,
-        chem_change = this_formula,
-        delta_mass = delta,
-        feat1 = feat_vec[i],
-        feat2 = feat_vec[partner_idx],
-        mz1 = mz_vec[i],
-        mz2 = mz_vec[partner_idx],
-        rt1 = rt_vec[i],
-        rt2 = rt_vec[partner_idx],
-        obs_delta_mass = mz_vec[partner_idx] - mz_vec[i],
-        peak1_id = id_vec[i],
-        peak2_id = id_vec[partner_idx]
-      )
-    }
+#       # build rows for all partners of peak i
+#       res_list[[i]] <- tibble::tibble(
+#         name = this_name,
+#         chem_change = this_formula,
+#         delta_mass = delta,
+#         feat1 = feat_vec[i],
+#         feat2 = feat_vec[partner_idx],
+#         mz1 = mz_vec[i],
+#         mz2 = mz_vec[partner_idx],
+#         rt1 = rt_vec[i],
+#         rt2 = rt_vec[partner_idx],
+#         obs_delta_mass = mz_vec[partner_idx] - mz_vec[i],
+#         peak1_id = id_vec[i],
+#         peak2_id = id_vec[partner_idx]
+#       )
+#     }
 
-    # bind all i-level results for this transformation
-    all_matches[[k]] <- dplyr::bind_rows(res_list)
-  }
+#     # bind all i-level results for this transformation
+#     all_matches[[k]] <- dplyr::bind_rows(res_list)
+#   }
 
-  # 4. Final table of all matched pairs
-  matched.diffs <- dplyr::bind_rows(all_matches)
+#   # 4. Final table of all matched pairs
+#   matched_diffs <- dplyr::bind_rows(all_matches)
 
-  return(matched.diffs)
-}
+#   return(matched_diffs)
+# }
 
-importBiotransfMeta <- function(file = NULL) {
-  biotransf.meta <- readr::read_csv(
+import_biotransform_meta <- function(file = NULL) {
+  biotransf_meta <- readr::read_csv(
     file = file,
     comment = "#",
     show_col_types = FALSE
   ) %>%
     tidyr::uncount(
-      ., 
+      .,
       weights = allowed_n,
       .id = "multiplier",
       .remove = FALSE
     ) %>%
     dplyr::mutate(name = paste0(multiplier, " x ", name)) %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(chem_formula = multChem(chem_formula, multiplier)) %>%
-    dplyr::mutate(delta_mass = getTheoryDeltaMass(chem_formula)) %>%
+    dplyr::mutate(chem_formula = multiply_chem(chem_formula, multiplier)) %>%
+    dplyr::mutate(delta_mass = get_theory_deltamass(chem_formula)) %>%
     dplyr::mutate(chem_formula = paste0("± ", chem_formula)) %>%
     dplyr::ungroup()
 
-  return(biotransf.meta)
+  return(biotransf_meta)
 }
 
 num_to_ppm <- function(number = NULL) {
-  ppm.val <- number * 1e6
-  return(ppm.val)
+  ppm_val <- number * 1e6
+  return(ppm_val)
 }
 
 ppm_to_num <- function(number = NULL) {
-  ppm.val <- number / 1e6
-  return(ppm.val)
+  ppm_val <- number / 1e6
+  return(ppm_val)
 }
 
-getTheoryMz <- function(
+get_theory_mz <- function(
   chem_form = NULL,
   adduct = "[M-H]-"
 ) {
-  chem.mass <- MetaboCoreUtils::calculateMass(chem_form)
-  chem.theory.mz <- MetaboCoreUtils::mass2mz(chem.mass, adduct)
-  chem.theory.mz <- chem.theory.mz[1, 1]
+  chem_mass <- MetaboCoreUtils::calculateMass(chem_form)
+  chem_theory_mz <- MetaboCoreUtils::mass2mz(chem_mass, adduct)
+  chem_theory_mz <- chem_theory_mz[1, 1]
 
-  return(chem.theory.mz)
+  return(chem_theory_mz)
 }
 
-getTheoryDeltaMass <- function(chem_form = NULL) {
-  chem.mass <- MetaboCoreUtils::calculateMass(chem_form)
-  chem.theory.mass <- unname(chem.mass)
+get_theory_deltamass <- function(chem_form = NULL) {
+  chem_mass <- MetaboCoreUtils::calculateMass(chem_form)
+  chem_theory_mass <- unname(chem_mass)
 
-  return(chem.theory.mass)
+  return(chem_theory_mass)
 }
 
-getShortMzRange <- function(
-  chem.theory.mz = NULL,
-  mz.window = 0.01
+get_short_mz_range <- function(
+  chem_theory_mz = NULL,
+  mz_window = 0.01
 ) {
-  chem.mz.range <- c(chem.theory.mz - mz.window, chem.theory.mz + mz.window)
-  return(chem.mz.range)
+  chem_mz_range <- c(chem_theory_mz - mz_window, chem_theory_mz + mz_window)
+  return(chem_mz_range)
 }
 
-getRtMzRange <- function(
+get_rt_mz_range <- function(
   chromatogram = NULL,
   rt_window = 0.02 # percentage increase of window
 ) {
-  ref.tib <- tibble::tibble()
-  for (samp.n in 1:length(chromatogram)) {
-    ref.peak.intensity <- max(intensity(chromatogram[1, samp.n]), na.rm = TRUE)
+  ref_tib <- tibble::tibble()
+  for (samp_n in 1:length(chromatogram)) {
+    ref_peak_intensity <- max(intensity(chromatogram[1, samp_n]), na.rm = TRUE)
     max.intensity.idx <- which(
-      intensity(chromatogram[1, samp.n]) == ref.peak.intensity
+      intensity(chromatogram[1, samp_n]) == ref_peak_intensity
     )
-    ref.peak.rt <- Spectra::rtime(chromatogram[1, samp.n])[[max.intensity.idx]]
-    mzmin <- min(Spectra::mz(chromatogram[1, samp.n]), na.rm = TRUE)
-    mzmax <- max(Spectra::mz(chromatogram[1, samp.n]), na.rm = TRUE)
-    rt.window.min <- c((1 - rt_window) * ref.peak.rt)
-    rt.window.max <- c((1 + rt_window) * ref.peak.rt)
-    file <- colnames(chromatogram)[samp.n]
+    ref_peak_rt <- Spectra::rtime(chromatogram[1, samp_n])[[max.intensity.idx]]
+    mzmin <- min(Spectra::mz(chromatogram[1, samp_n]), na.rm = TRUE)
+    mzmax <- max(Spectra::mz(chromatogram[1, samp_n]), na.rm = TRUE)
+    rt_window_min <- c((1 - rt_window) * ref_peak_rt)
+    rt_window_max <- c((1 + rt_window) * ref_peak_rt)
+    file <- colnames(chromatogram)[samp_n]
 
-  tmp.tib <- tibble::tibble(
-    file,
-    ref.peak.intensity, 
-    ref.peak.rt,
-    rt.window.min,
-    rt.window.max,
-    max.intensity.idx, 
-    mzmin,
-    mzmax,
-    samp.n
-  )
+    tmp_tib <- tibble::tibble(
+      file,
+      ref_peak_intensity,
+      ref_peak_rt,
+      rt_window_min,
+      rt_window_max,
+      max.intensity.idx,
+      mzmin,
+      mzmax,
+      samp_n
+    )
 
-  ref.tib <- dplyr::bind_rows(ref.tib, tmp.tib)
+    ref_tib <- dplyr::bind_rows(ref_tib, tmp_tib)
   }
 
-  rt.range <- c(min(ref.tib$rt.window.min), max(ref.tib$rt.window.max))
-  mz.range <- c(min(ref.tib$mzmin), max(ref.tib$mzmax))
+  rt_range <- c(min(ref_tib$rt_window_min), max(ref_tib$rt_window_max))
+  mz_range <- c(min(ref_tib$mzmin), max(ref_tib$mzmax))
 
   ranges <- list(
-    "mz.range" = mz.range,
-    "rt.range" = rt.range,
-    "data" = ref.tib
+    "mz_range" = mz_range,
+    "rt_range" = rt_range,
+    "data" = ref_tib
   )
 
   return(ranges)
@@ -379,23 +379,23 @@ getRtMzRange <- function(
 #         object = NULL,
 #         ref_peaks_obj = NULL
 #         ) {
-#     
-#     rt.range <- c(min(ref_peaks_obj$rt.window.min), max(ref_peaks_obj$rt.window.max))
-#     mz.range <- c(min(ref_peaks_obj$mzmin, na.rm = TRUE), max(ref_peaks_obj$mzmax, na.rm = TRUE))
+#
+#     rt_range <- c(min(ref_peaks_obj$rt_window_min), max(ref_peaks_obj$rt_window_max))
+#     mz_range <- c(min(ref_peaks_obj$mzmin, na.rm = TRUE), max(ref_peaks_obj$mzmax, na.rm = TRUE))
 #     
 #     srn <- object |> 
-#         Spectra::filterRt(rt = rt.range) |>
-#         Spectra::filterMzRange(mz.range)
+#         Spectra::filterRt(rt = rt_range) |>
+#         Spectra::filterMzRange(mz_range)
 #     
 #     print(plot(srn))
 #     
 #     min.filter <- readline("Write min: ")
 #     max.filter <- readline("Write max: ")
 #     
-#     full.tmp.tib <- tibble()
+#     full.tmp_tib <- tibble()
 #     for (i in 1:length(srn)) {
 #         srn_1 <- srn[i] |> 
-#             Spectra::filterRt(rt = rt.range) |>
+#             Spectra::filterRt(rt = rt_range) |>
 #             Spectra::filterMzRange(c(min.filter, max.filter)) |>
 #             spectra()
 #         
@@ -415,7 +415,7 @@ getRtMzRange <- function(
 #         spectra.origin <- unique(spectra.data$dataOrigin)
 #         spectra.basename <- basename(spectra.origin)
 #         
-#         tmp.tib <- tibble(
+#         tmp_tib <- tibble(
 #             max.mz.error,
 #             min.mz.error,
 #             i,
@@ -424,68 +424,68 @@ getRtMzRange <- function(
 #             max.filter
 #         )
 #         
-#         full.tmp.tib <- bind_rows(full.tmp.tib, tmp.tib)
+#         full.tmp_tib <- bind_rows(full.tmp_tib, tmp_tib)
 #     }
 #     
-#     return(full.tmp.tib)
+#     return(full.tmp_tib)
 # }
 
 # TODO 
 # Add colors to the plotting as well
-inspectPeak <- function(
+inspect_peak <- function(
   chromatogram = NULL,
   peak_data = NULL,
-  peak.idx = TRUE, # if true pick a random peak
-  sample.no = FALSE,
-  save.graph = TRUE
+  peak_idx = TRUE, # if true pick a random peak
+  sample_no = FALSE,
+  save_graph = TRUE
 ) {
-  if (isTRUE(peak.idx)) {
-    pk.chk <- sample(nrow(peak_data), 1)
+  if (isTRUE(peak_idx)) {
+    pk_chk <- sample(nrow(peak_data), 1)
   } else {
-    pk.chk <- peak.idx
+    pk_chk <- peak_idx
   }
 
-  if (isFALSE(sample.no)) {
+  if (isFALSE(sample_no)) {
     test_peak <- chromatogram %>%
       Spectra::filterMzRange(
         c(
-          peak_data[pk.chk, ]$mzmin,
-          peak_data[pk.chk, ]$mzmax
+          peak_data[pk_chk, ]$mzmin,
+          peak_data[pk_chk, ]$mzmax
         )
       ) %>%
       Spectra::filterRt(
         c(
-          peak_data[pk.chk, ]$rtmin, 
-          peak_data[pk.chk, ]$rtmax
+          peak_data[pk_chk, ]$rtmin, 
+          peak_data[pk_chk, ]$rtmax
         )
       ) %>%
       xcms::chromatogram(aggregationFun = "sum")
-    } else {
-    test_peak <- chromatogram[sample.no] %>%
+  } else {
+    test_peak <- chromatogram[sample_no] %>%
       Spectra::filterMzRange(
         c(
-          peak_data[pk.chk, ]$mzmin, 
-          peak_data[pk.chk, ]$mzmax
+          peak_data[pk_chk, ]$mzmin,
+          peak_data[pk_chk, ]$mzmax
         )
       ) %>%
       Spectra::filterRt(
         c(
-          peak_data[pk.chk, ]$rtmin, 
-          peak_data[pk.chk, ]$rtmax
+          peak_data[pk_chk, ]$rtmin,
+          peak_data[pk_chk, ]$rtmax
         )
       ) %>%
       xcms::chromatogram(aggregationFun = "sum")
   }
-  if (save.graph == TRUE) {
-    pdf(paste0(res_folder, "/graphs/quality_control/", pk.chk, ".pdf"))
+  if (save_graph == TRUE) {
+    pdf(paste0(res_folder, "/graphs/quality_control/", pk_chk, ".pdf"))
     plot(
       x = test_peak,
       main = paste0(
-        "Peak: ", peak_data[pk.chk, ]$peak,
-        "\n m/z: ", round(peak_data[pk.chk, ]$mzmin, 3),
-        " - ", round(peak_data[pk.chk, ]$mzmax, 3),
-        "\n RT: ", round(peak_data[pk.chk, ]$rtmin, 3),
-        " - ", round(peak_data[pk.chk, ]$rtmax, 3)
+        "Peak: ", peak_data[pk_chk, ]$peak,
+        "\n m/z: ", round(peak_data[pk_chk, ]$mzmin, 3),
+        " - ", round(peak_data[pk_chk, ]$mzmax, 3),
+        "\n RT: ", round(peak_data[pk_chk, ]$rtmin, 3),
+        " - ", round(peak_data[pk_chk, ]$rtmax, 3)
       ),
       sub = paste0(
         "Samples: ",
@@ -493,26 +493,26 @@ inspectPeak <- function(
       ),
       peakBg = NA,
       lwd = 3
-      )
+    )
     dev.off()
   }
 
   return(test_peak)
 }
 
-inspectPeakInt <- function(
+inspect_peak_intensity <- function(
   chr_data = NULL,
   value = "into", # into, intb, maxo
-  save.graph = TRUE
+  save_graph = TRUE
 ) {
   # Extract a list of per-sample peak intensities (in log2 scale)
   # TODO Do the samples match the colors?
   xchr_peaks <- tibble::as_tibble(
-    xcms::chromPeaks(chr_data), 
+    xcms::chromPeaks(chr_data),
     rownames = "peak"
   )
   xchr_meta <- tibble::as_tibble(
-    MsExperiment::sampleData(chr_data), 
+    MsExperiment::sampleData(chr_data),
     rownames = "sample_id"
   ) %>%
     dplyr::mutate(sample = dplyr::row_number())
@@ -559,16 +559,16 @@ inspectPeakInt <- function(
       )
     )
 
-  file.nm <- paste0(
-    res_folder, 
+  file_nm <- paste0(
+    res_folder,
     "/graphs/per_sample_peaks/",
     deparse(substitute(xchr)),
     "_detected_peaks.pdf"
   )
 
-  if (save.graph == TRUE) {
+  if (save_graph == TRUE) {
     ggplot2::ggsave(
-      filename = file.nm,
+      filename = file_nm,
       plot = xchr_data_p,
       device = "pdf",
       height = 6,
@@ -580,55 +580,55 @@ inspectPeakInt <- function(
   return(xchr_data_p)
 }
 
-plotChromatogramInts <- function(
+plot_chrom_intensity <- function(
   chromatogram = NULL,
   chrom_object = NULL,
   save_loc = NULL,
   amount = NULL,
   peaks_or_feats = c("features", "peaks")
 ) {
-  seq.plots <- seq.int(from = 0, to = nrow(chromatogram), by = 20)
+  seq_plots <- seq.int(from = 0, to = nrow(chromatogram), by = 20)
   # TODO This doesn't work when divisible by 20
-  # chrs.na.seq.slices <- c(seq.plots, nrow(chromatogram)) # add until last val
-  chrs.na.seq.slices <- pmin(seq.plots + 20 - 1, seq.plots)
+  # chrs_na_seq_slices <- c(seq_plots, nrow(chromatogram)) # add until last val
+  chrs_na_seq_slices <- pmin(seq_plots + 20 - 1, seq_plots)
 
   if (is.null(amount)) {
-    length.chrs.na.seq.slices <- length(chrs.na.seq.slices) - 1
+    length_chrs_na_seq_slices <- length(chrs_na_seq_slices) - 1
   } else {
-    length.chrs.na.seq.slices <- amount
+    length_chrs_na_seq_slices <- amount
   }
 
-  for (i in 1:length.chrs.na.seq.slices) {
+  for (i in 1:length_chrs_na_seq_slices) {
     # choose slices e.g. 1 : 20, 21:40, 41:60
     # remove first value of end to not plot same value twice
-    first.slice <- chrs.na.seq.slices[i] + 1 # because starts from 0
-    second.slice <- chrs.na.seq.slices[i + 1] # because access next part of slice
+    first_slice <- chrs_na_seq_slices[i] + 1 # starts from 0
+    second_slice <- chrs_na_seq_slices[i + 1] # access next part of slice
 
-    sliced.chr <- chromatogram[first.slice:second.slice, ]
+    sliced_chr <- chromatogram[first_slice:second_slice, ]
 
     if (peaks_or_feats == "features") {
-      slice.chr.peaks <- as.data.frame(xcms::featureDefinitions(sliced.chr))
+      slice_chr_peaks <- as.data.frame(xcms::featureDefinitions(sliced_chr))
     } else if (peaks_or_feats == "peaks") {
-      slice.chr.peaks <- as.data.frame(xcms::chromPeaks(sliced.chr))
+      slice_chr_peaks <- as.data.frame(xcms::chromPeaks(sliced_chr))
     } else {
       stop("'peaks_or_feats' needs to be either 'features' or 'peaks")
     }
 
-    min.mz <- min(slice.chr.peaks$mzmin, na.rm = TRUE)
-    max.mz <- max(slice.chr.peaks$mzmax, na.rm = TRUE)
+    min.mz <- min(slice_chr_peaks$mzmin, na.rm = TRUE)
+    max.mz <- max(slice_chr_peaks$mzmax, na.rm = TRUE)
 
-    file.name <- paste0(round(min.mz, 3), "-", round(max.mz, 3))
+    file_name <- paste0(round(min.mz, 3), "-", round(max.mz, 3))
 
     pdf(
-      file = paste0(res_folder, save_loc, file.name, ".pdf"),
+      file = paste0(res_folder, save_loc, file_name, ".pdf"),
       width = 12,
       height = 10,
     )
 
     plot(
-      sliced.chr,
+      sliced_chr,
       # TODO triple check if this is correct
-      # Probably do it the same way i do it for the plotFeatChrInt()
+      # Probably do it the same way i do it for the plot_feat_chrom_int()
       col = group_colors[MsExperiment::sampleData(chrom_object)$group],
       peakType = "polygon",
       peakBg = NA,
@@ -638,25 +638,25 @@ plotChromatogramInts <- function(
   }
 }
 
-plotFeatChrInt <- function(
+plot_feat_chrom_int <- function(
   feature_chrom = NULL,
   feature = NULL,
   method = NULL,
   value = NULL,
   filled = FALSE,
   missing = NULL,
-  msLevel = 1,
+  ms_level = 1,
   save_loc = NULL,
   device = "pdf",
   feat_pairs = FALSE
 ) {
 
-  feat.tib <<- tibble::as_tibble(
-    xcms::featureDefinitions(feature_chrom), 
+  feat_tib <- tibble::as_tibble(
+    xcms::featureDefinitions(feature_chrom),
     rownames = "feature"
   )
-  feat.idx <- which(feat.tib$feature == feature)
-  lone_feat <- feature_chrom[feat.idx, ]
+  feat_idx <- which(feat_tib$feature == feature)
+  lone_feat <- feature_chrom[feat_idx, ]
   lone_feat_def <- tibble::as_tibble(
     xcms::featureDefinitions(lone_feat),
     rownames = "feature"
@@ -665,13 +665,13 @@ plotFeatChrInt <- function(
   # Only take the ones with peaks or the coloring in the base plot is wrong
   keep_peaks <- xcms::hasChromPeaks(lone_feat)
   lone_feat_peaks <- xcms::hasChromPeaks(lone_feat)[, keep_peaks]
-  base.group_colors <- meta$group[match(names(lone_feat_peaks), rownames(meta))]
+  base_group_colors <- meta$group[match(names(lone_feat_peaks), rownames(meta))]
 
   # full.tib <- tibble::tibble()
   # for (i in 1:ncol(lone_feat)) {
   #     lone_samp <- lone_feat[[1, i]]
   #     
-  #     tmp.tib <- tibble::tibble(
+  #     tmp_tib <- tibble::tibble(
   #         rt = Spectra::rtime(lone_samp),
   #         int = Spectra::intensity(lone_samp),
   #         file_idx = MSnbase::fromFile(lone_samp),
@@ -679,7 +679,7 @@ plotFeatChrInt <- function(
   #         mz = stringr::str_flatten(paste0(round(Spectra::mz(lone_samp), 3)), " - ")
   #     )
   #     
-  #     full.tib <- bind_rows(full.tib, tmp.tib)
+  #     full.tib <- bind_rows(full.tib, tmp_tib)
   # }
   # 
   # p1.data <- full.tib %>%
@@ -727,7 +727,7 @@ plotFeatChrInt <- function(
       plot(
         lone_feat, 
         peakType = "polygon",
-        peakCol = group_colors[base.group_colors],
+        peakCol = group_colors[base_group_colors],
         peakBg = NA,
         lwd = 3,
         main = "",
@@ -747,7 +747,7 @@ plotFeatChrInt <- function(
       plot(
         lone_feat, 
         peakType = "polygon",
-        peakCol = group_colors[base.group_colors],
+        peakCol = group_colors[base_group_colors],
         peakBg = NA,
         lwd = 3,
         main = paste0(
@@ -773,13 +773,13 @@ plotFeatChrInt <- function(
     }
   }
 
-  p2.data <- xcms::featureValues(
+  p2_data <- xcms::featureValues(
     lone_feat,
     method = method,
     value = value,
     filled = filled,
     missing = missing, # 0 # NA
-    msLevel = msLevel
+    ms_level = ms_level
   ) %>%
     tibble::as_tibble(., rownames = "feature") %>%
     tidyr::pivot_longer(cols = contains(".mzML")) %>%
@@ -790,7 +790,7 @@ plotFeatChrInt <- function(
       by = c("name" = "file")
     )
 
-  p2 <- p2.data %>%
+  p2 <- p2_data %>%
     ggplot2::ggplot(.,
       ggplot2::aes(
         x = group, # name
@@ -844,11 +844,11 @@ plotFeatChrInt <- function(
     rel_heights = c(1.5, 1)
   )
 
-  file.nm <- paste0(res_folder, save_loc, feature, ".", device)
+  file_nm <- paste0(res_folder, save_loc, feature, ".", device)
 
   if (!is.null(save_loc)) {
     ggplot2::ggsave(
-      filename = file.nm,
+      filename = file_nm,
       plot = p3,
       device = device,
       height = 6,
@@ -862,54 +862,54 @@ plotFeatChrInt <- function(
     "chromatogram" = p1,
     "boxplot" = p2,
     # "p1_data" = p1.data,
-    "p2_data" = p2.data
+    "p2_data" = p2_data
   )
 
   return(data_list)
 }
 
-plotFeatPairs <- function(
+plot_feature_pairs <- function(
   feature_chrom = NULL,
-  filt.match.row = NULL,
+  filt_match_row = NULL,
   method = NULL,
   value = NULL,
   filled = FALSE,
   missing = NULL,
-  msLevel = 1,
+  ms_level = 1,
   save_pairs_loc = NULL,
   device = "pdf"
 ) {
 
-  ft.pair <- filt.match.row[["pair"]][[1]]
+  ft_pair <- filt_match_row[["pair"]][[1]]
 
-  feat1 <- plotFeatChrInt(
+  feat1 <- plot_feat_chrom_int(
     feature_chrom = feature_chrom,
-    feature = ft.pair[1],
+    feature = ft_pair[1],
     method = method,
     value = value,
     filled = filled,
     missing = missing,
-    msLevel = msLevel,
+    ms_level = ms_level,
     save_loc = NULL,
     device = NULL,
     feat_pairs = TRUE
   )
 
-  feat2 <- plotFeatChrInt(
+  feat2 <- plot_feat_chrom_int(
     feature_chrom = feature_chrom,
-    feature = ft.pair[2],
+    feature = ft_pair[2],
     method = method,
     value = value,
     filled = filled,
     missing = missing,
-    msLevel = msLevel,
+    ms_level = ms_level,
     save_loc = NULL,
     device = NULL,
     feat_pairs = TRUE
   )
 
     # This is for the old ggplot + ggplot version
-    # ft.pair.p <- (
+    # ft_pair_p <- (
     #     feat1$chromatogram + ggplot2::labs(title = "") | 
     #         feat2$chromatogram + ggplot2::labs(title = "")
     # ) /
@@ -920,14 +920,14 @@ plotFeatPairs <- function(
     #     patchwork::plot_layout(guides = "collect") +
     #     patchwork::plot_annotation(
     #         title = paste0(
-    #             ft.pair[1], " & ", 
-    #             ft.pair[2], "\n",
-    #             "Potential ", filt.match.row$name, " ", filt.match.row$chem_change
+    #             ft_pair[1], " & ", 
+    #             ft_pair[2], "\n",
+    #             "Potential ", filt_match_row$name, " ", filt_match_row$chem_change
     #         )
     #     )
     
   # This is for the base + ggplot version
-  ft.pair.p <- ((
+  ft_pair_p <- ((
     cowplot::ggdraw(feat1$chromatogram) /
       (feat1$boxplot + ggplot2::labs(caption = ""))
   ) |
@@ -943,21 +943,21 @@ plotFeatPairs <- function(
     ) +
     patchwork::plot_annotation(
       title = paste0(
-        ft.pair[1], " & ",
-        ft.pair[2], "\n",
-        "Potential ", filt.match.row$name, " ", filt.match.row$chem_change
+        ft_pair[1], " & ",
+        ft_pair[2], "\n",
+        "Potential ", filt_match_row$name, " ", filt_match_row$chem_change
       )
     )
 
-  file.nm <- paste0(
+  file_nm <- paste0(
     res_folder, save_pairs_loc,
-    ft.pair[1], "_", ft.pair[2], ".", device
+    ft_pair[1], "_", ft_pair[2], ".", device
   )
 
   if (!is.null(save_pairs_loc)) {
     ggplot2::ggsave(
-      filename = file.nm,
-      plot = ft.pair.p,
+      filename = file_nm,
+      plot = ft_pair_p,
       device = device,
       height = 7,
       width = 7,
@@ -965,21 +965,21 @@ plotFeatPairs <- function(
     )
   }
 
-  return(ft.pair.p)
+  return(ft_pair_p)
 }
 
-feat_to_idx <- function(feature.idx = NULL) {
-  clean.idx <- as.numeric(gsub("[A-Za-z]", "", feature.idx))
-  return(clean.idx)
+feat_to_idx <- function(feature_idx = NULL) {
+  clean_idx <- as.numeric(gsub("[A-Za-z]", "", feature_idx))
+  return(clean_idx)
 }
 
 # TODO FIX This so the path isn't hardcoded
 check_saved <- function(filename = NULL) {
-  object.bool <- file.exists(file.path(res_folder, "objects", filename))
-  return(object.bool)
+  object_bool <- file.exists(file.path(res_folder, "objects", filename))
+  return(object_bool)
 }
 
-registerParallel <- function(workers = NULL) {
+register_parallel <- function(workers = NULL) {
   sys <- Sys.info()["sysname"]
   if (sys == "Windows") {
     bp <<- BiocParallel::SnowParam(
@@ -995,7 +995,7 @@ registerParallel <- function(workers = NULL) {
   BiocParallel::register(bp, default = TRUE)
 }
 
-filtFeatures <- function(
+filt_features <- function(
   object = NULL,
   beta_cor_threshold = 0.3,
   beta_snr_threshold = 6,
@@ -1007,42 +1007,42 @@ filtFeatures <- function(
   # Good peaks: beta_snr > 7
   # Keep signal to noise at 10, and filter by beta_cor < 0.5, and beta_snr > 7?
 
-  filt.chrompeaks.tib <- tibble::as_tibble(
+  filt_chrompeaks_tib <- tibble::as_tibble(
     xcms::chromPeaks(object),
     rownames = "feature"
-  ) %>% 
+  ) %>%
     dplyr::filter(!is.na(beta_cor) & !is.na(beta_snr)) %>%
     dplyr::group_by(feature) %>%
     dplyr::filter(
       beta_cor >= beta_cor_threshold &
-      beta_snr >= beta_snr_threshold
+        beta_snr >= beta_snr_threshold
     ) %>%
     dplyr::filter(sn >= sn_threshold) %>%
     dplyr::mutate(feature2 = as.numeric(gsub("[A-Za-z]", "", feature))) %>%
     dplyr::relocate(feature2, .after = feature)
 
-  filt.features.tib <- tibble::as_tibble(
+  filt_features_tib <- tibble::as_tibble(
     xcms::featureDefinitions(object),
     rownames = "feature"
   ) %>%
     tidyr::unnest(peakidx) %>%
-    dplyr::filter(peakidx %in% filt.chrompeaks.tib$feature2) %>%
+    dplyr::filter(peakidx %in% filt_chrompeaks_tib$feature2) %>%
     tidyr::nest(data = peakidx)
 
-  filt.sig.features.tib <- filt.features.tib %>%
+  filt_sig_features_tib <- filt_features_tib %>%
     # Added so we don't remove interesting ones
     # that don't have a predicted biotransformation
     dplyr::filter(feature %in% filt_vector)
 
-  filt.sig.features <- filt.sig.features.tib$feature
+  filt_sig_features <- filt_sig_features_tib$feature
 
   # Now only look at features that have at least
   # one significantly different feature
-  biot.filt.sig.feature.tib <- matched.diffs %>%
+  biot_filt_sig_feature_tib <- matched_diffs %>%
     dplyr::filter(
       dplyr::if_any( # if_any for if only one is significant
-        dplyr::all_of(c("feat1", "feat2")),
-        ~ .x %in% filt.sig.features
+        tidyselect::all_of(c("feat1", "feat2")),
+        ~ .x %in% filt_sig_features
       )
     ) %>%
     dplyr:::mutate(
@@ -1056,17 +1056,18 @@ filtFeatures <- function(
       )
     )
 
-    # TODO OLD version where I filder all.int.comps in the biotransformation tibble
-    # filt.sig.features <- matched.diffs %>%
+    # TODO OLD version where I filder 
+    # all.int.comps in the biotransformation tibble
+    # filt_sig_features <- matched_diffs %>%
     #     dplyr::filter(
     #         dplyr::if_any(
-    #             dplyr::all_of(c("feat1", "feat2")),
+    #             tidyselect::all_of(c("feat1", "feat2")),
     #             ~ .x %in% filt.features$feature
     #         )
     #     ) %>%
     #     dplyr::filter(
     #         dplyr::if_any(
-    #             dplyr::all_of(c("feat1", "feat2")),
+    #             tidyselect::all_of(c("feat1", "feat2")),
     #             ~ .x %in% all.int.comps
     #         )
     #     ) %>%
@@ -1078,148 +1079,148 @@ filtFeatures <- function(
     #     ) # %>%
     # # dplyr::filter(grepl("1 x", name))
 
-  biot.filt.sig.features <- unique(
+  biot_filt_sig_features <- unique(
     c(
-      biot.filt.sig.feature.tib$feat1,
-      biot.filt.sig.feature.tib$feat2
+      biot_filt_sig_feature_tib$feat1,
+      biot_filt_sig_feature_tib$feat2
     )
   )
 
-  final.plotting.features <- unique(
+  final_plotting_features <- unique(
     c(
-      filt.sig.features,
-      biot.filt.sig.features
+      filt_sig_features,
+      biot_filt_sig_features
     )
   )
 
-  filt.list <- list(
+  filt_list <- list(
     # filtering features below:
 
     # quality filtered peak tib
-    "filt.chrompeaks.tib" = filt.chrompeaks.tib,
+    "filt_chrompeaks_tib" = filt_chrompeaks_tib,
     # quality filtered feature tib
-    "filt.features.tib" = filt.features.tib,
+    "filt_features_tib" = filt_features_tib,
     # quality + sig filtered feature tib
-    "filt.sig.features.tib" = filt.sig.features.tib,
+    "filt_sig_features_tib" = filt_sig_features_tib,
     # quality + sig filtered features
-    "filt.sig.features" = filt.sig.features,
+    "filt_sig_features" = filt_sig_features,
     # biotransformation features below:
 
     # quality + sig filtered biotransf tib
-    "biot.filt.sig.features.tib" = biot.filt.sig.feature.tib,
+    "biot_filt_sig_features_tib" = biot_filt_sig_feature_tib,
     # quality + sig filtered feature
-    "biot.filt.sig.features" = biot.filt.sig.features,
+    "biot_filt_sig_features" = biot.filt_sig_features,
     # final features for plotting: below
 
-     # all feats in biot and in filt.sig.features
-    "final.plotting.features" = final.plotting.features
+    # all feats in biot and in filt_sig_features
+    "final_plotting_features" = final_plotting_features
   )
 
-  return(filt.list)
+  return(filt_list)
 
 }
 
-predictBiotransfSubset <- function(
+# pred_biot_subset <- function(
+#   data = NULL,
+#   biotransf_data = NULL,
+#   tolerance_ppm = NULL,
+#   tolerance = NULL,
+#   feat_filt = NULL
+# ) {
+
+#   if (is.null(tolerance) & is.null(tolerance_ppm)) {
+#     stop("Both tolerance and tolerance_ppm are NULL")
+#   } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
+#     stop("Either tolerance or tolerance_ppm need to be set to NULL")
+#   }
+
+#   if (is.null(tolerance)) {
+#     tol_used = ppm_to_num(tolerance_ppm)
+#   }
+#   if (is.null(tolerance_ppm)) {
+#     tol_used = tolerance
+#   }
+
+#   ## 1. Prepare peaks table (all peaks, sorted by m/z)
+#   peaks <- data %>%
+#     # needs to be sorted for findInterval() indexing
+#     dplyr::arrange(mzmed) %>%
+#     dplyr::mutate(
+#       peak_id = dplyr::row_number(),    # simple integer ID
+#       feature,
+#       mzmed
+#     )
+#   n_peaks <- nrow(peaks)
+
+#   # convenience vectors so we don't keep indexing peaks$...
+#   mz_vec <- peaks$mzmed
+#   rt_vec <- peaks$rtmed
+#   id_vec <- peaks$peak_id
+#   feat_vec <- peaks$feature
+#   n_trans <- nrow(biotransf_data)
+
+#   ## ONLY do comparisons for FT02089
+#   anchor_i <- which(feat_vec %in% feat_filt)
+
+#   ## 3. For each biotransformation, find all matching peak pairs
+#   all_matches <- vector("list", n_trans)
+
+#   for (k in 1:n_trans) {
+#     # current transformation
+#     delta <- biotransf_data$delta_mass[k]
+#     this_name <- biotransf_data$name[k]
+#     this_formula <- biotransf_data$chem_formula[k]
+
+#     # ONLY compute windows for anchor peaks (not all peaks)
+#     target_lower <- mz_vec[anchor_i] + delta - tol_used
+#     target_upper <- mz_vec[anchor_i] + delta + tol_used
+
+#     # ONLY compute interval bounds for anchor peaks
+#     idx_start <- findInterval(target_lower, mz_vec) + 1L
+#     idx_end <- findInterval(target_upper, mz_vec)
+
+#     # ONLY allocate list for anchors
+#     res_list <- vector("list", length(anchor_i))
+
+#     for (a in seq_along(anchor_i)) {
+#       i <- anchor_i[a]
+#       start_idx <- idx_start[a]
+#       end_idx <- idx_end[a]
+
+#       # no overlap for this i -> skip
+#       if (start_idx > end_idx) next
+
+#       # candidate partner indices
+#       partner_idx <- seq.int(start_idx, end_idx)
+
+#       # keep your original duplicate-avoidance logic
+#       partner_idx <- partner_idx[partner_idx > i]
+#       if (length(partner_idx) == 0) next
+
+#       res_list[[a]] <- tibble::tibble(
+#         name = this_name,
+#         chem_change = this_formula,
+#         delta_mass = delta,
+#         feat1 = feat_vec[i],
+#         feat2 = feat_vec[partner_idx],
+#         mz1 = mz_vec[i],
+#         mz2 = mz_vec[partner_idx],
+#         rt1 = rt_vec[i],
+#         rt2 = rt_vec[partner_idx],
+#         obs_delta_mass = mz_vec[partner_idx] - mz_vec[i],
+#         peak1_id = id_vec[i],
+#         peak2_id = id_vec[partner_idx]
+#       )
+#     }
+#     all_matches[[k]] <- dplyr::bind_rows(res_list)
+#   }
+#   matched_diffs <- dplyr::bind_rows(all_matches)
+#   return(matched_diffs)
+# }
+
+pred_biot_subset <- function(
   data = NULL,
-  biotransf.data = NULL,
-  tolerance_ppm = NULL,
-  tolerance = NULL,
-  feat_filt = NULL
-) {
-
-  if (is.null(tolerance) & is.null(tolerance_ppm)) {
-    stop("Both tolerance and tolerance_ppm are NULL")
-  } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
-    stop("Either tolerance or tolerance_ppm need to be set to NULL")
-  }
-
-  if (is.null(tolerance)) {
-    tol_used = ppm_to_num(tolerance_ppm)
-  }
-  if (is.null(tolerance_ppm)) {
-    tol_used = tolerance
-  }
-    
-  ## 1. Prepare peaks table (all peaks, sorted by m/z)
-  peaks <- data %>%
-    # needs to be sorted for findInterval() indexing
-    dplyr::arrange(mzmed) %>%
-    dplyr::mutate(
-      peak_id = dplyr::row_number(),    # simple integer ID
-      feature,
-      mzmed
-    )
-  n_peaks <- nrow(peaks)
-
-  # convenience vectors so we don't keep indexing peaks$...
-  mz_vec <- peaks$mzmed
-  rt_vec <- peaks$rtmed
-  id_vec <- peaks$peak_id
-  feat_vec <- peaks$feature
-  n_trans <- nrow(biotransf.data)
-
-  ## ONLY do comparisons for FT02089
-  anchor_i <- which(feat_vec %in% feat_filt)
-
-  ## 3. For each biotransformation, find all matching peak pairs
-  all_matches <- vector("list", n_trans)
-
-  for (k in 1:n_trans) {
-    # current transformation
-    delta <- biotransf.data$delta_mass[k]
-    this_name <- biotransf.data$name[k]
-    this_formula <- biotransf.data$chem_formula[k]
-
-    # ONLY compute windows for anchor peaks (not all peaks)
-    target_lower <- mz_vec[anchor_i] + delta - tol_used
-    target_upper <- mz_vec[anchor_i] + delta + tol_used
-
-    # ONLY compute interval bounds for anchor peaks
-    idx_start <- findInterval(target_lower, mz_vec) + 1L
-    idx_end <- findInterval(target_upper, mz_vec)
-
-    # ONLY allocate list for anchors
-    res_list <- vector("list", length(anchor_i))
-
-    for (a in seq_along(anchor_i)) {
-      i <- anchor_i[a]
-      start_idx <- idx_start[a]
-      end_idx <- idx_end[a]
-
-      # no overlap for this i -> skip
-      if (start_idx > end_idx) next
-
-      # candidate partner indices
-      partner_idx <- seq.int(start_idx, end_idx)
-      
-      # keep your original duplicate-avoidance logic
-      partner_idx <- partner_idx[partner_idx > i]
-      if (length(partner_idx) == 0) next
-      
-      res_list[[a]] <- tibble::tibble(
-        name = this_name,
-        chem_change = this_formula,
-        delta_mass = delta,
-        feat1 = feat_vec[i],
-        feat2 = feat_vec[partner_idx],
-        mz1 = mz_vec[i],
-        mz2 = mz_vec[partner_idx],
-        rt1 = rt_vec[i],
-        rt2 = rt_vec[partner_idx],
-        obs_delta_mass = mz_vec[partner_idx] - mz_vec[i],
-        peak1_id = id_vec[i],
-        peak2_id = id_vec[partner_idx]
-      )
-    }
-    all_matches[[k]] <- dplyr::bind_rows(res_list)
-  }
-  matched.diffs <- dplyr::bind_rows(all_matches)
-  return(matched.diffs)
-}
-
-predictBiotransfAdductsSubset <- function(
-  data = NULL,
-  biotransf.data = NULL,
+  biotransf_data = NULL,
   tolerance_ppm = NULL,
   tolerance = NULL,
   feat_filt = NULL
@@ -1246,7 +1247,7 @@ predictBiotransfAdductsSubset <- function(
       mass
     )
   n_peaks <- nrow(peaks)
-    
+
   # convenience vectors so we don't keep indexing peaks$...
   mz_vec <- peaks$mzmed
   rt_vec <- peaks$rtmed
@@ -1254,81 +1255,81 @@ predictBiotransfAdductsSubset <- function(
   mass_vec <- peaks$mass
   id_vec <- peaks$peak_id
   feat_vec <- peaks$feature
-  n_trans <- nrow(biotransf.data)
-    
+  n_trans <- nrow(biotransf_data)
+
   ## ONLY do comparisons for feat_filt
   anchor_i <- which(feat_vec %in% feat_filt)
-  
+
   ## 3. For each biotransformation, find all matching peak pairs
   all_matches <- vector("list", n_trans)
-  
+
   for (k in 1:n_trans) {
     # current transformation
-    delta <- biotransf.data$delta_mass[k]
-    this_name <- biotransf.data$name[k]
-    this_formula <- biotransf.data$chem_formula[k]
-    
+    delta <- biotransf_data$delta_mass[k]
+    this_name <- biotransf_data$name[k]
+    this_formula <- biotransf_data$chem_formula[k]
+
     # for each peak i, valid partners j must have:
     # mz_vec[j] in [mz_vec[i] + delta - tol, mz_vec[i] + delta + tol]
     target_lower <- mass_vec[anchor_i] + delta - tol_used
     target_upper <- mass_vec[anchor_i] + delta + tol_used
-    
+
     # find, for each i, the index range [start_i, end_i] in the sorted mz_vec
     # that lies within [target_lower[i], target_upper[i]]
     idx_start <- findInterval(target_lower, mass_vec) + 1L
     idx_end <- findInterval(target_upper, mass_vec)
-    
+
     # ONLY allocate list for anchors
     res_list <- vector("list", length(anchor_i))
-        
+
     for (a in seq_along(anchor_i)) {
       i <- anchor_i[a]
       start_idx <- idx_start[a]
       end_idx <- idx_end[a]
-      
+
       # no overlap for this i -> skip
       if (start_idx > end_idx) next
-      
+
       # candidate partner indices
       partner_idx <- seq.int(start_idx, end_idx)
-      
+
       # keep your original duplicate-avoidance logic
       partner_idx <- partner_idx[partner_idx > i]
       if (length(partner_idx) == 0) next
-            
-        res_list[[a]] <- tibble::tibble(
-            name = this_name,
-            chem_change = this_formula,
-            feat1 = feat_vec[i],
-            feat2 = feat_vec[partner_idx],
-            mz1 = mz_vec[i],
-            mz2 = mz_vec[partner_idx],
-            
-            adduct1 = adduct_vec[i],
-            adduct2 = adduct_vec[partner_idx],
-            mass1 = mass_vec[i],
-            mass2 = mass_vec[partner_idx],
-            
-            rt1 = rt_vec[i],
-            rt2 = rt_vec[partner_idx],
-            delta_mass = delta,
-            obs_delta_mass = mass_vec[partner_idx] - mass_vec[i],
-            peak1_id = id_vec[i],
-            peak2_id = id_vec[partner_idx]
-        )
-      }
-      # bind all i-level results for this transformation
-      all_matches[[k]] <- dplyr::bind_rows(res_list)
+
+      res_list[[a]] <- tibble::tibble(
+        name = this_name,
+        chem_change = this_formula,
+        feat1 = feat_vec[i],
+        feat2 = feat_vec[partner_idx],
+        mz1 = mz_vec[i],
+        mz2 = mz_vec[partner_idx],
+
+        adduct1 = adduct_vec[i],
+        adduct2 = adduct_vec[partner_idx],
+        mass1 = mass_vec[i],
+        mass2 = mass_vec[partner_idx],
+
+        rt1 = rt_vec[i],
+        rt2 = rt_vec[partner_idx],
+        delta_mass = delta,
+        obs_delta_mass = mass_vec[partner_idx] - mass_vec[i],
+        peak1_id = id_vec[i],
+        peak2_id = id_vec[partner_idx]
+      )
+    }
+    # bind all i-level results for this transformation
+    all_matches[[k]] <- dplyr::bind_rows(res_list)
   }
-    
+
   # 4. Final table of all matched pairs
-  matched.diffs <- dplyr::bind_rows(all_matches)
-  return(matched.diffs)
+  matched_diffs <- dplyr::bind_rows(all_matches)
+  return(matched_diffs)
 }
 
-# predictBiotransfAdductsSubset <- function(
+# pred_biot_subset <- function(
 #         data = NULL,
-#         biotransf.data = NULL,
+#         biotransf_data = NULL,
 #         tolerance_ppm = NULL,
 #         tolerance = NULL,
 #         feat_filt = NULL
@@ -1365,7 +1366,7 @@ predictBiotransfAdductsSubset <- function(
 #     mass_vec <- peaks$mass
 #     id_vec <- peaks$peak_id
 #     feat_vec <- peaks$feature
-#     n_trans <- nrow(biotransf.data)
+#     n_trans <- nrow(biotransf_data)
     
 #     ## ONLY do comparisons for feat_filt
 #     anchor_i <- which(feat_vec %in% feat_filt)
@@ -1376,9 +1377,9 @@ predictBiotransfAdductsSubset <- function(
 #     for (k in 1:n_trans) {
         
 #         # current transformation
-#         delta <- biotransf.data$delta_mass[k]
-#         this_name <- biotransf.data$name[k]
-#         this_formula <- biotransf.data$chem_formula[k]
+#         delta <- biotransf_data$delta_mass[k]
+#         this_name <- biotransf_data$name[k]
+#         this_formula <- biotransf_data$chem_formula[k]
         
 #         # for each peak i, valid partners j must have:
 #         # mz_vec[j] in [mz_vec[i] + delta - tol, mz_vec[i] + delta + tol]
@@ -1436,14 +1437,14 @@ predictBiotransfAdductsSubset <- function(
 #     }
     
 #     # 4. Final table of all matched pairs
-#     matched.diffs <- dplyr::bind_rows(all_matches)
+#     matched_diffs <- dplyr::bind_rows(all_matches)
     
-#     return(matched.diffs)
+#     return(matched_diffs)
 # }
 
-predictBiotransfAdducts <- function(
+pred_biot <- function(
   data = NULL,
-  biotransf.data = NULL,
+  biotransf_data = NULL,
   tolerance_ppm = NULL,
   tolerance = NULL
 ) {
@@ -1478,16 +1479,16 @@ predictBiotransfAdducts <- function(
   mass_vec <- peaks$mass
   id_vec <- peaks$peak_id
   feat_vec <- peaks$feature
-  n_trans <- nrow(biotransf.data)
+  n_trans <- nrow(biotransf_data)
 
   ## 3. For each biotransformation, find all matching peak pairs
   all_matches <- vector("list", n_trans)
 
   for (k in 1:n_trans) {
     # current transformation
-    delta <- biotransf.data$delta_mass[k]
-    this_name <- biotransf.data$name[k]
-    this_formula <- biotransf.data$chem_formula[k]
+    delta <- biotransf_data$delta_mass[k]
+    this_name <- biotransf_data$name[k]
+    this_formula <- biotransf_data$chem_formula[k]
 
     # for each peak i, valid partners j must have:
     # mass_vec[j] in [mass_vec[i] + delta - tol, mass_vec[i] + delta + tol]
@@ -1518,30 +1519,30 @@ predictBiotransfAdducts <- function(
 
       # build rows for all partners of peak i
       res_list[[i]] <- tibble::tibble(
-          name = this_name,
-          chem_change = this_formula,
-          feat1 = feat_vec[i],
-          feat2 = feat_vec[partner_idx],
-          mz1 = mz_vec[i],
-          mz2 = mz_vec[partner_idx],
+        name = this_name,
+        chem_change = this_formula,
+        feat1 = feat_vec[i],
+        feat2 = feat_vec[partner_idx],
+        mz1 = mz_vec[i],
+        mz2 = mz_vec[partner_idx],
 
-          adduct1 = adduct_vec[i],
-          adduct2 = adduct_vec[partner_idx],
-          mass1 = mass_vec[i],
-          mass2 = mass_vec[partner_idx],
+        adduct1 = adduct_vec[i],
+        adduct2 = adduct_vec[partner_idx],
+        mass1 = mass_vec[i],
+        mass2 = mass_vec[partner_idx],
 
-          rt1 = rt_vec[i],
-          rt2 = rt_vec[partner_idx],
-          delta_mass = delta,
-          obs_delta_mass = mass_vec[partner_idx] - mass_vec[i],
-          peak1_id = id_vec[i],
-          peak2_id = id_vec[partner_idx]
+        rt1 = rt_vec[i],
+        rt2 = rt_vec[partner_idx],
+        delta_mass = delta,
+        obs_delta_mass = mass_vec[partner_idx] - mass_vec[i],
+        peak1_id = id_vec[i],
+        peak2_id = id_vec[partner_idx]
       )
     }
     # bind all i-level results for this transformation
     all_matches[[k]] <- dplyr::bind_rows(res_list)
   }
   # 4. Final table of all matched pairs
-  matched.diffs <- dplyr::bind_rows(all_matches)
-  return(matched.diffs)
+  matched_diffs <- dplyr::bind_rows(all_matches)
+  return(matched_diffs)
 }

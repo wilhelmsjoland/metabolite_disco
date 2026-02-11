@@ -10,23 +10,23 @@ library(cowplot)
 library(magick)
 
 
-apig.mz <- featureDefinitions(xchr9) %>%
-    tibble::as_tibble(., rownames = "feature") %>%
-    dplyr::filter(grepl("FT02089", feature)) %>%
-    pull(mzmed)
+apig_mz <- featureDefinitions(xchr9) %>%
+  tibble::as_tibble(., rownames = "feature") %>%
+  dplyr::filter(grepl("FT02089", feature)) %>%
+  pull(mzmed)
 
-anno.peak.ids <- unique(anno$peak_id)
+anno_peak_ids <- unique(anno$peak_id)
 
-anno.chrs <- xcms::featureChromatograms(
-    object = xchr9,
-    expandRt = 0,
-    expandMz = 0,
-    aggregationFun = "sum",
-    filled = TRUE,
-    features = anno.peak.ids,
-    missing = 0,
-    # features = rownames(xcms::featureDefinitions(xchr9)),
-    return.type = "XChromatograms"
+anno_chrs <- xcms::featureChromatograms(
+  object = xchr9,
+  expandRt = 0,
+  expandMz = 0,
+  aggregationFun = "sum",
+  filled = TRUE,
+  features = anno.peak.ids,
+  missing = 0,
+  # features = rownames(xcms::featureDefinitions(xchr9)),
+  return.type = "XChromatograms"
 )
 
 # for (i in anno.peak.ids) {
@@ -41,178 +41,178 @@ anno.chrs <- xcms::featureChromatograms(
 #         save_loc = NULL,
 #         device = NULL,
 #         feat_pairs = FALSE
-#     ) 
+#     )
 #     print(tmp.anno.chr$combined)
-#     
+# 
 #     readline("Enter for next: ")
 # }
 
 # TODO Split more
-int.annos <- c(
-    "FT02161",
-    "FT00292",
-    "FT03755",
-    "FT00485",
-    "FT01696",
-    "FT06069",
-    "FT01657",
-    "FT02948",
-    "FT03779",
-    "FT02246",
-    "FT03341",
-    "FT02024",
-    "FT09148",
-    "FT04929",
-    "FT03009",
-    "FT01252",
-    "FT00081",
-    "FT05181",
-    "FT04812",
-    "FT04750", # int no prod in 2 groups
-    "FT01901",
-    "FT01345",
-    "FT05216",
-    "FT01428",
-    "FT00099",
-    "FT05532",
-    "FT01840",
-    "FT01655",
-    "FT02539",
-    "FT05753",
-    "FT00762",
-    "FT00049",
-    "FT02718", # weird
-    "FT05496",
-    "FT05809",
-    "FT02012",
-    "FT00307",
-    "FT07141",
-    "FT03793",
-    "FT01327",
-    "FT01404",
-    "FT01658",
-    "FT00183",
-    "FT03331", # int
-    "FT00157",
-    "FT03095",
-    "FT00103",
-    "FT05777",
-    "FT08395",
-    "FT01133",
-    "FT02027",
-    "FT03826",
-    "FT06714",
-    "FT00372",
-    "FT08744",
-    "FT06988", # only in controls
-    "FT02994",
-    "FT07149", # only in mutant
-    "FT01879", # super low in mutant apiin
-    "FT00475",
-    "FT06113",
-    "FT04384",
-    "FT03101", # int
-    "FT03999",
-    "FT02109", # almost only in mutant apiin
-    "FT06809",
-    "FT07476",
-    "FT02952",
-    "FT04898", # none in mutant apiin
-    "FT10427",
-    "FT04154",
-    "FT06532", # int, strong peak
-    "FT02265",
-    "FT03040",
-    "FT01936",
-    "FT02266",
-    "FT06508",
-    "FT01385",
-    "FT00397",
-    "FT01640",
-    "FT04480",
-    "FT06507", # int, big difference
-    "FT03435",
-    "FT06584", # int - almost only in controls
-    "FT07425", # int
-    "FT02898",
-    "FT05339",
-    "FT01151", # only in mutant apiin?
-    "FT02134",
-    "FT09648",
-    "FT08147",
-    "FT09207",
-    "FT01121",
-    "FT04548",
-    "FT01150", # weird
-    "FT05943",
-    "FT01119",
-    "FT04168",
-    "FT07026", # int only in controls
-    "FT05666", # int only in controls
-    "FT05782", # int only in controls
-    "FT07752",
-    "FT07522",
-    "FT06533",
-    "FT06244", # int only in controls
-    "FT05874", # much higher in mutants
-    "FT10419", # much higher in only mutant apiin
-    "FT09078",
-    "FT11262", # int only in controls
-    "FT04555",
-    "FT06998", # int much higher in controls
-    "FT10557", # int much higher in controls
-    "FT06635", # int higher in controls
-    "FT06935", # int higher in controls
-    "FT07834",
-    "FT09271", # int only in apiin
-    "FT06876", # int only in apiin
-    "FT10018", # int only in apiin
-    "FT02104",
-    "FT07269",
-    "FT05914", # int, probably different peaks in mutants and wt
-    "FT06738",
-    "FT05991",
-    "FT10696", # weird
-    "FT06263",
-    "FT08063",
-    "FT09227",
-    "FT07139",
-    "FT06789",
-    "FT03730",
-    "FT10864",
-    "FT07014",
-    "FT07616",
-    "FT08733", # int only in controls
-    "FT09819", # int only in mutant control
-    "FT10162",
-    "FT06676",
-    "FT10048",
-    "FT10885",
-    "FT09160",
-    "FT09410", # int only in controls
-    "FT11592",
-    "FT08566",
-    "FT09268", # int higher in controls
-    "FT10851"
+int_annos <- c(
+  "FT02161",
+  "FT00292",
+  "FT03755",
+  "FT00485",
+  "FT01696",
+  "FT06069",
+  "FT01657",
+  "FT02948",
+  "FT03779",
+  "FT02246",
+  "FT03341",
+  "FT02024",
+  "FT09148",
+  "FT04929",
+  "FT03009",
+  "FT01252",
+  "FT00081",
+  "FT05181",
+  "FT04812",
+  "FT04750", # int no prod in 2 groups
+  "FT01901",
+  "FT01345",
+  "FT05216",
+  "FT01428",
+  "FT00099",
+  "FT05532",
+  "FT01840",
+  "FT01655",
+  "FT02539",
+  "FT05753",
+  "FT00762",
+  "FT00049",
+  "FT02718", # weird
+  "FT05496",
+  "FT05809",
+  "FT02012",
+  "FT00307",
+  "FT07141",
+  "FT03793",
+  "FT01327",
+  "FT01404",
+  "FT01658",
+  "FT00183",
+  "FT03331", # int
+  "FT00157",
+  "FT03095",
+  "FT00103",
+  "FT05777",
+  "FT08395",
+  "FT01133",
+  "FT02027",
+  "FT03826",
+  "FT06714",
+  "FT00372",
+  "FT08744",
+  "FT06988", # only in controls
+  "FT02994",
+  "FT07149", # only in mutant
+  "FT01879", # super low in mutant apiin
+  "FT00475",
+  "FT06113",
+  "FT04384",
+  "FT03101", # int
+  "FT03999",
+  "FT02109", # almost only in mutant apiin
+  "FT06809",
+  "FT07476",
+  "FT02952",
+  "FT04898", # none in mutant apiin
+  "FT10427",
+  "FT04154",
+  "FT06532", # int, strong peak
+  "FT02265",
+  "FT03040",
+  "FT01936",
+  "FT02266",
+  "FT06508",
+  "FT01385",
+  "FT00397",
+  "FT01640",
+  "FT04480",
+  "FT06507", # int, big difference
+  "FT03435",
+  "FT06584", # int - almost only in controls
+  "FT07425", # int
+  "FT02898",
+  "FT05339",
+  "FT01151", # only in mutant apiin?
+  "FT02134",
+  "FT09648",
+  "FT08147",
+  "FT09207",
+  "FT01121",
+  "FT04548",
+  "FT01150", # weird
+  "FT05943",
+  "FT01119",
+  "FT04168",
+  "FT07026", # int only in controls
+  "FT05666", # int only in controls
+  "FT05782", # int only in controls
+  "FT07752",
+  "FT07522",
+  "FT06533",
+  "FT06244", # int only in controls
+  "FT05874", # much higher in mutants
+  "FT10419", # much higher in only mutant apiin
+  "FT09078",
+  "FT11262", # int only in controls
+  "FT04555",
+  "FT06998", # int much higher in controls
+  "FT10557", # int much higher in controls
+  "FT06635", # int higher in controls
+  "FT06935", # int higher in controls
+  "FT07834",
+  "FT09271", # int only in apiin
+  "FT06876", # int only in apiin
+  "FT10018", # int only in apiin
+  "FT02104",
+  "FT07269",
+  "FT05914", # int, probably different peaks in mutants and wt
+  "FT06738",
+  "FT05991",
+  "FT10696", # weird
+  "FT06263",
+  "FT08063",
+  "FT09227",
+  "FT07139",
+  "FT06789",
+  "FT03730",
+  "FT10864",
+  "FT07014",
+  "FT07616",
+  "FT08733", # int only in controls
+  "FT09819", # int only in mutant control
+  "FT10162",
+  "FT06676",
+  "FT10048",
+  "FT10885",
+  "FT09160",
+  "FT09410", # int only in controls
+  "FT11592",
+  "FT08566",
+  "FT09268", # int higher in controls
+  "FT10851"
 )
 
 anno %>%
-    dplyr::filter(peak_id %in% int.annos) %>%
-    dplyr::arrange(abs_score)
+  dplyr::filter(peak_id %in% int_annos) %>%
+  dplyr::arrange(abs_score)
 
-anno.peak.chr <- plotFeatChrInt(
-    feature_chrom = anno.chrs,
-    feature = "FT09271", # "FT03779" "FT03571" "FT11258" "FT04251" "FT04480" "FT03009" "FT03713" "FT05496"
-    method = "sum",
-    value = "into",
-    filled = TRUE,
-    missing = "rowmin_half",
-    msLevel = 1,
-    save_loc = NULL,
-    device = NULL,
-    feat_pairs = FALSE
-) 
-print(anno.peak.chr$combined)
+anno_peak_chr <- plot_feat_chrom_int(
+  feature_chrom = anno_chrs,
+  feature = "FT09271",
+  method = "sum",
+  value = "into",
+  filled = TRUE,
+  missing = "rowmin_half",
+  ms_level = 1,
+  save_loc = NULL,
+  device = NULL,
+  feat_pairs = FALSE
+)
+print(anno_peak_chr$combined)
 
 
 # library(ChemmineR)
@@ -243,9 +243,9 @@ smiles <- anno$target_smiles
 names(smiles) <- anno$feature
 
 mols <- rcdk::parse.smiles(
-    smiles = smiles,
-    omit.nulls = TRUE
-    )
+  smiles = smiles,
+  omit.nulls = TRUE
+)
 
 # fps <- lapply(mols, get.fingerprint, type='circular')
 # 
@@ -520,17 +520,16 @@ fp1 + fp2 +
     )
 
 for (i in saved.feat.names) {
-    try <- plotFeatChrInt(
-        feature_chrom = anno.chrs,
-        feature = i,
-        method = "sum",
-        value = "into",
-        filled = TRUE,
-        missing = "rowmin_half",
-        msLevel = 1,
-        save_loc = "/chem_sim/",
-        device = "svg",
-        feat_pairs = FALSE
-    ) 
+  try <- plotFeatChrInt(
+    feature_chrom = anno.chrs,
+    feature = i,
+    method = "sum",
+    value = "into",
+    filled = TRUE,
+    missing = "rowmin_half",
+    msLevel = 1,
+    save_loc = "/chem_sim/",
+    device = "svg",
+    feat_pairs = FALSE
+  )
 }
-
