@@ -130,13 +130,13 @@ set.seed(opt$seed)
 data.path <- opt$data_path
 meta.file <- opt$meta_file
 biotransf.file <- opt$biotransf_file
-res.folder <- opt$output
+res_folder <- opt$output
 internal_standard <- opt$internal_standard
 glycoside_form <- opt$glycoside
 aglycone_form <- opt$aglycone
 glycoside_ppm <- opt$glycoside_ppm
 adduct <- opt$adduct
-ppm.global <- opt$ppm_global
+ppm_global <- opt$ppm_global
 bw_first_grouping <- opt$bw_first_grouping
 bw_second_grouping <- opt$bw_second_grouping
 workers <- opt$cores

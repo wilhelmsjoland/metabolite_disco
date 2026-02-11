@@ -33,7 +33,7 @@ importFiles <- function(
     y = mzml.tib,
     na_matches = "never",
     relationship = "one-to-one",
-    by = join_by(sample)
+    by = dplyr::join_by(sample)
   )
 
   samp.lacking.file <- meta.matched$sample[
@@ -477,7 +477,7 @@ inspectPeak <- function(
       xcms::chromatogram(aggregationFun = "sum")
   }
   if (save.graph == TRUE) {
-    pdf(paste0(res.folder, "/graphs/quality_control/", pk.chk, ".pdf"))
+    pdf(paste0(res_folder, "/graphs/quality_control/", pk.chk, ".pdf"))
     plot(
       x = test_peak,
       main = paste0(
@@ -544,7 +544,7 @@ inspectPeakInt <- function(
       )
     ) +
     ggplot2::geom_boxplot(varwidth = TRUE) +
-    ggplot2::scale_fill_manual(values = group.colors) +
+    ggplot2::scale_fill_manual(values = group_colors) +
     ggplot2::guides(x = guide_axis(angle = -45)) +
     ggplot2::theme_bw() +
     ggplot2::theme(
@@ -560,7 +560,7 @@ inspectPeakInt <- function(
     )
 
   file.nm <- paste0(
-    res.folder, 
+    res_folder, 
     "/graphs/per_sample_peaks/",
     deparse(substitute(xchr)),
     "_detected_peaks.pdf"
@@ -620,7 +620,7 @@ plotChromatogramInts <- function(
     file.name <- paste0(round(min.mz, 3), "-", round(max.mz, 3))
 
     pdf(
-      file = paste0(res.folder, save_loc, file.name, ".pdf"),
+      file = paste0(res_folder, save_loc, file.name, ".pdf"),
       width = 12,
       height = 10,
     )
@@ -629,7 +629,7 @@ plotChromatogramInts <- function(
       sliced.chr,
       # TODO triple check if this is correct
       # Probably do it the same way i do it for the plotFeatChrInt()
-      col = group.colors[MsExperiment::sampleData(chrom_object)$group],
+      col = group_colors[MsExperiment::sampleData(chrom_object)$group],
       peakType = "polygon",
       peakBg = NA,
       lwd = 2
@@ -665,7 +665,7 @@ plotFeatChrInt <- function(
   # Only take the ones with peaks or the coloring in the base plot is wrong
   keep_peaks <- xcms::hasChromPeaks(lone_feat)
   lone_feat_peaks <- xcms::hasChromPeaks(lone_feat)[, keep_peaks]
-  base.group.colors <- meta$group[match(names(lone_feat_peaks), rownames(meta))]
+  base.group_colors <- meta$group[match(names(lone_feat_peaks), rownames(meta))]
 
   # full.tib <- tibble::tibble()
   # for (i in 1:ncol(lone_feat)) {
@@ -715,7 +715,7 @@ plotFeatChrInt <- function(
   #         y = "Intensity",
   #         x = "Retention time"
   #     ) +
-  #     ggplot2::scale_color_manual(values = group.colors)
+  #     ggplot2::scale_color_manual(values = group_colors)
 
   if (isTRUE(feat_pairs)) {
     p1 <- function() {
@@ -727,7 +727,7 @@ plotFeatChrInt <- function(
       plot(
         lone_feat, 
         peakType = "polygon",
-        peakCol = group.colors[base.group.colors],
+        peakCol = group_colors[base.group_colors],
         peakBg = NA,
         lwd = 3,
         main = "",
@@ -747,7 +747,7 @@ plotFeatChrInt <- function(
       plot(
         lone_feat, 
         peakType = "polygon",
-        peakCol = group.colors[base.group.colors],
+        peakCol = group_colors[base.group_colors],
         peakBg = NA,
         lwd = 3,
         main = paste0(
@@ -806,7 +806,7 @@ plotFeatChrInt <- function(
       color = "black"
     ) +
     ggplot2::scale_y_continuous(expand =  ggplot2::expansion(c(0.1, 0.1))) +
-    ggplot2::scale_fill_manual(values = group.colors) +
+    ggplot2::scale_fill_manual(values = group_colors) +
     ggplot2::theme_bw() +
     ggplot2::theme(
       axis.text.x = ggplot2::element_blank(),
@@ -844,7 +844,7 @@ plotFeatChrInt <- function(
     rel_heights = c(1.5, 1)
   )
 
-  file.nm <- paste0(res.folder, save_loc, feature, ".", device)
+  file.nm <- paste0(res_folder, save_loc, feature, ".", device)
 
   if (!is.null(save_loc)) {
     ggplot2::ggsave(
@@ -950,7 +950,7 @@ plotFeatPairs <- function(
     )
 
   file.nm <- paste0(
-    res.folder, save_pairs_loc,
+    res_folder, save_pairs_loc,
     ft.pair[1], "_", ft.pair[2], ".", device
   )
 
@@ -975,7 +975,7 @@ feat_to_idx <- function(feature.idx = NULL) {
 
 # TODO FIX This so the path isn't hardcoded
 check_saved <- function(filename = NULL) {
-  object.bool <- file.exists(file.path(res.folder, "objects", filename))
+  object.bool <- file.exists(file.path(res_folder, "objects", filename))
   return(object.bool)
 }
 

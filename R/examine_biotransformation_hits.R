@@ -1,8 +1,3 @@
-library(ComplexHeatmap)
-library(circlize)
-library(rcdk)
-library(rJava)
-library(fingerprint)
 
 hits <- filt.match.diffs2 %>%
   dplyr::mutate(obs_ppm = num_to_ppm(abs(delta_mass - obs_delta_mass))) %>%
@@ -60,11 +55,12 @@ if (!exists("hits_chrs")) {
 
 if (file.exists(
   file.path(
-    res.folder, 
-    "graphs", 
-    "saved_pairs", 
+    res.folder,
+    "graphs",
+    "saved_pairs",
     "saved_pairs.tsv"
-    ))) {
+  )
+)) {
   int_pairs <- read_tsv(
   file = file.path(res.folder, "graphs", "saved_pairs", "saved_pairs.tsv")
   )
@@ -87,7 +83,8 @@ if (file.exists(
     idx <- which(df$rpair_num == hits[i, ][["name"]])
     message(
       "Feature pair: ", i, " / ", nrow(hits),
-      "\nFeature X ± ", df[idx, ]$name1, " <=> ", "Feature Y ± ", df[idx, ]$name2,
+      "\nFeature X ± ", df[idx, ]$name1, " <=> ",
+      "Feature Y ± ", df[idx, ]$name2,
       "\nFeat1: ", hits[i, ][["feat1"]], ", Feat2: ", hits[i, ][["feat2"]],
       "\nDelta_form: ", hits[i, ][["chem_change"]],
       "\nAdduct1: ", hits[i, ][["adduct1"]], 
@@ -205,7 +202,7 @@ test4 <- test3 %>%
     NA,
     as.character(p.value.signif)
   ))
-  
+
 test4 %>%
   ggplot(.,
     aes(
@@ -561,7 +558,6 @@ apiin.smiles <- paste0(
 apigenin.sims <- mol_similarity(
   query_smiles = apigenin.smiles,
   target_smiles = smiles,
-  anno_obj = NULL,
   kekulise = TRUE, # parsing incorrect smiles with electrons
   omit_nulls = TRUE,
   fingerprint = "circular",
@@ -626,4 +622,3 @@ apigenin.sims %>%
   ) +
   ggplot2::labs(y = "Tanimoto similarity")
 
-  

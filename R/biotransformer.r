@@ -1,4 +1,4 @@
-if (!file.exists(file.path(getwd(), res.folder, "tables", "apigenin.csv"))) {
+if (!file.exists(file.path(getwd(), res_folder, "tables", "apigenin.csv"))) {
   run_biotransformer(
     bt_dir = "biotransformer3.0jar",
     smiles = "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O",
@@ -9,7 +9,7 @@ if (!file.exists(file.path(getwd(), res.folder, "tables", "apigenin.csv"))) {
 }
 
 biot_pred <- read_csv(
-  file = file.path(res.folder, "tables", "apigenin.csv"),
+  file = file.path(res_folder, "tables", "apigenin.csv"),
   show_col_types = FALSE
 )
 
@@ -115,8 +115,8 @@ for (i in pred_peak_ids) {
 
 # REALLY INTERESTING!
 to.look.at <- c(
-  "FT03581",
-  "FT02413",
+  "FT03581", # 1
+  "FT02413", # 2
   "FT08376",
   "FT09870",
   "FT06149",
@@ -129,7 +129,9 @@ test <- predicted_feats %>%
   dplyr::arrange(InChIKey) %>%
   dplyr::mutate(name = paste(feature, InChIKey)) %>%
   # only for now
-  dplyr::distinct(InChIKey, .keep_all = TRUE)
+  dplyr::distinct(InChIKey, .keep_all = TRUE) %>%
+  # only for now
+  dplyr::filter(grepl("FT03581", feature))
 
 for (i in test$SMILES) {
   mol.2d <- parse.smiles(i)[[1]]
@@ -188,4 +190,4 @@ biot.sim.final %>%
     legend.title = ggplot2::element_blank()
   ) +
   ggplot2::labs(y = "Tanimoto similarity")
-
+  

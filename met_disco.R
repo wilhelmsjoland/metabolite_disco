@@ -60,13 +60,13 @@ folders <- c(
   "glycoside",
   "glycoside_feature_pairs"
 )
-dir.create(res.folder, FALSE, TRUE)
-dir.create(file.path(res.folder, "objects"), FALSE, TRUE)
-dir.create(file.path(res.folder, "tables"), FALSE, TRUE)
+dir.create(res_folder, FALSE, TRUE)
+dir.create(file.path(res_folder, "objects"), FALSE, TRUE)
+dir.create(file.path(res_folder, "tables"), FALSE, TRUE)
 for (folder in folders) {
   dir.create(
     file.path(
-      res.folder, "graphs", folder
+      res_folder, "graphs", folder
     ),
     showWarnings = FALSE,
     recursive = TRUE
@@ -80,43 +80,44 @@ dir.create(file.path("annotation_databases"), FALSE, TRUE)
 message("Importing metadata...")
 meta <- importFiles(data.path, meta.file)
 if (check_saved("ms_exp.rds")) {
-  ms_exp <- readRDS(file = file.path(res.folder, "objects/ms_exp.rds"))
+  ms_exp <- readRDS(file = file.path(res_folder, "objects/ms_exp.rds"))
 } else {
   ms_exp <- MsExperiment::readMsExperiment(
     spectraFiles = meta$path,
     sampleData = meta
   )
-  saveRDS(object = ms_exp, file = file.path(res.folder, "objects/ms_exp.rds"))
+  saveRDS(object = ms_exp, file = file.path(res_folder, "objects/ms_exp.rds"))
 }
 
 # ==============================================================================
 # Set colors for groups
 # ==============================================================================
 message("Setting colors for groups...")
-groups.to.use <- unique(MsExperiment::sampleData(ms_exp)$group)
-group.colors <- paste0(
-  brewer.pal(n = length(groups.to.use),
-  "Set1")[1:length(groups.to.use)]
+groups_to_use <- unique(MsExperiment::sampleData(ms_exp)$group)
+group_colors <- paste0(
+  RColorBrewer::brewer.pal(
+    n = length(groups_to_use),
+    "Set1")[seq_along(groups_to_use)]
 )
-group.colors <- setNames(group.colors, groups.to.use)
+group_colors <- setNames(group_colors, groups_to_use)
 
 # ==============================================================================
 # Create and plot base peak chromatograms
 # ==============================================================================
 message("Creating base peak chromatograms...")
 if (check_saved("bpcs.rds")) {
-  bpcs <- readRDS(file = file.path(res.folder, "objects/bpcs.rds"))
+  bpcs <- readRDS(file = file.path(res_folder, "objects/bpcs.rds"))
 } else {
   bpcs <- xcms::chromatogram(ms_exp, aggregationFun = "max")
-  saveRDS(object = bpcs, file = file.path(res.folder, "objects/bpcs.rds"))
+  saveRDS(object = bpcs, file = file.path(res_folder, "objects/bpcs.rds"))
 }
 
 message("Plotting base peak chromatograms...")
-pdf(file.path(res.folder, "graphs/bpc/raw_bpc.pdf"))
+pdf(file.path(res_folder, "graphs/bpc/raw_bpc.pdf"))
 par(mar = c(4, 4, 3, 2))
 plot(
   x = bpcs,
-  col = group.colors[MsExperiment::sampleData(ms_exp)$group],
+  col = group_colors[MsExperiment::sampleData(ms_exp)$group],
   main = "Base peak chromatogram"
 )
 invisible(dev.off())
@@ -136,25 +137,25 @@ cormat <- cor(
   use = "complete.obs" # Because NAs
 )
 
-cormat.rownames <- basename(Biobase::pData(xcms::phenoData(bpcs))$path)
-colnames(cormat) <- rownames(cormat) <- cormat.rownames
+cormat_rownames <- basename(Biobase::pData(xcms::phenoData(bpcs))$path)
+colnames(cormat) <- rownames(cormat) <- cormat_rownames
 
 # Define which phenodata columns should be highlighted in the plot
 ann <- data.frame(group = bpcs_bin$group)
-rownames(ann) <- cormat.rownames
+rownames(ann) <- cormat_rownames
 
 # Perform the cluster analysis
 
-cormat.p <- pheatmap::pheatmap(
+cormat_p <- pheatmap::pheatmap(
   cormat,
   annotation = ann,
-  annotation_color = list(group = group.colors),
+  annotation_color = list(group = group_colors),
   silent = TRUE
 )
 
 ggplot2::ggsave(
-  filename = paste0(res.folder, "/graphs/bpc/raw_bpc_hmp.pdf"),
-  plot = cormat.p,
+  filename = paste0(res_folder, "/graphs/bpc/raw_bpc_hmp.pdf"),
+  plot = cormat_p,
   device = "pdf",
   height = 10,
   width = 10,
@@ -166,51 +167,51 @@ ggplot2::ggsave(
 # Define the rt and m/z range of the peak area
 # ==============================================================================
 message("Inspecting internal standard peaks prior to peak-calling...")
-mz.theory <- getTheoryMz(chem_form = internal_standard, adduct = adduct)
-mz.range <- getShortMzRange(mz.theory, mz.window = 0.02)
+mz_theory <- getTheoryMz(chem_form = internal_standard, adduct = adduct)
+mz_range <- getShortMzRange(mz_theory, mz.window = 0.02)
 if (check_saved("is_chr.rds")) {
-  is.chr <- readRDS(file = paste0(res.folder, "/objects/is_chr.rds"))
+  is_chr <- readRDS(file = paste0(res_folder, "/objects/is_chr.rds"))
 } else {
-  is.chr <- xcms::chromatogram(
+  is_chr <- xcms::chromatogram(
     object = ms_exp,
-    mz = mz.range,
+    mz = mz_range,
     aggregationFun = "sum"
   )
-  saveRDS(object = is.chr, file = paste0(res.folder, "/objects/is_chr.rds"))
+  saveRDS(object = is_chr, file = paste0(res_folder, "/objects/is_chr.rds"))
 }
-ranges <- getRtMzRange(chromatogram = is.chr, rt_window = 0.02)
+ranges <- getRtMzRange(chromatogram = is_chr, rt_window = 0.02)
 
 # Wide IS chromatogram
-pdf(paste0(res.folder, "/graphs/internal_standard/all_is_wide.pdf"))
-plot(x = is.chr, col = group.colors[is.chr$group], lwd = 3)
-legend("topright", legend = names(group.colors), col = group.colors, pch = 16)
+pdf(paste0(res_folder, "/graphs/internal_standard/all_is_wide.pdf"))
+plot(x = is_chr, col = group_colors[is_chr$group], lwd = 3)
+legend("topright", legend = names(group_colors), col = group_colors, pch = 16)
 invisible(dev.off())
 
 # Get the IS XIC
 if (check_saved("is_eic.rds")) {
-  is.eic <- readRDS(file = paste0(res.folder, "/objects/is_eic.rds"))
+  is_eic <- readRDS(file = paste0(res_folder, "/objects/is_eic.rds"))
 } else {
-  is.eic <- xcms::chromatogram(
+  is_eic <- xcms::chromatogram(
     object = ms_exp,
-    mz = ranges$mz.range,
-    rt = ranges$rt.range,
+    mz = ranges$mz_range,
+    rt = ranges$rt_range,
     aggregationFun = "sum"
   )
-  saveRDS(object = is.eic, file = paste0(res.folder, "/objects/is_eic.rds"))
+  saveRDS(object = is_eic, file = paste0(res_folder, "/objects/is_eic.rds"))
 }
 
 # All IS EICs together
-pdf(paste0(res.folder, "/graphs/internal_standard/all_is.pdf"))
-plot(x = is.eic, col = group.colors[is.eic$group],lwd = 3)
-legend("topleft", legend = names(group.colors), col = group.colors, pch = 16)
+pdf(paste0(res_folder, "/graphs/internal_standard/all_is.pdf"))
+plot(x = is_eic, col = group_colors[is_eic$group], lwd = 3)
+legend("topleft", legend = names(group_colors), col = group_colors, pch = 16)
 invisible(dev.off())
 
 # Individual IS XICs
-for (i in 1:ncol(is.eic)) {
+for (i in seq_along(is_eic)) {
   plot(
-    x = is.eic[, i],
-    col = group.colors[
-      names(group.colors) %in% dplyr::filter(
+    x = is_eic[, i],
+    col = group_colors[
+      names(group_colors) %in% dplyr::filter(
         meta,
         rownames(meta) == colnames(bpcs)[i])$group
     ],
@@ -237,28 +238,28 @@ message(
 )
 
 if (check_saved("is_eic_wide.rds")) {
-  is.eic.wide <- readRDS(file = paste0(res.folder, "/objects/is_eic_wide.rds"))
+  is_eic_wide <- readRDS(file = paste0(res_folder, "/objects/is_eic_wide.rds"))
 } else {
-  is.eic.wide <- xcms::chromatogram(
+  is_eic_wide <- xcms::chromatogram(
     ms_exp,
-    mz = mz.range + c(-0.05, 0.05),
-    rt = ranges$rt.range + c(-16, 16),
+    mz = mz_range + c(-0.05, 0.05),
+    rt = ranges$rt_range + c(-16, 16),
     aggregationFun = "sum"
   )
   saveRDS(
-    object = is.eic.wide, 
-    file = paste0(res.folder, "/objects/is_eic_wide.rds")
+    object = is_eic_wide,
+    file = paste0(res_folder, "/objects/is_eic_wide.rds")
   )
 }
 
 # Run peak detection on the EIC
 if (check_saved("is_chr2.rds")) {
-  is.chr2 <- readRDS(file = paste0(res.folder, "/objects/is_chr2.rds"))
+  is_chr2 <- readRDS(file = paste0(res_folder, "/objects/is_chr2.rds"))
 } else {
-  is.chr2 <- xcms::findChromPeaks(
-    object = is.eic.wide,
+  is_chr2 <- xcms::findChromPeaks(
+    object = is_eic_wide,
     param = xcms::CentWaveParam(
-      ppm = ppm.global,
+      ppm = ppm_global,
       peakwidth = c(2, 20),
       prefilter = c(1, 1),
       snthresh = sn_threshold, # 10
@@ -270,12 +271,12 @@ if (check_saved("is_chr2.rds")) {
     ),
     msLevel = 1
   )
-  saveRDS(object = is.chr2, file = paste0(res.folder, "/objects/is_chr2.rds"))
+  saveRDS(object = is_chr2, file = paste0(res_folder, "/objects/is_chr2.rds"))
 }
 
 # Calculate peakwidth
-is.peaks <- tibble::as_tibble(
-  xcms::chromPeaks(is.chr2), 
+is_peaks <- tibble::as_tibble(
+  xcms::chromPeaks(is_chr2),
   rownames = "rownames") %>%
   dplyr::rowwise() %>%
   dplyr::mutate(delta_rt = rtmax - rtmin) %>%
@@ -284,31 +285,31 @@ is.peaks <- tibble::as_tibble(
 
 # Min: to half of some peaks in the datasets
 # Max: 2-4x times the average size
-is.min.peak.width <- min(is.peaks$delta_rt, na.rm = TRUE)
-is.max.peak.width <- max(is.peaks$delta_rt, na.rm = TRUE)
+is_min_peak_width <- min(is_peaks$delta_rt, na.rm = TRUE)
+is_max_peak_width <- max(is_peaks$delta_rt, na.rm = TRUE)
 
-min.peak.width <- quantile(is.peaks$delta_rt, 0.05, na.rm = TRUE) * 0.3 # 0.3
-max.peak.width <- quantile(is.peaks$delta_rt, 0.95, na.rm = TRUE) * 4 # 4
+min_peak_width <- quantile(is_peaks$delta_rt, 0.05, na.rm = TRUE) * 0.3 # 0.3
+max_peak_width <- quantile(is_peaks$delta_rt, 0.95, na.rm = TRUE) * 4 # 4
 
 message(
   "===========================================================================",
-  "Internal standard: ", "C7H8O2", ", Theoretical m/z: ", round(mz.theory, 3),
-  "\n\tMinimal peak width of IS: ", round(is.min.peak.width, 3),
-  "\n\tMaximal peak width of IS: ", round(is.max.peak.width, 3),
+  "\nInternal standard: ", "C7H8O2", ", Theoretical m/z: ", round(mz_theory, 3),
+  "\n\tMinimal peak width of IS: ", round(is_min_peak_width, 3),
+  "\n\tMaximal peak width of IS: ", round(is_max_peak_width, 3),
   "\nPeak widths used for peak picking: ",
-  "\n\t Minimal width: ", round(min.peak.width, 3),
-  "\n\t Maximal width: ", round(max.peak.width, 3),
+  "\n\t Minimal width: ", round(min_peak_width, 3),
+  "\n\t Maximal width: ", round(max_peak_width, 3), "\n",
   "===========================================================================",
   sep = ""
 )
 
 # ==============================================================================
 # Call peaks on whole dataset with parameters
-# ==============================================================================#
+# ==============================================================================
 message("Calling peaks...")
 
 if (check_saved("xchr.rds")) {
-  xchr <- readRDS(file = paste0(res.folder, "/objects/xchr.rds"))
+  xchr <- readRDS(file = paste0(res_folder, "/objects/xchr.rds"))
 } else {
   xchr <- xcms::findChromPeaks(
     object = ms_exp,
@@ -316,8 +317,8 @@ if (check_saved("xchr.rds")) {
     return.type = "XCMSnExp",
     msLevel = 1L,
     param = xcms::CentWaveParam(
-      ppm = ppm.global,
-      peakwidth = c(min.peak.width, max.peak.width),
+      ppm = ppm_global,
+      peakwidth = c(min_peak_width, max_peak_width),
       snthresh = sn_threshold, # 10
       prefilter = c(4, 1000), # k pks (left) over intens (right) # c(3, 100)
       mzCenterFun = "wMean",
@@ -333,18 +334,18 @@ if (check_saved("xchr.rds")) {
       verboseBetaColumns = TRUE
     )
   )
-  saveRDS(object = xchr, file = paste0(res.folder, "/objects/xchr.rds"))
+  saveRDS(object = xchr, file = paste0(res_folder, "/objects/xchr.rds"))
 }
 
 plot(
   bpcs,
-  col = group.colors[MsExperiment::sampleData(xchr)$group],
+  col = group_colors[MsExperiment::sampleData(xchr)$group],
   main = "Base peak chromatogram after peak picking"
 )
 legend(
   "topright",
-  col = unique(group.colors[MsExperiment::sampleData(xchr)$group]), 
-  legend = unique(names(group.colors[MsExperiment::sampleData(ms_exp)$group])),
+  col = unique(group_colors[MsExperiment::sampleData(xchr)$group]),
+  legend = unique(names(group_colors[MsExperiment::sampleData(ms_exp)$group])),
   pch = 16
 )
 invisible(dev.off())
@@ -391,17 +392,17 @@ inspectPeakInt(chr_data = xchr, value = into, save.graph = TRUE)
 # Let these be part of the pipeline as well and as a choice to do or not
 # ==============================================================================
 if (check_saved("xchr2.rds")) {
-  xchr2 <- readRDS(paste0(res.folder, "/objects/xchr2.rds"))
+  xchr2 <- readRDS(paste0(res_folder, "/objects/xchr2.rds"))
 } else {
   xchr2 <- xcms::refineChromPeaks(
     object = xchr,
-    param = xcms::CleanPeaksParam(maxPeakwidth = max.peak.width)
+    param = xcms::CleanPeaksParam(maxPeakwidth = max_peak_width)
   )
-  saveRDS(object = xchr2, file = paste0(res.folder, "/objects/xchr2.rds"))
+  saveRDS(object = xchr2, file = paste0(res_folder, "/objects/xchr2.rds"))
 }
 
 if (check_saved("xchr3.rds")) {
-  xchr3 <- readRDS(paste0(res.folder, "/objects/xchr3.rds"))
+  xchr3 <- readRDS(paste0(res_folder, "/objects/xchr3.rds"))
 } else {
   xchr3 <- xcms::refineChromPeaks(
     object = xchr2,
@@ -411,41 +412,41 @@ if (check_saved("xchr3.rds")) {
       value = "maxo"
     )
   )
-  saveRDS(object = xchr3, file = paste0(res.folder, "/objects/xchr3.rds"))
+  saveRDS(object = xchr3, file = paste0(res_folder, "/objects/xchr3.rds"))
 }
 
 if (check_saved("xchr4.rds")) {
-  xchr4 <- readRDS(paste0(res.folder, "/objects/xchr4.rds"))
+  xchr4 <- readRDS(paste0(res_folder, "/objects/xchr4.rds"))
 } else {
   xchr4 <- xcms::refineChromPeaks(
     object = xchr, # xchr3
     param = xcms::MergeNeighboringPeaksParam(
       expandRt = 0.25,
       expandMz = 0,
-      ppm =  ppm.global,
+      ppm =  ppm_global,
       minProp = 0.95 # between 0 & 1
     )
   )
-  saveRDS(object = xchr4, file = paste0(res.folder, "/objects/xchr4.rds"))
+  saveRDS(object = xchr4, file = paste0(res_folder, "/objects/xchr4.rds"))
 }
 
 # TODO 
 # Make a check for if these exist
-clean.removed.peaks <- dplyr::anti_join(
+clean_removed_peaks <- dplyr::anti_join(
   x = tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peaks"),
   y = tibble::as_tibble(xcms::chromPeaks(xchr2), rownames = "peaks"),
   by = "peaks"
 )
-clean.removed.peaks %>% nrow
+clean_removed_peaks %>% nrow()
 
-intensity.removed.peaks <- dplyr::anti_join(
+intensity_removed_peaks <- dplyr::anti_join(
   x = tibble::as_tibble(xcms::chromPeaks(xchr2), rownames = "peaks"),
   y = tibble::as_tibble(xcms::chromPeaks(xchr3), rownames = "peaks"),
   by = "peaks"
 )
-intensity.removed.peaks %>% nrow
+intensity_removed_peaks %>% nrow()
 
-merged.peaks <- dplyr::anti_join(
+merged_peaks <- dplyr::anti_join(
   x = tibble::as_tibble(xcms::chromPeaks(xchr3), rownames = "peaks"),
   y = tibble::as_tibble(xcms::chromPeaks(xchr4), rownames = "peaks"),
   by = "peaks"
@@ -458,7 +459,7 @@ message("Aligning retention times across samples...")
 
 # TODO Change these to more broad so I don't get a million anchor peaks?
 if (check_saved("xchr5.rds")) {
-  xchr5 <- readRDS(paste0(res.folder, "/objects/xchr5.rds"))
+  xchr5 <- readRDS(paste0(res_folder, "/objects/xchr5.rds"))
 } else {
   xchr5 <- xcms::groupChromPeaks(
     object = xchr, # xchr4
@@ -468,11 +469,11 @@ if (check_saved("xchr5.rds")) {
       minFraction = 0.5, # 0.7
       binSize = 0.01,
       maxFeatures = 1000, # 200
-      ppm = ppm.global,
+      ppm = ppm_global,
       minSamples = 2 # 1
     )
   )
-  saveRDS(object = xchr5, file = paste0(res.folder, "/objects/xchr5.rds"))
+  saveRDS(object = xchr5, file = paste0(res_folder, "/objects/xchr5.rds"))
 }
 
 # TODO Use this part to check if anchor peaks cover the whole RT
@@ -485,8 +486,8 @@ pgm <- xcms::adjustRtimePeakGroups(
 # Evaluate distribution of anchor peaks' rt in the first sample
 # TODO compare this to the full range of retention times from the runs
 chrom_peaks5 <- xcms::chromPeaks(xchr5)
-max.rt.time <- max(chrom_peaks5[, "rtmax"], na.rm = TRUE)
-min.rt.time <- min(chrom_peaks5[, "rtmin"], na.rm = TRUE)
+max_rt_time <- max(chrom_peaks5[, "rtmax"], na.rm = TRUE)
+min_rt_time <- min(chrom_peaks5[, "rtmin"], na.rm = TRUE)
 
 # TODO Add a check here as well!
 # quantile(pgm[, 1], na.rm = TRUE) # Remove na.rm = TRUE?
@@ -494,7 +495,7 @@ min.rt.time <- min(chrom_peaks5[, "rtmin"], na.rm = TRUE)
 
 # Alignment
 if (check_saved("xchr6.rds")) {
-  xchr6 <- readRDS(paste0(res.folder, "/objects/xchr6.rds"))
+  xchr6 <- readRDS(paste0(res_folder, "/objects/xchr6.rds"))
 } else {
   xchr6 <- xcms::adjustRtime(
     object = xchr5,
@@ -509,13 +510,13 @@ if (check_saved("xchr6.rds")) {
       subsetAdjust = c("average", "previous")
     )
   )
-  saveRDS(object = xchr6, file = paste0(res.folder, "/objects/xchr6.rds"))
+  saveRDS(object = xchr6, file = paste0(res_folder, "/objects/xchr6.rds"))
 }
 
 # Checking for retention drift
 # Extract base peak chromatograms
 if (check_saved("bpc_after.rds")) {
-  bpc_after <- readRDS(file = paste0(res.folder, "/objects/bpc_after.rds"))
+  bpc_after <- readRDS(file = paste0(res_folder, "/objects/bpc_after.rds"))
 } else {
   bpc_after <- xcms::chromatogram(
     xchr6,
@@ -524,77 +525,77 @@ if (check_saved("bpc_after.rds")) {
   )
   saveRDS(
     object = bpc_after,
-    file = paste0(res.folder, "/objects/bpc_after.rds")
+    file = paste0(res_folder, "/objects/bpc_after.rds")
   )
 }
 
-pdf(paste0(res.folder, "/graphs/rtime/before_after_alignment.pdf"))
+pdf(paste0(res_folder, "/graphs/rtime/before_after_alignment.pdf"))
 par(mfrow = c(2, 1))
 # Before retention time alignment
 plot(
   bpcs,
-  col = group.colors[MsExperiment::sampleData(xchr6)$group],
+  col = group_colors[MsExperiment::sampleData(xchr6)$group],
   main = "Before retention time alignment"
 )
 
 # After retention time alignment
 plot(
   bpc_after,
-  col = group.colors[MsExperiment::sampleData(xchr6)$group],
+  col = group_colors[MsExperiment::sampleData(xchr6)$group],
   main = "After retention time alignment"
 )
 invisible(dev.off())
 
 # Checking for retention drift in IS
 if (check_saved("is_drift_check_before.rds")) {
-  is.drift.check.before <- readRDS(
-    file = paste0(res.folder, "/objects/is_drift_check_before.rds")
+  is_drift_check_before <- readRDS(
+    file = paste0(res_folder, "/objects/is_drift_check_before.rds")
   )
 } else {
-  is.drift.check.before <- xchr %>%
-    Spectra::filterRt(ranges$rt.range) %>%
-    Spectra::filterMzRange(ranges$mz.range) %>%
+  is_drift_check_before <- xchr %>%
+    Spectra::filterRt(ranges$rt_range) %>%
+    Spectra::filterMzRange(ranges$mz_range) %>%
     xcms::chromatogram(
       aggregationFun = "max",
       chromPeaks = "none"
     )
   saveRDS(
-    object = is.drift.check.before, 
-    file = paste0(res.folder, "/objects/is_drift_check_before.rds")
+    object = is_drift_check_before,
+    file = paste0(res_folder, "/objects/is_drift_check_before.rds")
   )
 }
 
 if (check_saved("is_drift_check_after.rds")) {
-  is.drift.check.after <- readRDS(
-    file = paste0(res.folder, "/objects/is_drift_check_after.rds")
+  is_drift_check_after <- readRDS(
+    file = paste0(res_folder, "/objects/is_drift_check_after.rds")
   )
 } else {
-  is.drift.check.after <- xchr6 %>%
-    Spectra::filterRt(ranges$rt.range) %>%
-    Spectra::filterMzRange(ranges$mz.range) %>%
+  is_drift_check_after <- xchr6 %>%
+    Spectra::filterRt(ranges$rt_range) %>%
+    Spectra::filterMzRange(ranges$mz_range) %>%
     xcms::chromatogram(
       aggregationFun = "max",
       chromPeaks = "none"
     )
   saveRDS(
-    object = is.drift.check.after, 
-    file = paste0(res.folder, "/objects/is_drift_check_after.rds")
+    object = is_drift_check_after,
+    file = paste0(res_folder, "/objects/is_drift_check_after.rds")
   )
 }
 
 # Checking the adjustment in the IS peak
-pdf(paste0(res.folder, "/graphs/rtime/is_before_after_alignment.pdf"))
+pdf(paste0(res_folder, "/graphs/rtime/is_before_after_alignment.pdf"))
 par(mfrow = c(1, 2))
 plot(
-  is.drift.check.before,
-  col = group.colors[MsExperiment::sampleData(xchr6)$group],
+  is_drift_check_before,
+  col = group_colors[MsExperiment::sampleData(xchr6)$group],
   main = "Before:\nRT: 130 - 175 (s)\nM/z range: 226.9 - 228",
   lwd = 3
 )
 
 plot(
-  is.drift.check.after,
-  col = group.colors[MsExperiment::sampleData(xchr6)$group],
+  is_drift_check_after,
+  col = group_colors[MsExperiment::sampleData(xchr6)$group],
   main = "After:\nRT: 130 - 175 (s)\nM/z range: 226.9 - 228",
   lwd = 3
 )
@@ -617,21 +618,21 @@ invisible(dev.off())
 message("Producing simulated bandwidth plots...")
 # Check bandwidth
 if (check_saved("chr_1.rds")) {
-  chr_1 <- readRDS(file = paste0(res.folder, "/objects/chr_1.rds"))
+  chr_1 <- readRDS(file = paste0(res_folder, "/objects/chr_1.rds"))
 } else {
   chr_1 <- xcms::chromatogram(
     object = xchr6,
-    mz = ranges$mz.range,
-    rt = ranges$rt.range + c(-16, 16)
+    mz = ranges$mz_range,
+    rt = ranges$rt_range + c(-16, 16)
   )
-  saveRDS(object = chr_1, file = paste0(res.folder, "/objects/chr_1.rds"))
+  saveRDS(object = chr_1, file = paste0(res_folder, "/objects/chr_1.rds"))
 }
 
 # Test these settings on the extracted slice
 pdf(
-  paste0(res.folder, "/graphs/internal_standard/is_simul_first_grouping.pdf")
+  paste0(res_folder, "/graphs/internal_standard/is_simul_first_grouping.pdf")
 )
-density.simul.p <- xcms::plotChromPeakDensity(
+density_simul_p <- xcms::plotChromPeakDensity(
   object = chr_1,
   param = xcms::PeakDensityParam(
     sampleGroups = MsExperiment::sampleData(xchr6)$group,
@@ -641,9 +642,9 @@ density.simul.p <- xcms::plotChromPeakDensity(
 invisible(dev.off())
 
 pdf(
-  paste0(res.folder, "/graphs/internal_standard/is_simul_second_grouping.pdf")
+  paste0(res_folder, "/graphs/internal_standard/is_simul_second_grouping.pdf")
 )
-density.simul.p <- xcms::plotChromPeakDensity(
+density_simul_p <- xcms::plotChromPeakDensity(
   object = chr_1,
   param = xcms::PeakDensityParam(
     sampleGroups = MsExperiment::sampleData(xchr6)$group,
@@ -656,7 +657,7 @@ invisible(dev.off())
 message("Performing correspondence...")
 # Correspondence
 if (check_saved("xchr7.rds")) {
-  xchr7 <- readRDS(file = paste0(res.folder, "/objects/xchr7.rds"))
+  xchr7 <- readRDS(file = paste0(res_folder, "/objects/xchr7.rds"))
 } else {
   xchr7 <- xcms::groupChromPeaks(
     object = xchr6,
@@ -666,36 +667,36 @@ if (check_saved("xchr7.rds")) {
       minFraction = 0.5, # T0.7
       binSize = 0.01,
       maxFeatures = 1000, # 200
-      ppm = ppm.global,
+      ppm = ppm_global,
       minSamples = 2 # 1
     )
   )
-  saveRDS(object = xchr7, file = paste0(res.folder, "/objects/xchr7.rds"))
+  saveRDS(object = xchr7, file = paste0(res_folder, "/objects/xchr7.rds"))
 }
 
 # TODO Check this for several ions as well
 # Extract chromatogram including signal for is
 if (check_saved("chr_2.rds")) {
-  chr_2 <- readRDS(file = paste0(res.folder, "/objects/chr_2.rds"))
+  chr_2 <- readRDS(file = paste0(res_folder, "/objects/chr_2.rds"))
 } else {
   chr_2 <- xcms::chromatogram(
     object = xchr7,
-    mz = ranges$mz.range,
-    rt = ranges$rt.range + c(-16, 16),
+    mz = ranges$mz_range,
+    rt = ranges$rt_range + c(-16, 16),
     aggregationFun = "max"
   )
-  saveRDS(object = chr_2, file = paste0(res.folder, "/objects/chr_2.rds"))
+  saveRDS(object = chr_2, file = paste0(res_folder, "/objects/chr_2.rds"))
 }
 
 message("Producing second grouping bandwidth plots...")
 # Setting simulate = FALSE to show the actual correspondence results
 pdf(
   paste0(
-    res.folder,
+    res_folder,
     "/graphs/internal_standard/is_non_simul_second_grouping.pdf"
   )
 )
-density.non.simul.p <- xcms::plotChromPeakDensity(
+density_non_simul_p <- xcms::plotChromPeakDensity(
   object = chr_2,
   simulate = FALSE
 )
@@ -705,32 +706,32 @@ invisible(dev.off())
 # Gap filling
 # ==============================================================================
 # Checking features
-feat.def <- tibble::as_tibble(
+feat_def <- tibble::as_tibble(
   xcms::featureDefinitions(xchr7),
   rownames = "feature"
 )
-feat.val <- tibble::as_tibble(
+feat_val <- tibble::as_tibble(
   xcms::featureValues(xchr7, method = "sum"),
   rownames = "feature"
 )
 
 # Extract features with nas for peak filling
-feat.with.na <- feat.val %>%
+feat_with_na <- feat_val %>%
   tidyr::pivot_longer(cols = 2:ncol(.)) %>%
   dplyr::filter(is.na(value)) %>%
   dplyr::pull(feature) %>%
   unique(.)
 
 # Filter feature defintions to features with nas
-feat.def.nas <- feat.def %>%
-  dplyr::filter(feature %in% feat.with.na)
+feat_def_nas <- feat_def %>%
+  dplyr::filter(feature %in% feat_with_na)
 
 # Create a list for checking the features chromatograms
-feat.def.nas.vals <- feat.def.nas %>%
+feat_def_nas_vals <- feat_def_nas %>%
   dplyr::rowwise() %>%
   dplyr::mutate(feat_extract = rbind(
     c(
-      mzmed - 0.0015, 
+      mzmed - 0.0015,
       mzmed + 0.0015,
       rtmin - 2,
       rtmax + 2
@@ -745,31 +746,31 @@ message(
 
 # Perform gap filling
 if (check_saved("xchr8.rds")) {
-  xchr8 <- readRDS(file = paste0(res.folder, "/objects/xchr8.rds"))
+  xchr8 <- readRDS(file = paste0(res_folder, "/objects/xchr8.rds"))
 } else {
   xchr8 <- xcms::fillChromPeaks(
     object = xchr7,
     param = xcms::ChromPeakAreaParam()
   )
-  saveRDS(object = xchr8, file = paste0(res.folder, "/objects/xchr8.rds"))
+  saveRDS(object = xchr8, file = paste0(res_folder, "/objects/xchr8.rds"))
 }
 
 # Number of missing values after gap filling
 message(
-  "Amount of features with NAs after gap filling: ", 
+  "Amount of features with NAs after gap filling: ",
   sum(is.na(xcms::featureValues(xchr8)))
 )
 
 # Number of filled peaks
 message(
-  "Number of filled peaks: ", 
+  "Number of filled peaks: ",
   sum(is.na(featureValues(xchr7))) - sum(is.na(xcms::featureValues(xchr8)))
 )
 
 # Plot all non-filled peaks
 # Extract the m/z - rt regions for these features
 # Extract features with nas for peak filling
-feat.with.na.after <- tibble::as_tibble(
+feat_with_na_after <- tibble::as_tibble(
   xcms::featureValues(xchr8, method = "sum"),
   rownames = "feature"
 ) %>%
@@ -778,21 +779,21 @@ feat.with.na.after <- tibble::as_tibble(
   dplyr::pull(feature) %>%
   unique(.)
 
-chrs.na.feat <- xcms::featureArea(xchr8, features = feat.with.na.after)
+chrs.na.feat <- xcms::featureArea(xchr8, features = feat_with_na_after)
 
 # Expand the retention time by 1 second on both sides
 chrs.na.feat[, "rtmin"] <- chrs.na.feat[, "rtmin"] - 1
 chrs.na.feat[, "rtmax"] <- chrs.na.feat[, "rtmax"] + 1
 
 if (check_saved("chrs_na.rds")) {
-  chrs_na <- readRDS(file = paste0(res.folder, "/objects/chrs_na.rds"))
+  chrs_na <- readRDS(file = paste0(res_folder, "/objects/chrs_na.rds"))
 } else {
   chrs_na <- xcms::chromatogram(
     xchr8,
     mz = chrs.na.feat[, c("mzmin", "mzmax")],
     rt = chrs.na.feat[, c("rtmin", "rtmax")] # probably increase this a little
   )
-  saveRDS(object = chrs_na, file = paste0(res.folder, "/objects/chrs_na.rds"))
+  saveRDS(object = chrs_na, file = paste0(res_folder, "/objects/chrs_na.rds"))
 }
 
 # ==============================================================================
@@ -802,7 +803,7 @@ message("Filtering features based on missingness...")
 group.factor <- MsExperiment::sampleData(xchr8)$group
 group.factor <- as.factor(group.factor)
 if (check_saved("xchr9.rds")) {
-  xchr9 <- readRDS(file = paste0(res.folder, "/objects/xchr9.rds"))
+  xchr9 <- readRDS(file = paste0(res_folder, "/objects/xchr9.rds"))
 } else {
   xchr9 <- QFeatures::filterFeatures(
     xchr8,
@@ -811,7 +812,7 @@ if (check_saved("xchr9.rds")) {
       f = group.factor
     )
   )
-  saveRDS(object = xchr9, file = paste0(res.folder, "/objects/xchr9.rds"))
+  saveRDS(object = xchr9, file = paste0(res_folder, "/objects/xchr9.rds"))
 }
 
 # ==============================================================================
@@ -886,7 +887,7 @@ pca_raw <- autoplot(
   colour = 'phenotype', 
   scale = 0,
   size = 3) +
-  ggplot2::scale_color_manual(values = group.colors) +
+  ggplot2::scale_color_manual(values = group_colors) +
   ggplot2::theme_bw() +
   ggplot2::labs(title = "Before normalization")
 
@@ -905,7 +906,7 @@ pca_adj <- autoplot(
   colour = 'phenotype',
   scale = 0,
   size = 3) +
-  ggplot2::scale_color_manual(values = group.colors) +
+  ggplot2::scale_color_manual(values = group_colors) +
   ggplot2::theme_bw() +
   ggplot2::labs(title = "After normalization")
 
@@ -913,7 +914,7 @@ norm.filled.12.pca.p <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
 
 ggplot2::ggsave(
-  filename = paste0(res.folder, "/graphs/pca/norm_filled_pca_1_2.pdf"),
+  filename = paste0(res_folder, "/graphs/pca/norm_filled_pca_1_2.pdf"),
   plot = norm.filled.12.pca.p,
   device = "pdf",
   height = 6,
@@ -930,7 +931,7 @@ pca_raw <- autoplot(
   y = 4,
   scale = 0,
   size = 3) +
-  ggplot2::scale_color_manual(values = group.colors) +
+  ggplot2::scale_color_manual(values = group_colors) +
   ggplot2::theme_bw() +
   ggplot2::labs(title = "Before normalization")
 
@@ -942,7 +943,7 @@ pca_adj <- autoplot(
   y = 4,
   scale = 0,
   size = 3) +
-  ggplot2::scale_color_manual(values = group.colors) +
+  ggplot2::scale_color_manual(values = group_colors) +
   ggplot2::theme_bw() +
   ggplot2::labs(title = "After normalization")
 
@@ -950,7 +951,7 @@ norm.filled.34.pca.p  <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
 
 ggplot2::ggsave(
-  filename = paste0(res.folder, "/graphs/pca/norm_filled_pca_3_4.pdf"),
+  filename = paste0(res_folder, "/graphs/pca/norm_filled_pca_3_4.pdf"),
   plot = norm.filled.34.pca.p,
   device = "pdf",
   height = 6,
@@ -1009,8 +1010,8 @@ for (i in comparisons) {
 
 full.limma <- tibble::tibble()
 for (i in names(limma_res)) {
-  tmp.tib <- limma_res[[i]]
-  full.limma <- dplyr::bind_rows(full.limma, tmp.tib)
+  tmp_tib <- limma_res[[i]]
+  full.limma <- dplyr::bind_rows(full.limma, tmp_tib)
 }
 
 message("Producing volcano plots...")
@@ -1019,7 +1020,7 @@ for (i in names(limma_res)) {
 
   tmp <- limma_res[[i]]
 
-  tmp.tib <- tmp %>%
+  tmp_tib <- tmp %>%
     dplyr::mutate(
       label.p = dplyr::if_else(
         adj.P.Val < p.value.global & abs(logFC) > quantile(abs(logFC), 0.99),
@@ -1043,7 +1044,7 @@ for (i in names(limma_res)) {
     )) %>%
     tidyr::drop_na(logFC)
 
-  tmp.p <- tmp.tib %>%
+  tmp.p <- tmp_tib %>%
     ggplot2::ggplot(.,
       ggplot2::aes(
         x = logFC,
@@ -1057,7 +1058,7 @@ for (i in names(limma_res)) {
       "ns" = "grey"
     )) +
     ggrepel::geom_label_repel(
-      data = tidyr::drop_na(tmp.tib, label.p) %>%
+      data = tidyr::drop_na(tmp_tib, label.p) %>%
       dplyr::arrange(dplyr::desc(abs(logFC))) %>%
       dplyr::slice(1:50),
       ggplot2::aes(
@@ -1087,7 +1088,7 @@ for (i in names(limma_res)) {
   volc_plot_list[[i]] <- tmp.p
 
   ggplot2::ggsave(
-    filename = paste0(res.folder, "/graphs/volcano/", i, ".pdf"),
+    filename = paste0(res_folder, "/graphs/volcano/", i, ".pdf"),
     plot = tmp.p,
     device = "pdf",
     height = 10,
@@ -1131,7 +1132,7 @@ for (i in assay.names) {
 
   readr::write_csv(
     x = full_data,
-    file = paste0(res.folder, "/tables/full_", i, ".csv"),
+    file = paste0(res_folder, "/tables/full_", i, ".csv"),
     na = "NA",
     col_names = TRUE,
     append = FALSE
@@ -1182,7 +1183,7 @@ upset.p <- upset.tib %>%
 #     )
 
 ggplot2::ggsave(
-  filename = paste0(res.folder, "/graphs/upset/upset.pdf"),
+  filename = paste0(res_folder, "/graphs/upset/upset.pdf"),
   plot = upset.p,
   device = "pdf",
   height = 7,
@@ -1337,7 +1338,7 @@ for (i in intersecting.feats$feature) {
   )
 
   ggplot2::ggsave(
-    filename = paste0(res.folder, "/graphs/feature_boxplot/", i, ".pdf"),
+    filename = paste0(res_folder, "/graphs/feature_boxplot/", i, ".pdf"),
     plot = tmp.inter.p,
     device = "pdf",
     height = 5,
@@ -1399,7 +1400,7 @@ bio.transf2 <- dplyr::bind_rows(
 message(
   "Predicting potential biotransformations based on:\n\t", 
   "Biotransformation database: ", biotransf.file,
-  "\n\tppm: ", ppm.global,
+  "\n\tppm: ", ppm_global,
   sep = ""
 )
 
@@ -1412,14 +1413,14 @@ message(
 matched.diffs <- predictBiotransfAdducts(
   data = possible.adducts,
   biotransf.data = bio.transf, # bio.transf2
-  tolerance_ppm = 1 # ppm.global
+  tolerance_ppm = 1 # ppm_global
 )
 
 # TODO This is slow for now
 message("Writing predictions to table...")
 writexl::write_xlsx(
   x = matched.diffs,
-  path = paste0(res.folder, "/tables/matched_diffs.xlsx"),
+  path = paste0(res_folder, "/tables/matched_diffs.xlsx"),
   col_names = TRUE,
   format_headers = TRUE,
   use_zip64 = FALSE
@@ -1461,7 +1462,7 @@ writexl::write_xlsx(
         "pair"
       )
     ),
-  path = paste0(res.folder, "/tables/filt_matched_diffs.xlsx"),
+  path = paste0(res_folder, "/tables/filt_matched_diffs.xlsx"),
   col_names = TRUE,
   format_headers = TRUE,
   use_zip64 = FALSE
@@ -1515,7 +1516,7 @@ target_df <- ProtGenerics::compounds(
 # parameters to match by
 mz_match_param <- MetaboAnnotation::Mass2MzParam(
   adducts = c(MetaboCoreUtils::adductNames(polarity = "negative")),
-  ppm = ppm.global # 10
+  ppm = ppm_global # 10
 )
 
 matches <- MetaboAnnotation::matchValues(
@@ -1546,7 +1547,7 @@ message(sprintf(
 ))
 
 if (check_saved("xchr9_filt.rds")) {
-  xchr9.filt <- readRDS(file = paste0(res.folder, "/objects/xchr9_filt.rds"))
+  xchr9.filt <- readRDS(file = paste0(res_folder, "/objects/xchr9_filt.rds"))
 } else {
   xchr9.filt <- filtFeatures(
     object = xchr9,
@@ -1557,7 +1558,7 @@ if (check_saved("xchr9_filt.rds")) {
   )
   saveRDS(
     object = xchr9.filt,
-    file = paste0(res.folder, "/objects/xchr9_filt.rds")
+    file = paste0(res_folder, "/objects/xchr9_filt.rds")
   )
 }
 
@@ -1592,7 +1593,7 @@ gly.agly.adducts <- glycoside %>%
   )
 
 gly.agly <- tibble::tibble()
-for (i in 1:nrow(gly.agly.adducts)) {
+for (i in seq_along(gly.agly.adducts)) {
   tmp <- full_raw_filled %>%
     dplyr::filter(
       dplyr::between(
@@ -1640,7 +1641,7 @@ xchr9.filt$final.plotting.features <- unique(c(
 message("Producing feature chromatograms...")
 if (check_saved("feature_chrs.rds")) {
   feature.chrs <- readRDS(
-    file = paste0(res.folder, "/objects/feature_chrs.rds")
+    file = paste0(res_folder, "/objects/feature_chrs.rds")
   )
 } else {
   feature.chrs <- xcms::featureChromatograms(
@@ -1656,7 +1657,7 @@ if (check_saved("feature_chrs.rds")) {
   )
   saveRDS(
     object = feature.chrs, 
-    file = paste0(res.folder, "/objects/feature_chrs.rds")
+    file = paste0(res_folder, "/objects/feature_chrs.rds")
   )
 }
 
