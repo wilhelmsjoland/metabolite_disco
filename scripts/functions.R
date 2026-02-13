@@ -572,15 +572,33 @@ plot_feat_chrom_int <- function(
       by = c("name" = "file")
     )
 
+  p2_data_signif <- full_limma %>%
+    dplyr::select(feature, adj.P.Val, contrast) %>%
+    dplyr::mutate(
+      group1 = stringr::str_split_i(contrast, "-", 1),
+      group2 = stringr::str_split_i(contrast, "-", 2),
+    ) %>%
+    dplyr::select(-contrast) %>%
+    dplyr::filter(feature %in% unique(p2_data$feature)) %>%
+    rstatix::add_significance(p.col = "adj.P.Val") %>%
+    find_y_position(
+      test_df = .,
+      df = p2_data,
+      formula = "value ~ group",
+      fun_data = "max"
+    )
+
   p2 <- p2_data %>%
-    ggplot2::ggplot(.,
+    ggplot2::ggplot(
       ggplot2::aes(
         x = group,
-        y = value,
-        fill = group
+        y = value
       )
     ) +
-    ggplot2::geom_boxplot(outliers = FALSE) +
+    ggplot2::geom_boxplot(
+      ggplot2::aes(fill = group),
+      outliers = FALSE
+    ) +
     ggplot2::geom_point(
       position = ggplot2::position_jitter(width = 0.15),
       size = 2,
@@ -604,6 +622,17 @@ plot_feat_chrom_int <- function(
         ", filled: ", filled,
         ", missing: ", missing
       )
+    ) +
+    ggpubr::geom_bracket(
+      data = p2_data_signif %>%
+        dplyr::filter(!adj.P.Val.signif %in% c("ns")),
+      ggplot2::aes(
+        xmin = group1,
+        xmax = group2,
+        label = adj.P.Val.signif,
+        y.position = y.pos * 1.005
+      ),
+      step.increase = 0.1
     )
 
   p3 <- cowplot::plot_grid(
@@ -632,8 +661,8 @@ plot_feat_chrom_int <- function(
     "combined" = p3,
     "chromatogram" = p1,
     "boxplot" = p2,
-    # "p1_data" = p1.data,
-    "p2_data" = p2_data
+    "boxplot_data" = p2_data,
+    "boxplot_signif" = p2_data_signif
   )
 
   return(data_list)

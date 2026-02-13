@@ -289,7 +289,6 @@ is_peaks <- tibble::as_tibble(
 # Max: 2-4x times the average size
 is_min_peak_width <- min(is_peaks$delta_rt, na.rm = TRUE)
 is_max_peak_width <- max(is_peaks$delta_rt, na.rm = TRUE)
-
 min_peak_width <- quantile(is_peaks$delta_rt, 0.05, na.rm = TRUE) * 0.3 # 0.3
 max_peak_width <- quantile(is_peaks$delta_rt, 0.95, na.rm = TRUE) * 4 # 4
 
@@ -308,7 +307,13 @@ message(
 # ==============================================================================
 # Call peaks on whole dataset with parameters
 # ==============================================================================
-message("Calling peaks...")
+message(
+  "===========================================================================",
+  "\n",
+  "Calling peaks -------------------------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
 
 if (check_saved("xchr.rds")) {
   xchr <- readRDS(file = paste0(res_folder, "/objects/xchr.rds"))
@@ -360,7 +365,13 @@ xchr_data <- tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peak")
 # TODO
 # Extract some peaks here and check quality of peak picking
 # ==============================================================================
-message("Inspecting called peaks...")
+message(
+  "===========================================================================",
+  "\n",
+  "Inspecting called peaks ---------------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
 
 # peaks_to_inspect <- as_tibble(chromPeaks(xchr[1:2]), rownames = "peak") %>%
 #     tidyr::drop_na(beta_snr) %>%
@@ -389,75 +400,15 @@ message("Inspecting called peaks...")
 inspect_peak_intensity(chr_data = xchr, value = into, save_graph = TRUE)
 
 # ==============================================================================
-# Refine peaks
-# TODO
-# Let these be part of the pipeline as well and as a choice to do or not
-# ==============================================================================
-if (check_saved("xchr2.rds")) {
-  xchr2 <- readRDS(paste0(res_folder, "/objects/xchr2.rds"))
-} else {
-  xchr2 <- xcms::refineChromPeaks(
-    object = xchr,
-    param = xcms::CleanPeaksParam(maxPeakwidth = max_peak_width)
-  )
-  saveRDS(object = xchr2, file = paste0(res_folder, "/objects/xchr2.rds"))
-}
-
-if (check_saved("xchr3.rds")) {
-  xchr3 <- readRDS(paste0(res_folder, "/objects/xchr3.rds"))
-} else {
-  xchr3 <- xcms::refineChromPeaks(
-    object = xchr2,
-    param = xcms::FilterIntensityParam(
-      threshold = 0,
-      nValues = 1L,
-      value = "maxo"
-    )
-  )
-  saveRDS(object = xchr3, file = paste0(res_folder, "/objects/xchr3.rds"))
-}
-
-if (check_saved("xchr4.rds")) {
-  xchr4 <- readRDS(paste0(res_folder, "/objects/xchr4.rds"))
-} else {
-  xchr4 <- xcms::refineChromPeaks(
-    object = xchr, # xchr3
-    param = xcms::MergeNeighboringPeaksParam(
-      expandRt = 0.25,
-      expandMz = 0,
-      ppm =  ppm_global,
-      minProp = 0.95 # between 0 & 1
-    )
-  )
-  saveRDS(object = xchr4, file = paste0(res_folder, "/objects/xchr4.rds"))
-}
-
-# TODO
-# Make a check for if these exist
-clean_removed_peaks <- dplyr::anti_join(
-  x = tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peaks"),
-  y = tibble::as_tibble(xcms::chromPeaks(xchr2), rownames = "peaks"),
-  by = "peaks"
-)
-clean_removed_peaks %>% nrow()
-
-intensity_removed_peaks <- dplyr::anti_join(
-  x = tibble::as_tibble(xcms::chromPeaks(xchr2), rownames = "peaks"),
-  y = tibble::as_tibble(xcms::chromPeaks(xchr3), rownames = "peaks"),
-  by = "peaks"
-)
-intensity_removed_peaks %>% nrow()
-
-merged_peaks <- dplyr::anti_join(
-  x = tibble::as_tibble(xcms::chromPeaks(xchr3), rownames = "peaks"),
-  y = tibble::as_tibble(xcms::chromPeaks(xchr4), rownames = "peaks"),
-  by = "peaks"
-)
-
-# ==============================================================================
 # Alignment of retention times
 # ==============================================================================
-message("Aligning retention times across samples...")
+message(
+  "===========================================================================",
+  "\n",
+  "Aligning retention times---------------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
 
 # TODO Change these to more broad so I don't get a million anchor peaks?
 if (check_saved("xchr5.rds")) {
@@ -616,7 +567,6 @@ invisible(dev.off())
 # Test these settings on the extracted slice
 # Do this for several
 # ==============================================================================
-
 message("Producing simulated bandwidth plots...")
 # Check bandwidth
 if (check_saved("chr_1.rds")) {
@@ -820,7 +770,13 @@ if (check_saved("xchr9.rds")) {
 # ==============================================================================
 # Median scaling & PCA ------------------------------------------------------
 # ==============================================================================
-message("Producing PCA plots...")
+message(
+  "===========================================================================",
+  "\n",
+  "Generating PCAs -----------------------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
 
 res <- xcms::quantify(
   xchr9,
@@ -964,7 +920,13 @@ ggplot2::ggsave(
 # ==============================================================================
 # Limnear models using limma
 # ==============================================================================
-message("Running linear models...")
+message(
+  "===========================================================================",
+  "\n",
+  "Running linear models -----------------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
 
 group_used <- factor(meta$group)
 design <- model.matrix(~ 0 + group_used)
@@ -1142,9 +1104,56 @@ for (i in assay_names) {
 }
 
 # ==============================================================================
+# Find intersecting features ---------------------------------------------------
+# ==============================================================================
+message(
+  "===========================================================================",
+  "\n",
+  "Finding intersecting features ---------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
+
+# Create all comparisons
+combinations <- unlist(
+  lapply(
+    X = seq_along(comparisons),
+    FUN = function(x) combn(comparisons, x, simplify = FALSE)
+  ),
+  recursive = FALSE
+)
+
+upset_comps <- list()
+for (i in seq_along(combinations)) {
+  tmp_intersect_feats <- find_intersect_feat(
+    data = upset_tib,
+    set = combinations[[i]],
+    full_set = comparisons
+  )
+
+  upset_comps[[
+    stringr::str_flatten(combinations[[i]], collapse = "*")
+  ]] <- tmp_intersect_feats$feature
+}
+
+upset_comp <- upset_comps[[
+  paste0("bu_mutant_apiin-bu_wt_apiin*bu_mutant_control",
+  "-",
+  "bu_wt_apiin*bu_wt_apiin-bu_wt_control"
+  )
+]]
+
+  # ==============================================================================
 # Produce upset plots ----------------------------------------------------------
 # ==============================================================================
-message("Producing upset plots...")
+message(
+  "===========================================================================",
+  "\n",
+  "Generating upsets----------------------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
+
 upset_tib <- full_limma %>%
   dplyr::select(feature, contrast, adj.P.Val) %>%
   tidyr::pivot_wider(
@@ -1172,18 +1181,6 @@ upset_p <- upset_tib %>%
     )
   )
 
-# upset_tib %>%
-#     dplyr::select(c("feature", tidyselect::all_of(upset_comps))) %>%
-#     ComplexUpset::upset(
-#         intersect = upset_comps,
-#         name = paste0("Features with p adjusted < ", p_value_global),
-#         width_ratio = 0.15,
-#         base_annotations = list(
-#             "Intersecting features" = ComplexUpset::intersection_size()
-#         ),
-#         min_degree = 3
-#     )
-
 ggplot2::ggsave(
   filename = paste0(res_folder, "/graphs/upset/upset_pdf"),
   plot = upset_p,
@@ -1192,162 +1189,6 @@ ggplot2::ggsave(
   width = 22,
   units = "in"
 )
-
-# ==============================================================================
-# Find intersecting features ---------------------------------------------------
-# ==============================================================================
-message("Finding intersecting features...")
-# TODO Create all interesting comparisons
-upset_comp <- c(
-  "bu_wt_apiin-bu_wt_control", # 1
-  "bu_mutant_control-bu_wt_apiin", # 1
-  "bu_mutant_apiin-bu_wt_apiin" # , # 1
-  # "bu_mutant_apiin-bu_wt_control" # 2
-)
-
-# Add to list
-upset_comps <- list()
-intersecting_feats <- find_intersect_feat(
-  data = upset_tib,
-  set = upset_comp,
-  full_set = comparisons
-)
-upset_comps[[
-  stringr::str_flatten(upset_comp, collapse = "*")
-]] <- intersecting_feats$feature
-# TODO END of part that needs fixing
-
-all.int.comps <- upset_tib %>%
-  tidyr::pivot_longer(cols = 2:ncol(.)) %>%
-  dplyr::filter(value == TRUE) %>%
-  dplyr::group_by(feature) %>%
-  dplyr::filter(dplyr::n() >= 2) %>%
-  dplyr::pull(feature) %>%
-  unique(.)
-
-intersect_data <- full_norm_filled %>%
-  tidyr::pivot_longer(cols = tidyselect::all_of(rownames(meta))) %>%
-  dplyr::filter(feature %in% intersecting_feats$feature) %>%
-  dplyr::left_join(
-    x = .,
-    y = meta %>%
-      tibble::as_tibble(., rownames = "sample"),
-    by = c("name" = "sample")
-  ) %>%
-  dplyr::mutate(group = forcats::fct_relevel(
-    group,
-    c(
-      "bu_wt_control",
-      "bu_wt_apiin",
-      "bu_mutant_control",
-      "bu_mutant_apiin"
-    )
-  ))
-
-limma_p_res <- full_limma %>%
-  dplyr::select(feature, adj.P.Val, contrast) %>%
-  dplyr::mutate(
-    group1 = stringr::str_split_i(contrast, "-", 1),
-    group2 = stringr::str_split_i(contrast, "-", 2),
-  ) %>%
-  dplyr::select(-contrast) %>%
-  dplyr::filter(feature %in% intersecting_feats$feature) %>%
-  rstatix::add_significance(p.col = "adj.P.Val") %>%
-  find_y_position(
-    test_df = .,
-    df = intersect_data,
-    formula = "value ~ group",
-    fun_data = "max",
-    grouping = "feature"
-  )
-
-message("Producing significant intersecting feature boxplots...")
-# Intersecting feats individually
-for (i in intersecting_feats$feature) {
-  tmp_inter_data <- full_norm_filled %>%
-    tidyr::pivot_longer(cols = tidyselect::all_of(rownames(meta))) %>%
-    dplyr::filter(feature %in% i) %>%
-    dplyr::left_join(
-      x = .,
-      y = meta %>%
-        tibble::as_tibble(., rownames = "sample"),
-      by = c("name" = "sample")
-    ) %>%
-    dplyr::mutate(group = forcats::fct_relevel(
-      group,
-      c(
-        "bu_wt_control",
-        "bu_wt_apiin",
-        "bu_mutant_control",
-        "bu_mutant_apiin"
-      ))
-    )
-
-  tmp_inter_limma <- full_limma %>%
-    dplyr::select(feature, adj.P.Val, contrast) %>%
-    dplyr::mutate(
-      group1 = stringr::str_split_i(contrast, "-", 1),
-      group2 = stringr::str_split_i(contrast, "-", 2),
-    ) %>%
-    dplyr::select(-contrast) %>%
-    dplyr::filter(feature %in% i) %>%
-    rstatix::add_significance(p.col = "adj.P.Val") %>%
-    find_y_position(
-      test_df = .,
-      df = tmp_inter_data,
-      formula = "value ~ group",
-      fun_data = "max"
-    )
-
-  tmp_inter_p <- tmp_inter_data %>%
-    ggplot2::ggplot(
-      ggplot2::aes(
-        x = group,
-        y = value
-      )) +
-    ggplot2::geom_boxplot(
-      ggplot2::aes(fill = group),
-      outliers = FALSE
-    ) +
-    ggplot2::geom_point() +
-    ggplot2::facet_wrap(
-      facets = ~ feature,
-      scales = "free_y"
-    ) +
-    ggplot2::scale_y_continuous(expand = ggplot2::expansion(c(0.1, 0.15))) +
-    ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
-    ggplot2::theme_bw() +
-    ggplot2::theme(
-      strip.background = ggplot2::element_blank(),
-      axis.text.x = ggplot2::element_blank(),
-      axis.ticks.x = ggplot2::element_blank(),
-      axis.title.x = ggplot2::element_blank(),
-      legend.title = ggplot2::element_blank()
-    ) +
-    ggplot2::labs(
-      y = "Log2 median-scaled intensity"
-    ) +
-    ggpubr::geom_bracket(
-      data = tmp_inter_limma %>%
-        dplyr::filter(!adj.P.Val.signif %in% c("ns")),
-      ggplot2::aes(
-        xmin = group1,
-        xmax = group2,
-        label = adj.P.Val.signif,
-        y.position = y.pos * 1.005
-      ),
-      step.increase = 0.1
-    )
-
-  ggplot2::ggsave(
-    filename = paste0(res_folder, "/graphs/feature_boxplot/", i, ".pdf"),
-    plot = tmp_inter_p,
-    device = "pdf",
-    height = 5,
-    width = 5,
-    units = "in"
-  )
-}
 
 # ==============================================================================
 # m/z predictions all ----------------------------------------------------------
@@ -1405,7 +1246,6 @@ message(
 )
 
 # TODO
-# CHECK IF THIS MAKES SENSE NOW!!!!!
 # Fix so the observed ppm is added
 # Also filter noisy features with the filt_features() function I made
 matched_diffs <- pred_biot(
@@ -1425,15 +1265,23 @@ writexl::write_xlsx(
 
 message("
  based on significant features in contrasts:\n\t",
-  paste0(upset_comps, "\n\t"),
+  paste0(upset_comp, "\n\t"),
   sep = ""
 )
+
+all.int.comps <- upset_tib %>%
+  tidyr::pivot_longer(cols = 2:ncol(.)) %>%
+  dplyr::filter(value == TRUE) %>%
+  dplyr::group_by(feature) %>%
+  dplyr::filter(dplyr::n() >= 2) %>%
+  dplyr::pull(feature) %>%
+  unique(.)
 
 filt_match_diffs <- matched_diffs %>%
   dplyr::filter(
     dplyr::if_any(
       tidyselect::all_of(c("feat1", "feat2")),
-      # ~ .x %in% intersecting_feats$feature
+      # ~ .x %in% upset_comp
       ~ .x %in% all.int.comps
     )
   ) %>%
@@ -1454,7 +1302,7 @@ writexl::write_xlsx(
 # m/z predictions subset -------------------------------------------------------
 # ==============================================================================
 # Checking specifically for the glycoside anad aglycone m/zs
-glycoside2 <- MetaboCoreUtils::mass2mz(
+glycoside <- MetaboCoreUtils::mass2mz(
   MetaboCoreUtils::calculateMass(glycoside_form)[[1]],
   adduct = MetaboCoreUtils::adducts(polarity = polarity)) %>%
   t() %>%
@@ -1731,5 +1579,21 @@ if (check_saved("feature_chrs.rds")) {
 #     ms_level = 1,
 #     save_pairs_loc = "/graphs/glycoside_feature_pairs/",
 #     device = "pdf"
+#   )
+# }
+
+# message("Producing significant intersecting feature boxplots...")
+# for (i in upset_comp) {
+#   ft_p <- plot_feat_chrom_int(
+#     feature_chrom = feature_chrs,
+#     feature = i,
+#     method = "sum",
+#     value = "into",
+#     filled = TRUE,
+#     missing = 0,
+#     ms_level = 1,
+#     save_loc = "/graphs/feature_chromatogram_intensity/",
+#     device = "pdf",
+#     feat_pairs = FALSE
 #   )
 # }

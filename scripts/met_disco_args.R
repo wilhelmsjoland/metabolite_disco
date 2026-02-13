@@ -103,7 +103,7 @@ option_list <- list(
     )
   ),
   optparse::make_option(
-    c("-p", "--pvalue"),
+    c("-q", "--qvalue"),
     type = "double",
     default = 0.05,
     help = "P value to use for linear models and plots [default: %default]."
@@ -151,7 +151,7 @@ bw_first_grouping <- opt$bw_first_grouping
 bw_second_grouping <- opt$bw_second_grouping
 workers <- opt$cores
 missing_threshold <- opt$missingness
-p_value_global <- opt$pvalue
+p_value_global <- opt$qvalue
 sn_threshold <- opt$sn_threshold
 beta_cor_threshold <- opt$beta_cor_threshold
 beta_snr_threshold <- opt$beta_snr_threshold

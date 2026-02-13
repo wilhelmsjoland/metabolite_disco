@@ -4,15 +4,10 @@
 /annotation_databases
 /apiin_bu
 /biorender
+/biotransformer3.0jar
 /input_data
 /standard_peaks
 /standards
-/biotransformer3.0jar
-/predict_metabolism/*
 /scripts/ignore/
-
-.DS_store
-03_psm.Rproj
-intro_till_nya_gruppen.txt
 *.pdf
 *.svg
