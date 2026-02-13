@@ -163,10 +163,17 @@ ggplot2::ggsave(
 )
 
 # ==============================================================================
-# Inspect internal standard prior to peak-calling
-# Define the rt and m/z range of the peak area
+# Inspect internal standard prior to peak-calling ------------------------------
+# Define the rt and m/z range of the peak area ---------------------------------
 # ==============================================================================
-message("Inspecting internal standard peaks prior to peak-calling...")
+
+message(
+  "===========================================================================",
+  "\n",
+  "Inspecting internal standard peaks prior to peak-calling ------------------",
+  "\n",
+  "==========================================================================="
+)
 mz_theory <- get_theory_mz(chem_form = internal_standard, adduct = adduct)
 mz_range <- get_short_mz_range(mz_theory, mz_window = 0.02)
 if (check_saved("is_chr.rds")) {
@@ -200,7 +207,7 @@ if (check_saved("is_eic.rds")) {
   saveRDS(object = is_eic, file = paste0(res_folder, "/objects/is_eic.rds"))
 }
 
-# All IS EICs together
+# All IS XICs together
 pdf(paste0(res_folder, "/graphs/internal_standard/all_is.pdf"))
 plot(x = is_eic, col = group_colors[is_eic$group], lwd = 3)
 legend("topleft", legend = names(group_colors), col = group_colors, pch = 16)
@@ -208,6 +215,15 @@ invisible(dev.off())
 
 # Individual IS XICs
 for (i in seq_along(is_eic)) {
+  pdf(
+    paste0(
+      res_folder, 
+      "/graphs/internal_standard/", 
+      colnames(bpcs)[i], 
+      ".pdf"
+    )
+  )
+
   plot(
     x = is_eic[, i],
     col = group_colors[
@@ -219,13 +235,9 @@ for (i in seq_along(is_eic)) {
     lwd = 3,
     main = colnames(bpcs)[i]
   )
-  # stop_loop <- readline("Enter for next, 'break' for stop: ")
-  stop_loop <- "break"
-  if (stop_loop == "break") {
-    break
-  }
+  legend("topleft", legend = names(group_colors), col = group_colors, pch = 16)
+  invisible(dev.off())
 }
-invisible(dev.off())
 
 # ==============================================================================
 # - Ensure IS peak is chosen
