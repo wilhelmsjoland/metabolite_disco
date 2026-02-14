@@ -356,21 +356,8 @@ if (check_saved("xchr.rds")) {
   saveRDS(object = xchr, file = paste0(res_folder, "/objects/xchr.rds"))
 }
 
-plot(
-  bpcs,
-  col = group_colors[MsExperiment::sampleData(xchr)$group],
-  main = "Base peak chromatogram after peak picking"
-)
-legend(
-  "topright",
-  col = unique(group_colors[MsExperiment::sampleData(xchr)$group]),
-  legend = unique(names(group_colors[MsExperiment::sampleData(ms_exp)$group])),
-  pch = 16
-)
-invisible(dev.off())
-
 # Use this for the beta-distribution parameters
-xchr_data <- tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peak")
+# xchr_data <- tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peak")
 
 # ==============================================================================
 # Inspect peaks
