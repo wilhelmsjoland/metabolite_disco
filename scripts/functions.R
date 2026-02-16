@@ -861,7 +861,7 @@ filt_features <- function(
     # quality + sig filtered biotransf tib
     "biot_filt_sig_features_tib" = biot_filt_sig_feature_tib,
     # quality + sig filtered feature
-    "biot_filt_sig_features" = biot.filt_sig_features,
+    "biot_filt_sig_features" = biot_filt_sig_features,
     # final features for plotting: below
 
     # all feats in biot and in filt_sig_features
@@ -1084,4 +1084,50 @@ pred_biot <- function(
   # 4. Final table of all matched pairs
   matched_diffs <- dplyr::bind_rows(all_matches)
   return(matched_diffs)
+}
+
+plot_pca <- function(
+  prcomp_res = NULL,
+  metad = NULL,
+  x = NULL,
+  y = NULL
+) {
+  scores <- tibble::as_tibble(prcomp_res$x, rownames = "sample")
+
+  scores <- scores %>%
+    dplyr::left_join(
+      x = .,
+      y = tibble::as_tibble(metad, rownames = "sample"),
+      by = "sample"
+    )
+
+  # % variance explained for axis labels
+  var_expl <- (prcomp_res$sdev^2) / sum(prcomp_res$sdev^2) * 100
+  names(var_expl) <- paste0("PC", seq_along(var_expl))
+
+  pca_p <- scores %>%
+    ggplot2::ggplot(
+      aes(
+        x = {{ x }},
+        y = {{ y }}
+      )
+    ) +
+    ggplot2::geom_point(aes(color = group), size = 3) +
+    ggplot2::scale_color_manual(values = group_colors) +
+    ggplot2::labs(
+      x = sprintf(
+        "%s (%.2f%%)", 
+        deparse(substitute(x)), 
+        var_expl[[deparse(substitute(x))]]
+      ),
+      y = sprintf(
+        "%s (%.2f%%)", 
+        deparse(substitute(y)), 
+        var_expl[[deparse(substitute(y))]]
+      )
+    ) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(legend.title = ggplot2::element_blank())
+
+  return(pca_p)
 }

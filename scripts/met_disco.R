@@ -827,7 +827,7 @@ SummarizedExperiment::assays(res)$norm_filled <- sweep(
   "/"
 )
 
-# Log2 transform and scale data
+# Data before normalization
 vals <- SummarizedExperiment::assay(res, "raw_filled") %>%
   log2() %>%
   t() %>%
@@ -835,17 +835,12 @@ vals <- SummarizedExperiment::assay(res, "raw_filled") %>%
   as.matrix(.)
 
 pca_res <- prcomp(vals, scale = FALSE, center = FALSE)
-
-# Data before normalization
-vals_st <- cbind(vals, phenotype = res$group)
-pca_raw <- autoplot(
-  pca_res,
-  data = vals_st,
-  colour = "phenotype",
-  scale = 0,
-  size = 3) +
-  ggplot2::scale_color_manual(values = group_colors) +
-  ggplot2::theme_bw() +
+pca_raw <- plot_pca(
+  prcomp_res = pca_res,
+  metad = meta,
+  x = PC1,
+  y = PC2
+) +
   ggplot2::labs(title = "Before normalization")
 
 # Data after normalization
@@ -856,15 +851,12 @@ vals_norm <- SummarizedExperiment::assay(res, "norm_filled") %>%
   as.matrix(.)
 
 pca_res_norm <- prcomp(vals_norm, scale = FALSE, center = FALSE)
-vals_st_norm <- cbind(vals_norm, phenotype = res$group)
-pca_adj <- autoplot(
-  pca_res_norm,
-  data = vals_st_norm,
-  colour = "phenotype",
-  scale = 0,
-  size = 3) +
-  ggplot2::scale_color_manual(values = group_colors) +
-  ggplot2::theme_bw() +
+pca_adj <- plot_pca(
+  prcomp_res = pca_res_norm,
+  metad = meta,
+  x = PC1,
+  y = PC2
+) +
   ggplot2::labs(title = "After normalization")
 
 norm_filled_12_pca_p <- pca_raw / pca_adj +
@@ -880,28 +872,20 @@ ggplot2::ggsave(
 )
 
 # PC 3-4 before & after normalization
-pca_raw <- autoplot(
-  pca_res,
-  data = vals_st,
-  colour = "phenotype",
-  x = 3,
-  y = 4,
-  scale = 0,
-  size = 3) +
-  ggplot2::scale_color_manual(values = group_colors) +
-  ggplot2::theme_bw() +
+pca_raw <- plot_pca(
+  prcomp_res = pca_res,
+  metad = meta,
+  x = PC3,
+  y = PC4
+) +
   ggplot2::labs(title = "Before normalization")
 
-pca_adj <- autoplot(
-  pca_res_norm,
-  data = vals_st_norm,
-  colour = "phenotype",
-  x = 3,
-  y = 4,
-  scale = 0,
-  size = 3) +
-  ggplot2::scale_color_manual(values = group_colors) +
-  ggplot2::theme_bw() +
+pca_adj <- plot_pca(
+  prcomp_res = pca_res_norm,
+  metad = meta,
+  x = PC3,
+  y = PC4
+) +
   ggplot2::labs(title = "After normalization")
 
 norm_filled_34_pca_p  <- pca_raw / pca_adj +
@@ -936,7 +920,7 @@ comparisons <- combn(
   m = 2,
   simplify = TRUE) %>%
   t(.) %>%
-  tibble::as_tibble(.) %>%
+  tibble::as_tibble(., rownames = "rownumber") %>%
   dplyr::mutate(comp = paste0(V1, "-", V2)) %>%
   dplyr::pull(comp)
 
