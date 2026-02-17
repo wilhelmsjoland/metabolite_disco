@@ -1228,36 +1228,45 @@ message(
   sep = ""
 )
 
-all_sig_diff <- sort(unique(unlist(upset_comps, use.names = FALSE)))
 
-possible_adducts %>% nrow()
-# 223431
-possible_adducts2 <- possible_adducts %>%
-  dplyr::filter(feature %in% all_sig_diff)
-
-possible_adducts3 <- possible_adducts %>%
-  dplyr::slice(1:1000)
-  dplyr::filter(feature %in% c("FT00001", "FT00002"))
 
 # TODO
 # Fix so the observed ppm is added
 # Also filter noisy features with the filt_features() function I made
-# system.time({
-matched_diffs <- pred_biot(
-  data = possible_adducts3, # 2
-  biotransf_data = bio_transf2, # bio_transf2
-  tolerance_ppm = 15, # ppm_global,
-)
-# })
 
-# system.time({
-matched_diffs2 <- pred_biot2(
-  data = possible_adducts2, # 2
-  biotransf_data = bio_transf2, # bio_transf2
-  tolerance_ppm = 15, # ppm_global,
-  parallel = TRUE
-)
-# })
+all_sig_diff <- sort(unique(unlist(upset_comps, use.names = FALSE)))
+possible_adducts_signif <- possible_adducts %>%
+  dplyr::filter(feature %in% all_sig_diff)
+
+if (!file.exists(file.path(res_folder, "objects", "matched_diffs.rds"))) {
+  matched_diffs <- pred_biot(
+    data = possible_adducts_signif,
+    biotransf_data = bio_transf2, # bio_transf2
+    tolerance_ppm = ppm_global,
+    parallel = TRUE
+  )
+
+  saveRDS(
+    object = matched_diffs,
+    file = paste0(res_folder, "/objects/matched_diffs.rds")
+  )
+} else {
+  matched_diffs <- readRDS(
+    file = file.path(res_folder, "objects", "matched_diffs.rds")
+  )
+}
+
+# TODO
+# Filter the ones under 0 and the same matches
+
+matched_diffs %>%
+  dplyr::filter(
+    dplyr::if_any(
+      .cols = dplyr::all_of(c("mass1", "mass2")),
+      .fns = . < 0
+    )
+  )
+
 
 message("Writing predictions to table...")
 writexl::write_xlsx(
