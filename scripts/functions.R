@@ -872,152 +872,6 @@ filt_features <- function(
 
 }
 
-pred_biot <- function(
-  data = NULL,
-  biotransf_data = NULL,
-  tolerance_ppm = NULL,
-  tolerance = NULL,
-  parallel = TRUE,
-  n_workers = max(1, parallel::detectCores() - 1)
-) {
-  if (is.null(tolerance) & is.null(tolerance_ppm)) {
-    stop("Both tolerance and tolerance_ppm are NULL")
-  } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
-    stop("Either tolerance or tolerance_ppm need to be set to NULL")
-  }
-
-  ## 1. Prepare peaks table (all peaks, sorted by m/z)
-  peaks <- data %>%
-    dplyr::arrange(mass) %>%
-    dplyr::mutate(
-      peak_id = dplyr::row_number(),
-      feature = feature,
-      mass = mass
-    )
-  n_peaks <- nrow(peaks)
-
-  # convenience vectors
-  mz_vec <- peaks$mzmed
-  rt_vec <- peaks$rtmed
-  adduct_vec <- peaks$adduct
-  mass_vec <- peaks$mass
-  id_vec <- peaks$peak_id
-  feat_vec <- peaks$feature
-  n_trans <- nrow(biotransf_data)
-
-  # Calculate tolerance
-  if (is.null(tolerance)) {
-    tol_used <- MsCoreUtils::ppm(mz_vec, tolerance_ppm)
-  } else {
-    tol_used <- rep(tolerance, n_peaks)
-  }
-
-  ## 3. For each biotransformation, find all matching peak pairs
-  if (parallel && n_trans > 1) {
-    # Set up future plan
-    library(future.apply)
-    oplan <- future::plan(future::multisession, workers = n_workers)
-    on.exit(future::plan(oplan), add = TRUE)
-
-    all_matches <- future_lapply(1:n_trans, function(k) {
-      delta <- biotransf_data$delta_mass[k]
-      this_name <- biotransf_data$name[k]
-      this_formula <- biotransf_data$chem_formula[k]
-
-      target_lower <- mass_vec + delta - tol_used
-      target_upper <- mass_vec + delta + tol_used
-
-      idx_start <- findInterval(target_lower, mass_vec) + 1L
-      idx_end <- findInterval(target_upper, mass_vec)
-
-      res_list <- vector("list", n_peaks)
-
-      for (i in 1:n_peaks) {
-        start_idx <- idx_start[i]
-        end_idx <- idx_end[i]
-
-        if (start_idx > end_idx) next
-
-        partner_idx <- seq.int(start_idx, end_idx)
-        partner_idx <- partner_idx[partner_idx > i]
-        if (length(partner_idx) == 0) next
-
-        res_list[[i]] <- tibble::tibble(
-          name = this_name,
-          chem_change = this_formula,
-          feat1 = feat_vec[i],
-          feat2 = feat_vec[partner_idx],
-          mz1 = mz_vec[i],
-          mz2 = mz_vec[partner_idx],
-          adduct1 = adduct_vec[i],
-          adduct2 = adduct_vec[partner_idx],
-          mass1 = mass_vec[i],
-          mass2 = mass_vec[partner_idx],
-          rt1 = rt_vec[i],
-          rt2 = rt_vec[partner_idx],
-          delta_mass = delta,
-          obs_delta_mass = mass_vec[partner_idx] - mass_vec[i],
-          peak1_id = id_vec[i],
-          peak2_id = id_vec[partner_idx]
-        )
-      }
-      dplyr::bind_rows(res_list)
-    })
-  } else {
-    # Sequential version
-    all_matches <- vector("list", n_trans)
-
-    for (k in 1:n_trans) {
-      delta <- biotransf_data$delta_mass[k]
-      this_name <- biotransf_data$name[k]
-      this_formula <- biotransf_data$chem_formula[k]
-
-      target_lower <- mass_vec + delta - tol_used
-      target_upper <- mass_vec + delta + tol_used
-
-      idx_start <- findInterval(target_lower, mass_vec) + 1L
-      idx_end <- findInterval(target_upper, mass_vec)
-
-      res_list <- vector("list", n_peaks)
-
-      for (i in 1:n_peaks) {
-        start_idx <- idx_start[i]
-        end_idx <- idx_end[i]
-
-        if (start_idx > end_idx) next
-
-        partner_idx <- seq.int(start_idx, end_idx)
-        partner_idx <- partner_idx[partner_idx > i]
-        if (length(partner_idx) == 0) next
-
-        res_list[[i]] <- tibble::tibble(
-          name = this_name,
-          chem_change = this_formula,
-          feat1 = feat_vec[i],
-          feat2 = feat_vec[partner_idx],
-          mz1 = mz_vec[i],
-          mz2 = mz_vec[partner_idx],
-          adduct1 = adduct_vec[i],
-          adduct2 = adduct_vec[partner_idx],
-          mass1 = mass_vec[i],
-          mass2 = mass_vec[partner_idx],
-          rt1 = rt_vec[i],
-          rt2 = rt_vec[partner_idx],
-          delta_mass = delta,
-          obs_delta_mass = mass_vec[partner_idx] - mass_vec[i],
-          peak1_id = id_vec[i],
-          peak2_id = id_vec[partner_idx]
-        )
-      }
-      all_matches[[k]] <- dplyr::bind_rows(res_list)
-    }
-  }
-
-  # 4. Final table of all matched pairs
-  matched_diffs <- dplyr::bind_rows(all_matches)
-  return(matched_diffs)
-}
-
 plot_pca <- function(
   prcomp_res = NULL,
   metad = NULL,
@@ -1064,14 +918,12 @@ plot_pca <- function(
   return(pca_p)
 }
 
-# TODO
-# this should be the normal one
-# NEEDS checking
 pred_biot <- function(
   data = NULL,
   biotransf_data = NULL,
   tolerance_ppm = NULL,
   tolerance = NULL,
+  features_of_interest = NULL,
   parallel = TRUE,
   n_workers = max(1, parallel::detectCores() - 1)
 ) {
@@ -1100,6 +952,17 @@ pred_biot <- function(
   feat_vec <- peaks$feature
   n_trans <- nrow(biotransf_data)
 
+  # ============================================================================
+  # NEW: indices of features of interest (if provided)
+  # ============================================================================
+  if (!is.null(features_of_interest)) {
+    foi_idx <- which(feat_vec %in% features_of_interest)
+    if (length(foi_idx) == 0) {
+      stop("None of the features_of_interest found in data")
+    }
+  }
+  # ============================================================================
+
   # Calculate tolerance
   if (is.null(tolerance)) {
     tol_used <- MsCoreUtils::ppm(mz_vec, tolerance_ppm)
@@ -1117,7 +980,7 @@ pred_biot <- function(
     all_matches <- future_lapply(1:n_trans, function(k) {
       delta <- biotransf_data$delta_mass[k]
       this_name <- biotransf_data$name[k]
-      this_formula <- biotransf_data$chem_formula[k]
+      this_formula <- biotransf_data$delta_formula[k]
 
       target_lower <- mass_vec + delta - tol_used
       target_upper <- mass_vec + delta + tol_used
@@ -1127,14 +990,28 @@ pred_biot <- function(
 
       res_list <- vector("list", n_peaks)
 
-      for (i in 1:n_peaks) {
+      # Only iterate over features of interest if provided, otherwise all peaks
+      iter_idx <- if (!is.null(features_of_interest)) {
+        foi_idx
+      } else {
+        1:n_peaks
+      }
+
+      for (i in iter_idx) { # 1:n_peaks
         start_idx <- idx_start[i]
         end_idx <- idx_end[i]
 
         if (start_idx > end_idx) next
 
         partner_idx <- seq.int(start_idx, end_idx)
-        partner_idx <- partner_idx[partner_idx > i]
+
+        # FIXED: Different logic for features_of_interest vs all-vs-all
+        partner_idx <- if (!is.null(features_of_interest)) {
+          partner_idx[partner_idx != i]  # FOI: include all partners except self
+        } else {
+          partner_idx[partner_idx > i]   # All-vs-all: avoid duplicates
+        }
+
         if (length(partner_idx) == 0) next
 
         res_list[[i]] <- tibble::tibble(
@@ -1165,7 +1042,7 @@ pred_biot <- function(
     for (k in 1:n_trans) {
       delta <- biotransf_data$delta_mass[k]
       this_name <- biotransf_data$name[k]
-      this_formula <- biotransf_data$chem_formula[k]
+      this_formula <- biotransf_data$delta_formula[k]
 
       target_lower <- mass_vec + delta - tol_used
       target_upper <- mass_vec + delta + tol_used
@@ -1175,14 +1052,28 @@ pred_biot <- function(
 
       res_list <- vector("list", n_peaks)
 
-      for (i in 1:n_peaks) {
+      # Only iterate over features of interest if provided, otherwise all peaks
+      iter_idx <- if (!is.null(features_of_interest)) {
+        foi_idx
+      } else {
+        1:n_peaks
+      }
+
+      for (i in iter_idx) { # 1:n_peaks
         start_idx <- idx_start[i]
         end_idx <- idx_end[i]
 
         if (start_idx > end_idx) next
 
         partner_idx <- seq.int(start_idx, end_idx)
-        partner_idx <- partner_idx[partner_idx > i]
+
+        # FIXED: Different logic for features_of_interest vs all-vs-all
+        partner_idx <- if (!is.null(features_of_interest)) {
+          partner_idx[partner_idx != i]  # FOI: include all partners except self
+        } else {
+          partner_idx[partner_idx > i]   # All-vs-all: avoid duplicates
+        }
+
         if (length(partner_idx) == 0) next
 
         res_list[[i]] <- tibble::tibble(
@@ -1208,125 +1099,6 @@ pred_biot <- function(
     }
   }
 
-  # 4. Final table of all matched pairs
-  matched_diffs <- dplyr::bind_rows(all_matches)
-  return(matched_diffs)
-}
-
-pred_biot_non_parallel <- function(
-  data = NULL,
-  biotransf_data = NULL,
-  tolerance_ppm = NULL,
-  tolerance = NULL
-) {
-  if (is.null(tolerance) & is.null(tolerance_ppm)) {
-    stop("Both tolerance and tolerance_ppm are NULL")
-  } else if (!is.null(tolerance) & !is.null(tolerance_ppm)) {
-    stop("Either tolerance or tolerance_ppm need to be set to NULL")
-  }
-
-  # ============================================================================
-  # CHANGED: Calculate tolerance properly for ppm (now a vector, not scalar)
-  # ============================================================================
-  ## 1. Prepare peaks table (all peaks, sorted by m/z)
-  peaks <- data %>%
-    # needs to be sorted for findInterval() indexing
-    dplyr::arrange(mass) %>%
-    dplyr::mutate(
-      peak_id = dplyr::row_number(),
-      # CHANGED: Fixed - explicitly assign feature column
-      feature = feature,
-      mass = mass
-    )
-  n_peaks <- nrow(peaks)
-
-  # convenience vectors so we don't keep indexing peaks$...
-  mz_vec <- peaks$mzmed
-  rt_vec <- peaks$rtmed
-  adduct_vec <- peaks$adduct
-  mass_vec <- peaks$mass
-  id_vec <- peaks$peak_id
-  feat_vec <- peaks$feature
-  n_trans <- nrow(biotransf_data)
-
-  # ============================================================================
-  # CHANGED: Calculate tolerance as a VECTOR based on M/Z (not mass)
-  # ============================================================================
-  if (is.null(tolerance)) {
-    # ppm tolerance is relative - calculate for each peak's M/Z
-    # tol_used <- (mz_vec * tolerance_ppm) / 1e6
-    tol_used <- MsCoreUtils::ppm(mz_vec, tolerance_ppm)
-  } else {
-    # absolute tolerance is the same for all peaks
-    tol_used <- rep(tolerance, n_peaks)
-  }
-  # ============================================================================
-
-  ## 3. For each biotransformation, find all matching peak pairs
-  all_matches <- vector("list", n_trans)
-
-  for (k in 1:n_trans) {
-    # current transformation
-    delta <- biotransf_data$delta_mass[k]
-    this_name <- biotransf_data$name[k]
-    this_formula <- biotransf_data$chem_formula[k]
-
-    # for each peak i, valid partners j must have:
-    # mass_vec[j] in [mass_vec[i] + delta - tol, mass_vec[i] + delta + tol]
-    # ==========================================================================
-    # CHANGED: tol_used is now a vector, so this works element-wise
-    # ==========================================================================
-    target_lower <- mass_vec + delta - tol_used
-    target_upper <- mass_vec + delta + tol_used
-    # ==========================================================================
-
-    # find, for each i, the index range [start_i, end_i] in the sorted mass_vec
-    # that lies within [target_lower[i], target_upper[i]]
-    idx_start <- findInterval(target_lower, mass_vec) + 1L
-    idx_end <- findInterval(target_upper, mass_vec)
-
-    # collect matches for this transformation here
-    res_list <- vector("list", n_peaks)
-
-    for (i in 1:n_peaks) {
-      start_idx <- idx_start[i]
-      end_idx <- idx_end[i]
-
-      # no overlap for this i -> skip
-      if (start_idx > end_idx) next
-
-      # candidate partner indices
-      partner_idx <- seq.int(start_idx, end_idx)
-
-      # avoid self-pairs and symmetric duplicates (i,j) vs (j,i)
-      partner_idx <- partner_idx[partner_idx > i]
-      if (length(partner_idx) == 0) next
-
-      # build rows for all partners of peak i
-      res_list[[i]] <- tibble::tibble(
-        name = this_name,
-        chem_change = this_formula,
-        feat1 = feat_vec[i],
-        feat2 = feat_vec[partner_idx],
-        mz1 = mz_vec[i],
-        mz2 = mz_vec[partner_idx],
-
-        adduct1 = adduct_vec[i],
-        adduct2 = adduct_vec[partner_idx],
-        mass1 = mass_vec[i],
-        mass2 = mass_vec[partner_idx],
-
-        rt1 = rt_vec[i],
-        rt2 = rt_vec[partner_idx],
-        delta_mass = delta,
-        obs_delta_mass = mass_vec[partner_idx] - mass_vec[i],
-        peak1_id = id_vec[i],
-        peak2_id = id_vec[partner_idx]
-      )
-    }
-    # bind all i-level results for this transformation
-    all_matches[[k]] <- dplyr::bind_rows(res_list)
-  }
   # 4. Final table of all matched pairs
   matched_diffs <- dplyr::bind_rows(all_matches)
   return(matched_diffs)

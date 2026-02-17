@@ -1228,11 +1228,9 @@ message(
   sep = ""
 )
 
-
-
 # TODO
-# Fix so the observed ppm is added
-# Also filter noisy features with the filt_features() function I made
+# Add the observed ppm?
+# Potentially filter noisy features with the filt_features() function I made
 
 all_sig_diff <- sort(unique(unlist(upset_comps, use.names = FALSE)))
 possible_adducts_signif <- possible_adducts %>%
@@ -1241,8 +1239,8 @@ possible_adducts_signif <- possible_adducts %>%
 if (!file.exists(file.path(res_folder, "objects", "matched_diffs.rds"))) {
   matched_diffs <- pred_biot(
     data = possible_adducts_signif,
-    biotransf_data = bio_transf2, # bio_transf2
-    tolerance_ppm = ppm_global,
+    biotransf_data = bio_transf2,
+    tolerance_ppm = 5, # try 5 and 10, # 15 too much
     parallel = TRUE
   )
 
@@ -1256,58 +1254,28 @@ if (!file.exists(file.path(res_folder, "objects", "matched_diffs.rds"))) {
   )
 }
 
-# TODO
-# Filter the ones under 0 and the same matches
-
-matched_diffs %>%
+matched_diffs2 <- matched_diffs %>%
   dplyr::filter(
-    dplyr::if_any(
+    dplyr::if_all(
       .cols = dplyr::all_of(c("mass1", "mass2")),
-      .fns = . < 0
+      .fns = ~ . > 0
     )
-  )
-
+  ) %>%
+  dplyr::filter(feat1 != feat2) %>%
+  # Too slow just do for a few when filtered
+  # dplyr::mutate(
+  #   pair = purrr::map2(
+  #     .x = feat1,
+  #     .y = feat2,
+  #     .f = c
+  #   ),
+  #   obs_diff = abs(obs_delta_mass - delta_mass)
+  # )
 
 message("Writing predictions to table...")
 writexl::write_xlsx(
-  x = matched_diffs,
+  x = matched_diffs2,
   path = paste0(res_folder, "/tables/matched_diffs.xlsx"),
-  col_names = TRUE,
-  format_headers = TRUE,
-  use_zip64 = FALSE
-)
-
-# wrong message
-message("
- based on significant features in contrasts:\n\t",
-  paste0(upset_comp, "\n\t"),
-  sep = ""
-)
-
-all.int.comps <- upset_tib %>%
-  tidyr::pivot_longer(cols = 2:ncol(.)) %>%
-  dplyr::filter(value == TRUE) %>%
-  dplyr::group_by(feature) %>%
-  dplyr::filter(dplyr::n() >= 2) %>%
-  dplyr::pull(feature) %>%
-  unique(.)
-
-filt_match_diffs <- matched_diffs %>%
-  dplyr::filter(
-    dplyr::if_any(
-      tidyselect::all_of(c("feat1", "feat2")),
-      # ~ .x %in% upset_comp
-      ~ .x %in% all.int.comps
-    )
-  ) %>%
-  dplyr:::mutate(pair = purrr::map2(feat1, feat2, ~ c(.x, .y))) %>%
-  dplyr::filter(grepl("1 x", name))
-
-message("Writing filtered predictions to table...")
-writexl::write_xlsx(
-  x = filt_match_diffs %>%
-    dplyr::select(-c("pair")),
-  path = paste0(res_folder, "/tables/filt_matched_diffs.xlsx"),
   col_names = TRUE,
   format_headers = TRUE,
   use_zip64 = FALSE
@@ -1331,6 +1299,7 @@ aglycone <- MetaboCoreUtils::mass2mz(
   tibble::as_tibble(., rownames = "adduct") %>%
   dplyr::rename("aglycone" = V1)
 
+# This is okay for now since it's only looking for the glycone and aglycone
 range_tol <- ppm_to_num(glycoside_ppm)
 
 gly_agly_adducts <- glycoside %>%
@@ -1368,31 +1337,37 @@ for (i in seq_along(gly_agly_adducts)) {
 }
 
 pot_glycosides <- unique(gly_agly$feature)
-# Only for testing right now
-pot_glycosides <- c("FT02089", "FT08181", "FT08191")
-matched_diffs2 <- pred_biot_subset(
-  data = possible_adducts,
+subset_matched_diffs <- pred_biot(
+  data = possible_adducts_signif,
   biotransf_data = bio_transf2, # bio_transf
-  tolerance_ppm = ppm_global, # glycoside_ppm
-  feat_filt = pot_glycosides
+  tolerance_ppm = 10, # glycoside_ppm
+  features_of_interest = pot_glycosides,
+  parallel = TRUE
+) %>%
+  dplyr::mutate(
+    pair = purrr::map2(
+      .x = feat1,
+      .y = feat2,
+      .f = c
+    ),
+    obs_diff = abs(obs_delta_mass - delta_mass)
+  )
+
+glycoside_pairs <- unique(
+  c(
+    subset_matched_diffs$feat1, 
+    subset_matched_diffs$feat2
+  )
 )
-
-filt_match_diffs2 <- matched_diffs2 %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(pair = list(c(feat1, feat2))) %>%
-  dplyr::ungroup()
-
-glycoside_pairs <- unique(c(filt_match_diffs2$feat1, filt_match_diffs2$feat2))
 
 # ==============================================================================
 # Matching m/z's against databases -------------------------------------------
 # ==============================================================================
-int_mets <- c(filt_match_diffs$feat1, filt_match_diffs$feat2)
-
 peaks_used <- full_norm_filled %>%
   dplyr::select(feature, mzmed, rtmed) %>%
   dplyr::rename("mz" = "mzmed", "rtime" = "rtmed") %>%
-  dplyr::filter(feature %in% int_mets) %>%
+  # All with at least one significant difference
+  dplyr::filter(feature %in% all_sig_diff) %>%
   tibble::column_to_rownames(var = "feature")
 
 peaks_used$peak_id <- rownames(peaks_used) # keep XCMS peak IDs
@@ -1432,7 +1407,7 @@ target_df <- ProtGenerics::compounds(
 # parameters to match by
 mz_match_param <- MetaboAnnotation::Mass2MzParam(
   adducts = c(MetaboCoreUtils::adductNames(polarity = polarity)),
-  ppm = ppm_global
+  ppm = 10 # ppm_global
 )
 
 matches <- MetaboAnnotation::matchValues(
@@ -1464,7 +1439,7 @@ if (check_saved("xchr9_filt.rds")) {
     sn_threshold = sn_threshold,
     beta_cor_threshold = beta_cor_threshold,
     beta_snr_threshold = beta_snr_threshold,
-    filt_vector = all.int.comps
+    filt_vector = all_sig_diff
   )
   saveRDS(
     object = xchr9_filt,
@@ -1472,10 +1447,12 @@ if (check_saved("xchr9_filt.rds")) {
   )
 }
 
-xchr9_filt$final.plotting.features <- unique(c(
-  glycoside_pairs,
-  xchr9_filt$final.plotting.features
-))
+xchr9_filt$final.plotting.features <- unique(
+  c(
+    glycoside_pairs,
+    xchr9_filt$final.plotting.features
+  )
+)
 
 # ==============================================================================
 # Plotting features ------------------------------------------------------------
@@ -1493,7 +1470,6 @@ if (check_saved("feature_chrs.rds")) {
     aggregationFun = "sum",
     filled = TRUE,
     features = xchr9_filt$final.plotting.features,
-    # features = rownames(xcms::featureDefinitions(xchr9)),
     missing = 0,
     return.type = "XChromatograms"
   )
@@ -1510,7 +1486,7 @@ if (check_saved("feature_chrs.rds")) {
 # # The chromPeakChromatograms() function would allow to extract the actual EIC
 # # of the chromatographic peak in a specific sample. See also examples below.
 
-# message("Writing feature chromatograms to plots...")
+message("Writing feature chromatograms to plots...")
 # # Features
 # plot_chrom_intensity(
 #   chromatogram = feature_chrs,
@@ -1520,7 +1496,7 @@ if (check_saved("feature_chrs.rds")) {
 #   peaks_or_feats = "features"
 # )
 
-# message("Writing all gap filled peaks to plots...")
+message("Writing all gap filled peaks to plots...")
 # # Gap filled peaks only
 # plot_chrom_intensity(
 #   chromatogram = chrs_na,
@@ -1530,9 +1506,8 @@ if (check_saved("feature_chrs.rds")) {
 #   peaks_or_feats = "peaks"
 # )
 
-# message("Writing feature chromatograms and intensity boxplots...")
-# feats_to_plot <- rownames(xcms::featureDefinitions(feature_chrs))
-# feats_to_plot <- xchr9_filt$filt.sig.features
+message("Writing feature chromatograms and intensity boxplots...")
+# feats_to_plot <- xchr9_filt$filt_sig_features
 # for (i in feats_to_plot) {
 #   ft_p <- plot_feat_chrom_int(
 #     feature_chrom = feature_chrs,
@@ -1548,7 +1523,7 @@ if (check_saved("feature_chrs.rds")) {
 #   )
 # }
 
-# message("Plotting feature pairs in filtered biotransformations...")
+message("Plotting feature pairs in filtered biotransformations...")
 # for (i in seq_len(nrow(xchr9_filt$biot_filt_sig_features_tib))) {
 #   ft_pair_p <- plot_feature_pairs(
 #     feature_chrom = feature_chrs,
@@ -1563,10 +1538,10 @@ if (check_saved("feature_chrs.rds")) {
 #   )
 # }
 
-# message(
-#   "Writing feature chromatograms and intensity boxplots "
-#   "for glycosides/aglycones..."
-# )
+message(
+  "Writing feature chromatograms and intensity boxplots "
+  "for glycosides/aglycones..."
+)
 # for (i in pot_glycosides) {
 #   ft_p <- plot_feat_chrom_int(
 #     feature_chrom = feature_chrs,
@@ -1582,7 +1557,7 @@ if (check_saved("feature_chrs.rds")) {
 #   )
 # }
 
-# message("Plotting glycoside/aglycone feature pairs biotransformations...")
+message("Plotting glycoside/aglycone feature pairs biotransformations...")
 # for (i in seq_len(nrow(filt_match_diffs2))) {
 #   ft_pair_p <- plot_feature_pairs(
 #     feature_chrom = feature_chrs,
@@ -1597,7 +1572,7 @@ if (check_saved("feature_chrs.rds")) {
 #   )
 # }
 
-# message("Producing significant intersecting feature boxplots...")
+message("Producing significant intersecting feature boxplots...")
 # for (i in upset_comp) {
 #   ft_p <- plot_feat_chrom_int(
 #     feature_chrom = feature_chrs,

@@ -13,10 +13,6 @@ df <- data %>%
       .fns = ~ standardizeFormula(.)
     )
   ) %>%
-  # dplyr::mutate(
-  #   mass1 = Rdisop::getMonoisotopic(formula1),
-  #   mass2 = Rdisop::getMonoisotopic(formula2)
-  # ) %>%
   dplyr::mutate(
     delta_formula = {
       # Try subtracting both directions
@@ -28,7 +24,6 @@ df <- data %>%
       } else if (!is.na(diff2)) {
         diff2
       } else {
-        # If both failed, use string representation
         paste0("\u00B1 ", formula1, " <=> ", formula2)
       }
     }
