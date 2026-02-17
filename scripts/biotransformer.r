@@ -33,7 +33,7 @@ names(biot_mets) <- biot_mass$InChIKey
 
 biot_final <- MetaboCoreUtils::mass2mz(
   x = biot_mets,
-  adduct = MetaboCoreUtils::adducts(polarity = "negative")
+  adduct = MetaboCoreUtils::adducts(polarity = polarity)
 ) %>%
   tibble::as_tibble(., rownames = "InChIKey") %>%
   tidyr::pivot_longer(
@@ -58,9 +58,8 @@ if (biot_mass_len != nrow(biot_final)) {
   message("The transformation prediction dataframes are the same length.")
 }
 
-biot_final
-
-def_tib <- xchr9_filt$filt_features_tib
+# because haven't rerun it yet
+def_tib <- xchr9_filt$filt.features.tib # xchr9_filt$filt_features_tib
 
 # biot_final = mass to mzs - > match the m/zs to the m/zs in the data
 predicted_feats <- biot_final %>%
@@ -68,7 +67,7 @@ predicted_feats <- biot_final %>%
     x = .,
     y = def_tib %>% # xchr9.defs
       dplyr::mutate(
-        tol = MsCoreUtils::ppm(mzmed, 15),
+        tol = MsCoreUtils::ppm(mzmed, 10),
         mz_lo = mzmed - tol,
         mz_hi = mzmed + tol
       ) %>%
@@ -78,7 +77,9 @@ predicted_feats <- biot_final %>%
 
 pred_peak_ids <- unique(predicted_feats$feature)
 
-if (!exists("pred_chrs")) {
+if (file.exists(file.path(res_folder, "objects", "pred_chrs.rds"))) {
+  pred_chrs <- readRDS(file.path(res_folder, "objects", "pred_chrs.rds"))
+} else {
   pred_chrs <- xcms::featureChromatograms(
     object = xchr9,
     expandRt = 0,
@@ -89,17 +90,29 @@ if (!exists("pred_chrs")) {
     missing = 0,
     return.type = "XChromatograms"
   )
+  saveRDS(
+    object = pred_chrs,
+    file = file.path(res_folder, "objects", "pred_chrs.rds")
+  )
 }
 
+# Could stop here with the predictions
+
+# ==============================================================================
+# ------------------------------------------------------------------------------
+# ==============================================================================
+
+# Chemical similarity here
+
 for (i in pred_peak_ids) {
-  tmp_anno_chr <- plotFeatChrInt(
+  tmp_anno_chr <- plot_feat_chrom_int(
     feature_chrom = pred_chrs,
     feature = i,
     method = "sum",
     value = "into",
     filled = TRUE,
-    missing = 0, # "rowmin_half"
-    msLevel = 1,
+    missing = 0,
+    ms_level = 1,
     save_loc = NULL,
     device = NULL,
     feat_pairs = FALSE
@@ -191,4 +204,3 @@ biot.sim.final %>%
     legend.title = ggplot2::element_blank()
   ) +
   ggplot2::labs(y = "Tanimoto similarity")
-  

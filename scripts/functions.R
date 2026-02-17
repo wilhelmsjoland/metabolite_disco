@@ -507,7 +507,7 @@ plot_feat_chrom_int <- function(
         tck = -0.02
       )
       plot(
-        lone_feat, 
+        lone_feat,
         peakType = "polygon",
         peakCol = group_colors[base_group_colors],
         peakBg = NA,
@@ -588,6 +588,9 @@ plot_feat_chrom_int <- function(
       fun_data = "max"
     )
 
+  p2_data_signif_only <- p2_data_signif %>%
+    dplyr::filter(!adj.P.Val.signif %in% c("ns"))
+
   p2 <- p2_data %>%
     ggplot2::ggplot(
       ggplot2::aes(
@@ -622,18 +625,22 @@ plot_feat_chrom_int <- function(
         ", filled: ", filled,
         ", missing: ", missing
       )
-    ) +
-    ggpubr::geom_bracket(
-      data = p2_data_signif %>%
-        dplyr::filter(!adj.P.Val.signif %in% c("ns")),
-      ggplot2::aes(
-        xmin = group1,
-        xmax = group2,
-        label = adj.P.Val.signif,
-        y.position = y.pos * 1.005
-      ),
-      step.increase = 0.1
-    )
+    ) + {
+    if (nrow(p2_data_signif_only) > 0) {
+      ggpubr::geom_bracket(
+        data = p2_data_signif_only,
+        ggplot2::aes(
+          xmin = group1,
+          xmax = group2,
+          label = adj.P.Val.signif,
+          y.position = y.pos * 1.005
+        ),
+        step.increase = 0.1
+      )
+    } else {
+      NULL
+    }
+  }
 
   p3 <- cowplot::plot_grid(
     p1,

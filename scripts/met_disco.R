@@ -1228,29 +1228,27 @@ message(
   sep = ""
 )
 
-# TODO
-# Add the observed ppm?
-# Potentially filter noisy features with the filt_features() function I made
 
+# Potentially filter noisy features with the filt_features() function I made
 all_sig_diff <- sort(unique(unlist(upset_comps, use.names = FALSE)))
 possible_adducts_signif <- possible_adducts %>%
   dplyr::filter(feature %in% all_sig_diff)
 
-if (!file.exists(file.path(res_folder, "objects", "matched_diffs.rds"))) {
+# Turn this around
+if (file.exists(file.path(res_folder, "objects", "matched_diffs.rds"))) {
+    matched_diffs <- readRDS(
+    file = file.path(res_folder, "objects", "matched_diffs.rds")
+  )
+} else {
   matched_diffs <- pred_biot(
     data = possible_adducts_signif,
     biotransf_data = bio_transf2,
     tolerance_ppm = 5, # try 5 and 10, # 15 too much
     parallel = TRUE
   )
-
   saveRDS(
     object = matched_diffs,
     file = paste0(res_folder, "/objects/matched_diffs.rds")
-  )
-} else {
-  matched_diffs <- readRDS(
-    file = file.path(res_folder, "objects", "matched_diffs.rds")
   )
 }
 
@@ -1273,10 +1271,11 @@ matched_diffs2 <- matched_diffs %>%
   # )
 
 message("Writing predictions to table...")
-readr::write_csv(
-  x = matched_diffs2,
-  file = file.path(res_folder, "tables", "matched_diffs.csv")
-)
+# TODO This needs filtering first
+# readr::write_csv(
+#   x = matched_diffs2,
+#   file = file.path(res_folder, "tables", "matched_diffs.csv")
+# )
 
 # ==============================================================================
 # m/z predictions subset -------------------------------------------------------
@@ -1363,7 +1362,7 @@ glycoside_pairs <- unique(
 peaks_used <- full_norm_filled %>%
   dplyr::select(feature, mzmed, rtmed) %>%
   dplyr::rename("mz" = "mzmed", "rtime" = "rtmed") %>%
-  # All with at least one significant difference
+  # All comps with at least one significant difference
   dplyr::filter(feature %in% all_sig_diff) %>%
   tibble::column_to_rownames(var = "feature")
 
