@@ -20,7 +20,6 @@ suppressWarnings(
     library(limma)
     library(BiocParallel)
     library(ggrepel)
-    library(ggfortify)
     library(ComplexUpset)
     library(MetaboAnnotation)
     library(CompoundDb)
@@ -1087,52 +1086,12 @@ for (i in assay_names) {
 }
 
 # ==============================================================================
-# Find intersecting features ---------------------------------------------------
-# ==============================================================================
-message(
-  "===========================================================================",
-  "\n",
-  "Finding intersecting features ---------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
-
-# Create all comparisons
-combinations <- unlist(
-  lapply(
-    X = seq_along(comparisons),
-    FUN = function(x) combn(comparisons, x, simplify = FALSE)
-  ),
-  recursive = FALSE
-)
-
-upset_comps <- list()
-for (i in seq_along(combinations)) {
-  tmp_intersect_feats <- find_intersect_feat(
-    data = upset_tib,
-    set = combinations[[i]],
-    full_set = comparisons
-  )
-
-  upset_comps[[
-    stringr::str_flatten(combinations[[i]], collapse = "*")
-  ]] <- tmp_intersect_feats$feature
-}
-
-upset_comp <- upset_comps[[
-  paste0("bu_mutant_apiin-bu_wt_apiin*bu_mutant_control",
-  "-",
-  "bu_wt_apiin*bu_wt_apiin-bu_wt_control"
-  )
-]]
-
-  # ==============================================================================
 # Produce upset plots ----------------------------------------------------------
 # ==============================================================================
 message(
   "===========================================================================",
   "\n",
-  "Generating upsets----------------------------------------------------------",
+  "Generating upset plots ----------------------------------------------------",
   "\n",
   "==========================================================================="
 )
@@ -1174,6 +1133,47 @@ ggplot2::ggsave(
 )
 
 # ==============================================================================
+# Find intersecting features ---------------------------------------------------
+# ==============================================================================
+message(
+  "===========================================================================",
+  "\n",
+  "Finding intersecting features ---------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
+
+# Create all comparisons
+combinations <- unlist(
+  lapply(
+    X = seq_along(comparisons),
+    FUN = function(x) combn(comparisons, x, simplify = FALSE)
+  ),
+  recursive = FALSE
+)
+
+upset_comps <- list()
+for (i in seq_along(combinations)) {
+  tmp_intersect_feats <- find_intersect_feat(
+    data = upset_tib,
+    set = combinations[[i]],
+    full_set = comparisons
+  )
+
+  upset_comps[[
+    stringr::str_flatten(combinations[[i]], collapse = "*")
+  ]] <- tmp_intersect_feats$feature
+}
+
+# Only temporary
+upset_comp <- upset_comps[[
+  paste0("bu_mutant_apiin-bu_wt_apiin*bu_mutant_control",
+  "-",
+  "bu_wt_apiin*bu_wt_apiin-bu_wt_control"
+  )
+]]
+
+# ==============================================================================
 # m/z predictions all ----------------------------------------------------------
 # ==============================================================================
 message("Expanding possible adducts...")
@@ -1213,7 +1213,7 @@ bio_transf <- import_biotransform_meta(
 if (!exists("biotransf_append")) {
   source("scripts/rpairs_parse.R")
 } else {
-  "'biotransf_append' already exists."
+  message("'biotransf_append' already exists.")
 }
 
 bio_transf2 <- dplyr::bind_rows(
@@ -1228,14 +1228,36 @@ message(
   sep = ""
 )
 
+all_sig_diff <- sort(unique(unlist(upset_comps, use.names = FALSE)))
+
+possible_adducts %>% nrow()
+# 223431
+possible_adducts2 <- possible_adducts %>%
+  dplyr::filter(feature %in% all_sig_diff)
+
+possible_adducts3 <- possible_adducts %>%
+  dplyr::slice(1:1000)
+  dplyr::filter(feature %in% c("FT00001", "FT00002"))
+
 # TODO
 # Fix so the observed ppm is added
 # Also filter noisy features with the filt_features() function I made
+# system.time({
 matched_diffs <- pred_biot(
-  data = possible_adducts,
-  biotransf_data = bio_transf, # bio_transf2
-  tolerance_ppm = 1 # ppm_global
+  data = possible_adducts3, # 2
+  biotransf_data = bio_transf2, # bio_transf2
+  tolerance_ppm = 15, # ppm_global,
 )
+# })
+
+# system.time({
+matched_diffs2 <- pred_biot2(
+  data = possible_adducts2, # 2
+  biotransf_data = bio_transf2, # bio_transf2
+  tolerance_ppm = 15, # ppm_global,
+  parallel = TRUE
+)
+# })
 
 message("Writing predictions to table...")
 writexl::write_xlsx(
@@ -1246,6 +1268,7 @@ writexl::write_xlsx(
   use_zip64 = FALSE
 )
 
+# wrong message
 message("
  based on significant features in contrasts:\n\t",
   paste0(upset_comp, "\n\t"),

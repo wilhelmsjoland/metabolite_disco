@@ -1,5 +1,5 @@
 compound         KEGG Compound Database
-cpd              Release 117.0+/02-17, Feb 26
+cpd              Release 117.0+/01-30, Jan 26
                  Kanehisa Laboratories
                  19,571 entries
 

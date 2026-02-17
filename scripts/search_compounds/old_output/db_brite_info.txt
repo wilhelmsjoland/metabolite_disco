@@ -1,7 +1,7 @@
 brite            KEGG Brite Database
-br               Release 117.0+/02-17, Feb 26
+br               Release 117.0+/01-30, Jan 26
                  Kanehisa Laboratories
-                 450,533 entries
+                 449,551 entries
 
 linked db        module
                  ko

@@ -384,17 +384,9 @@ final_pairs <- filtered_rpairs %>%
       ),
     by = c("comp2" = "entry")
   ) %>%
-  tidyr::drop_na(formula1, formula2) %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(
-    mass1 = Rdisop::getMass(Rdisop::getMolecule(formula1)),
-    mass2 = Rdisop::getMass(Rdisop::getMolecule(formula2)),
-    delta_mass = abs(mass1 - mass2)
-  ) %>%
-  dplyr::ungroup() %>%
   dplyr::select(
     entry, rpair, comp1, comp2, formula1, formula2,
-    mass1, mass2, delta_mass, name1, name2, dblink1, dblink2
+    name1, name2, dblink1, dblink2
   )
 
 message("Writing results to rpairs.tsv...")

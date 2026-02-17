@@ -1,5 +1,5 @@
 reaction         KEGG Reaction Database
-rn               Release 117.0+/02-17, Feb 26
+rn               Release 117.0+/01-30, Jan 26
                  Kanehisa Laboratories
                  12,384 entries
 

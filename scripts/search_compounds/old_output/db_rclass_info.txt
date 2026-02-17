@@ -1,5 +1,5 @@
 rclass           KEGG Reaction Class Database
-rc               Release 117.0+/02-17, Feb 26
+rc               Release 117.0+/01-30, Jan 26
                  Kanehisa Laboratories / Kyoto University Bioinformatics Center
                  3,208 entries
 
