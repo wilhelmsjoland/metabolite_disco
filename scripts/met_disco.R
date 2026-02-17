@@ -750,7 +750,7 @@ if (check_saved("chrs_na.rds")) {
 # Filtering features and input to SummarizedExperiment -------------------------
 # ==============================================================================
 message("Filtering features based on missingness...")
-group_factor <- MsExperiment::sampleData(xchr8)$group
+group_factor <- MsExperiment::sampleData(xchr8)$grRoup
 group_factor <- as.factor(group_factor)
 if (check_saved("xchr9.rds")) {
   xchr9 <- readRDS(file = paste0(res_folder, "/objects/xchr9.rds"))
@@ -1421,6 +1421,8 @@ anno <- MetaboAnnotation::matchedData(matches) %>%
 # Predicting biotransformations ------------------------------------------------
 # ==============================================================================
 
+# TODO
+# Move biotransformer.R here
 
 # ==============================================================================
 # Filtering chromatograms ------------------------------------------------------

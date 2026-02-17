@@ -75,7 +75,7 @@ predicted_feats <- biot_final %>%
     by = dplyr::join_by(dplyr::between(mz, mz_lo, mz_hi))
   )
 
-pred_peak_ids <- unique(predicted_feats$feature)
+pred_peak_ids <- sort(unique(predicted_feats$feature))
 
 if (file.exists(file.path(res_folder, "objects", "pred_chrs.rds"))) {
   pred_chrs <- readRDS(file.path(res_folder, "objects", "pred_chrs.rds"))
@@ -103,7 +103,6 @@ if (file.exists(file.path(res_folder, "objects", "pred_chrs.rds"))) {
 # ==============================================================================
 
 # Chemical similarity here
-
 for (i in pred_peak_ids) {
   tmp_anno_chr <- plot_feat_chrom_int(
     feature_chrom = pred_chrs,
