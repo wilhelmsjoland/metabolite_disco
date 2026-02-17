@@ -1,17 +1,18 @@
 if (!file.exists(file.path(getwd(), res_folder, "tables", "apigenin.csv"))) {
   run_biotransformer(
     bt_dir = "biotransformer3.0jar",
+    # Needs optparse smiles argument
     smiles = "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O",
     b_type = "superbio",
     k_task = "pred",
     output_file = "apigenin"
   )
+} else {
+  biot_pred <- readr::read_csv(
+    file = file.path(res_folder, "tables", "apigenin.csv"),
+    show_col_types = FALSE
+  )
 }
-
-biot_pred <- read_csv(
-  file = file.path(res_folder, "tables", "apigenin.csv"),
-  show_col_types = FALSE
-)
 
 biot_dedup <- biot_pred %>%
   dplyr::group_by(InChIKey) %>%
@@ -49,17 +50,17 @@ biot_final <- MetaboCoreUtils::mass2mz(
   )
 
 biot_mass_len <- length(biot_mass$InChIKey) *
-  nrow(adducts(polarity = "negative"))
+  nrow(adducts(polarity = polarity))
 
 if (biot_mass_len != nrow(biot_final)) {
   warning("The transformation prediction dataframes are not the same length.")
-} else {
+} else if (biot_mass_len == nrow(biot_final)) {
   message("The transformation prediction dataframes are the same length.")
 }
 
 biot_final
 
-def_tib <- xchr9.filt$filt.features.tib
+def_tib <- xchr9_filt$filt_features_tib
 
 # biot_final = mass to mzs - > match the m/zs to the m/zs in the data
 predicted_feats <- biot_final %>%

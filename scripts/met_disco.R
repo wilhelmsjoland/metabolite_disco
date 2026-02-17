@@ -1261,7 +1261,7 @@ matched_diffs2 <- matched_diffs %>%
       .fns = ~ . > 0
     )
   ) %>%
-  dplyr::filter(feat1 != feat2) %>%
+  dplyr::filter(feat1 != feat2)
   # Too slow just do for a few when filtered
   # dplyr::mutate(
   #   pair = purrr::map2(
@@ -1273,12 +1273,9 @@ matched_diffs2 <- matched_diffs %>%
   # )
 
 message("Writing predictions to table...")
-writexl::write_xlsx(
+readr::write_csv(
   x = matched_diffs2,
-  path = paste0(res_folder, "/tables/matched_diffs.xlsx"),
-  col_names = TRUE,
-  format_headers = TRUE,
-  use_zip64 = FALSE
+  file = file.path(res_folder, "tables", "matched_diffs.csv")
 )
 
 # ==============================================================================
@@ -1355,7 +1352,7 @@ subset_matched_diffs <- pred_biot(
 
 glycoside_pairs <- unique(
   c(
-    subset_matched_diffs$feat1, 
+    subset_matched_diffs$feat1,
     subset_matched_diffs$feat2
   )
 )
@@ -1420,6 +1417,11 @@ anno <- MetaboAnnotation::matchedData(matches) %>%
   tibble::as_tibble(., rownames = "feature") %>%
   dplyr::mutate(abs_score = abs(score)) %>%
   dplyr::arrange(abs_score)
+
+# ==============================================================================
+# Predicting biotransformations ------------------------------------------------
+# ==============================================================================
+
 
 # ==============================================================================
 # Filtering chromatograms ------------------------------------------------------
@@ -1539,7 +1541,7 @@ message("Plotting feature pairs in filtered biotransformations...")
 # }
 
 message(
-  "Writing feature chromatograms and intensity boxplots "
+  "Writing feature chromatograms and intensity boxplots ",
   "for glycosides/aglycones..."
 )
 # for (i in pot_glycosides) {

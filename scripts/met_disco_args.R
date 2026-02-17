@@ -157,22 +157,3 @@ beta_cor_threshold <- opt$beta_cor_threshold
 beta_snr_threshold <- opt$beta_snr_threshold
 
 register_parallel(workers)
-
-
-matched_diffs %>%
-  dplyr::filter(feat1 != feat2) %>%
-  dplyr::filter(
-    dplyr::if_any(
-      .cols = dplyr::all_of(c("feat1", "feat2")),
-      .fns = ~ .x %in% pot_glycosides
-    )
-  ) %>% view
-
-matched_diffs2 %>%
-dplyr::filter(feat1 != feat2) %>%
-  dplyr::filter(
-    dplyr::if_all(
-      .cols = dplyr::all_of(c("feat1", "feat2")),
-      .fns = ~ .x %in% all_sig_diff
-    )
-  ) %>% view
