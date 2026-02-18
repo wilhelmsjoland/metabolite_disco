@@ -1,10 +1,9 @@
 
-hits <- filt_match_diffs2 %>%
-  dplyr::mutate(obs_ppm = num_to_ppm(abs(delta_mass - obs_delta_mass))) %>%
+hits <- subset_matched_diffs %>%
   dplyr::filter(feat1 != feat2) %>%
-  dplyr::arrange(obs_ppm)
+  dplyr::arrange(obs_diff)
 
-hits_feats <- unique(c(hits$feat1, hits$feat2))
+hits_feats <- sort(unique(c(hits$feat1, hits$feat2)))
 
 if (!exists("hits_chrs")) {
   hits_chrs <- xcms::featureChromatograms(
@@ -55,14 +54,14 @@ if (!exists("hits_chrs")) {
 
 if (file.exists(
   file.path(
-    res.folder,
+    res_folder,
     "graphs",
     "saved_pairs",
     "saved_pairs.tsv"
   )
 )) {
   int_pairs <- read_tsv(
-    file = file.path(res.folder, "graphs", "saved_pairs", "saved_pairs.tsv")
+    file = file.path(res_folder, "graphs", "saved_pairs", "saved_pairs.tsv")
   )
 } else {
   # int_pairs <- tibble::tibble()
@@ -112,11 +111,11 @@ if (file.exists(
 
 # saveRDS(
 #   object = int_pairs,
-#   file = file.path(res.folder, "graphs", "saved_pairs", "saved_pairs.RDS")
+#   file = file.path(res_folder, "graphs", "saved_pairs", "saved_pairs.RDS")
 # )
 # write_tsv(
 #   x = int_pairs,
-#   file = file.path(res.folder, "graphs", "saved_pairs", "saved_pairs.tsv")
+#   file = file.path(res_folder, "graphs", "saved_pairs", "saved_pairs.tsv")
 # )
 
 
@@ -200,7 +199,7 @@ test4 <- test3 %>%
   dplyr::filter(
     dplyr::if_any(
       .cols = dplyr::all_of(c("var1", "var2")),
-      .fns = ~ .x %in% pot.glycosides
+      .fns = ~ .x %in% pot_glycosides
     )
   ) %>%
   rstatix::add_significance() %>%
@@ -324,7 +323,7 @@ ann_df_cor <- test5 %>%
 ha_cor <- HeatmapAnnotation(
   group = ann_df_cor$group,
   annotation_name_side = "left",
-  col = list(group = group.colors)
+  col = list(group = group_colors)
 )
 
 ht_cor <- Heatmap(
@@ -366,7 +365,7 @@ ann_df <- test5 %>%
 ha <- HeatmapAnnotation(
   group = ann_df$group,
   annotation_name_side = "left",
-  col = list(group = group.colors)
+  col = list(group = group_colors)
 )
 
 ht <- Heatmap(

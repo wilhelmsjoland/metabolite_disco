@@ -1167,14 +1167,15 @@ for (i in seq_along(combinations)) {
 
 # Only temporary
 upset_comp <- upset_comps[[
-  paste0("bu_mutant_apiin-bu_wt_apiin*bu_mutant_control",
-  "-",
-  "bu_wt_apiin*bu_wt_apiin-bu_wt_control"
+  paste0(
+    "bu_mutant_apiin-bu_wt_apiin*bu_mutant_control",
+    "-",
+    "bu_wt_apiin*bu_wt_apiin-bu_wt_control"
   )
 ]]
 
 # ==============================================================================
-# m/z predictions all ----------------------------------------------------------
+# Prepare biotransformation checking -------------------------------------------
 # ==============================================================================
 message("Expanding possible adducts...")
 xchr9_defs <- xcms::featureDefinitions(xchr9) %>%
@@ -1211,7 +1212,76 @@ bio_transf <- import_biotransform_meta(
 )
 
 if (!exists("biotransf_append")) {
-  source("scripts/rpairs_parse.R")
+  data <- readr::read_tsv(
+    "scripts/search_compounds/output/rpairs.tsv",
+    show_col_types = FALSE
+  ) %>%
+  dplyr::mutate(rpair_num = paste0("RP", dplyr::row_number()))
+
+  df <- data %>%
+    tidyr::drop_na(formula1, formula2) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(
+      dplyr::across(
+        .cols = dplyr::all_of(c("formula1", "formula2")),
+        .fns = ~ MetaboCoreUtils::standardizeFormula(.)
+      )
+    ) %>%
+    dplyr::mutate(
+      delta_formula = {
+        # Try subtracting both directions
+        diff1 <- MetaboCoreUtils::subtractElements(formula1, formula2)
+        diff2 <- MetaboCoreUtils::subtractElements(formula2, formula1)
+        # Use whichever worked
+        if (!is.na(diff1)) {
+          diff1
+        } else if (!is.na(diff2)) {
+          diff2
+        } else {
+          paste0("\u00B1 ", formula1, " <=> ", formula2)
+        }
+      }
+    ) %>%
+    dplyr::mutate(delta_mass = Rdisop::getMonoisotopic(delta_formula)) %>%
+    dplyr::ungroup() %>%
+    dplyr::relocate(rpair_num, .before = "entry") %>%
+    dplyr::mutate(
+      across(
+        .cols = tidyselect::all_of(c("name1", "name2")),
+        .fns = ~ stringr::str_trim(stringr::str_extract(., "^[^;]+"))
+      )
+    ) %>%
+    dplyr::mutate(allowed_n = 1) %>%
+    tidyr::uncount(
+      data = .,
+      weights = allowed_n,
+      .id = "multiplier",
+      .remove = FALSE
+    ) %>%
+    dplyr::select(rpair_num, delta_formula, allowed_n, multiplier, delta_mass)
+
+  biotransf_append <- df %>%
+    dplyr::group_by(delta_mass) %>%
+    dplyr::summarize(
+      delta_formula = paste(sort(unique(delta_formula)), collapse = ", "),
+      rpair_nums = paste(sort(unique(rpair_num)), collapse = ", "),
+      n_rpairs   = dplyr::n_distinct(rpair_num),
+      allowed_n  = dplyr::first(allowed_n),
+      multiplier = dplyr::first(multiplier),
+      .groups = "drop"
+    ) %>%
+    dplyr::select(
+      name = rpair_nums,
+      delta_formula,
+      allowed_n,
+      multiplier,
+      delta_mass
+    ) %>%
+    dplyr::filter(!grepl("<=>", delta_formula)) %>%
+    # nothing changed? or nothing has changed at least according
+    # since the delta formulas probably only had 1n or 1c or similar and were
+    # subtracted
+    tidyr::drop_na(delta_mass)
 } else {
   message("'biotransf_append' already exists.")
 }
@@ -1221,65 +1291,47 @@ bio_transf2 <- dplyr::bind_rows(
   biotransf_append
 )
 
-message(
-  "Predicting potential biotransformations based on:\n\t",
-  "Biotransformation database: ", biotransf_file,
-  "\n\tppm: ", ppm_global,
-  sep = ""
-)
-
-
 # Potentially filter noisy features with the filt_features() function I made
 all_sig_diff <- sort(unique(unlist(upset_comps, use.names = FALSE)))
 possible_adducts_signif <- possible_adducts %>%
   dplyr::filter(feature %in% all_sig_diff)
 
-# Turn this around
-if (file.exists(file.path(res_folder, "objects", "matched_diffs.rds"))) {
-    matched_diffs <- readRDS(
-    file = file.path(res_folder, "objects", "matched_diffs.rds")
-  )
+# ==============================================================================
+# Filtering features -----------------------------------------------------------
+# ==============================================================================
+message(sprintf(
+  "Filtering features with sn: %s, beta_cor: %s, beta_snr: %s",
+  sn_threshold,
+  beta_cor_threshold,
+  beta_snr_threshold
+))
+
+if (check_saved("xchr9_filt.rds")) {
+  xchr9_filt <- readRDS(file = paste0(res_folder, "/objects/xchr9_filt.rds"))
 } else {
-  matched_diffs <- pred_biot(
-    data = possible_adducts_signif,
-    biotransf_data = bio_transf2,
-    tolerance_ppm = 5, # try 5 and 10, # 15 too much
-    parallel = TRUE
+  xchr9_filt <- filt_features(
+    object = xchr9,
+    sn_threshold = sn_threshold,
+    beta_cor_threshold = beta_cor_threshold,
+    beta_snr_threshold = beta_snr_threshold,
+    filt_vector = all_sig_diff
   )
   saveRDS(
-    object = matched_diffs,
-    file = paste0(res_folder, "/objects/matched_diffs.rds")
+    object = xchr9_filt,
+    file = paste0(res_folder, "/objects/xchr9_filt.rds")
   )
 }
-
-matched_diffs2 <- matched_diffs %>%
-  dplyr::filter(
-    dplyr::if_all(
-      .cols = dplyr::all_of(c("mass1", "mass2")),
-      .fns = ~ . > 0
-    )
-  ) %>%
-  dplyr::filter(feat1 != feat2)
-  # Too slow just do for a few when filtered
-  # dplyr::mutate(
-  #   pair = purrr::map2(
-  #     .x = feat1,
-  #     .y = feat2,
-  #     .f = c
-  #   ),
-  #   obs_diff = abs(obs_delta_mass - delta_mass)
-  # )
-
-message("Writing predictions to table...")
-# TODO This needs filtering first
-# readr::write_csv(
-#   x = matched_diffs2,
-#   file = file.path(res_folder, "tables", "matched_diffs.csv")
-# )
 
 # ==============================================================================
 # m/z predictions subset -------------------------------------------------------
 # ==============================================================================
+message(
+  "Predicting potential biotransformations based on:\n\t",
+  "Biotransformation database: ", biotransf_file, # + the other kegg stuff
+  "\n\tppm: ", ppm_match,
+  sep = ""
+)
+
 # Checking specifically for the glycoside anad aglycone m/zs
 glycoside <- MetaboCoreUtils::mass2mz(
   MetaboCoreUtils::calculateMass(glycoside_form)[[1]],
@@ -1336,7 +1388,7 @@ pot_glycosides <- unique(gly_agly$feature)
 subset_matched_diffs <- pred_biot(
   data = possible_adducts_signif,
   biotransf_data = bio_transf2, # bio_transf
-  tolerance_ppm = 10, # glycoside_ppm
+  tolerance_ppm = ppm_match, # glycoside_ppm
   features_of_interest = pot_glycosides,
   parallel = TRUE
 ) %>%
@@ -1355,6 +1407,53 @@ glycoside_pairs <- unique(
     subset_matched_diffs$feat2
   )
 )
+
+# ==============================================================================
+# m/z predictions all ----------------------------------------------------------
+# ==============================================================================
+
+# Turn this around
+if (file.exists(file.path(res_folder, "objects", "matched_diffs.rds"))) {
+  matched_diffs <- readRDS(
+    file = file.path(res_folder, "objects", "matched_diffs.rds")
+  )
+} else {
+  matched_diffs <- pred_biot(
+    data = possible_adducts_signif,
+    biotransf_data = bio_transf2,
+    tolerance_ppm = ppm_match, # try 5 and 10, # 15 too much
+    parallel = TRUE
+  )
+  saveRDS(
+    object = matched_diffs,
+    file = paste0(res_folder, "/objects/matched_diffs.rds")
+  )
+}
+
+matched_diffs2 <- matched_diffs %>%
+  dplyr::filter(
+    dplyr::if_all(
+      .cols = dplyr::all_of(c("mass1", "mass2")),
+      .fns = ~ . > 0
+    )
+  ) %>%
+  dplyr::filter(feat1 != feat2)
+  # Too slow just do for a few when filtered
+  # dplyr::mutate(
+  #   pair = purrr::map2(
+  #     .x = feat1,
+  #     .y = feat2,
+  #     .f = c
+  #   ),
+  #   obs_diff = abs(obs_delta_mass - delta_mass)
+  # )
+
+message("Writing predictions to table...")
+# TODO This needs filtering first
+# readr::write_csv(
+#   x = matched_diffs2,
+#   file = file.path(res_folder, "tables", "matched_diffs.csv")
+# )
 
 # ==============================================================================
 # Matching m/z's against databases -------------------------------------------
@@ -1403,7 +1502,7 @@ target_df <- ProtGenerics::compounds(
 # parameters to match by
 mz_match_param <- MetaboAnnotation::Mass2MzParam(
   adducts = c(MetaboCoreUtils::adductNames(polarity = polarity)),
-  ppm = 10 # ppm_global
+  ppm = ppm_match
 )
 
 matches <- MetaboAnnotation::matchValues(
@@ -1418,38 +1517,111 @@ anno <- MetaboAnnotation::matchedData(matches) %>%
   dplyr::arrange(abs_score)
 
 # ==============================================================================
-# Predicting biotransformations ------------------------------------------------
+# Biotransformer -------------- ------------------------------------------------
 # ==============================================================================
-
-# TODO
-# Move biotransformer.R here
-
-# ==============================================================================
-# Filtering chromatograms ------------------------------------------------------
-# ==============================================================================
-message(sprintf(
-  "Filtering features with sn: %s, beta_cor: %s, beta_snr: %s",
-  sn_threshold,
-  beta_cor_threshold,
-  beta_snr_threshold
-))
-
-if (check_saved("xchr9_filt.rds")) {
-  xchr9_filt <- readRDS(file = paste0(res_folder, "/objects/xchr9_filt.rds"))
-} else {
-  xchr9_filt <- filt_features(
-    object = xchr9,
-    sn_threshold = sn_threshold,
-    beta_cor_threshold = beta_cor_threshold,
-    beta_snr_threshold = beta_snr_threshold,
-    filt_vector = all_sig_diff
+if (!file.exists(file.path(getwd(), res_folder, "tables", "prediction.csv"))) {
+  run_biotransformer(
+    bt_dir = biotransformer_path, # "biotransformer3.0jar",
+    # Needs optparse smiles argument
+    smiles = opt$smiles,
+    b_type = "superbio",
+    k_task = "pred",
+    output_file = "prediction"
   )
-  saveRDS(
-    object = xchr9_filt,
-    file = paste0(res_folder, "/objects/xchr9_filt.rds")
+} else {
+  biot_pred <- readr::read_csv(
+    file = file.path(res_folder, "tables", "prediction.csv"),
+    show_col_types = FALSE
   )
 }
 
+biot_dedup <- biot_pred %>%
+  dplyr::group_by(InChIKey) %>%
+  dplyr::summarize(
+    dplyr::across(
+      .cols = setdiff(colnames(.), "InChIKey"),
+      .fns  = ~ paste(unique(.x), collapse = ", ")
+    ),
+    .groups = "keep"
+  )
+
+biot_mass <- biot_dedup %>%
+  dplyr::mutate(
+    mass = MetaboCoreUtils::calculateMass(`Molecular formula`)
+  ) %>%
+  dplyr::relocate(mass, .before = "InChI")
+
+biot_mets <- biot_mass$mass
+names(biot_mets) <- biot_mass$InChIKey
+
+biot_final <- MetaboCoreUtils::mass2mz(
+  x = biot_mets,
+  adduct = MetaboCoreUtils::adducts(polarity = polarity)
+) %>%
+  tibble::as_tibble(., rownames = "InChIKey") %>%
+  tidyr::pivot_longer(
+    cols = 2:ncol(.),
+    names_to = "adduct",
+    values_to = "mz"
+  ) %>%
+  dplyr::arrange(InChIKey) %>%
+  dplyr::left_join(
+    x = .,
+    y = biot_mass,
+    by = "InChIKey",
+    relationship = "many-to-one"
+  )
+
+biot_mass_len <- length(biot_mass$InChIKey) *
+  nrow(adducts(polarity = polarity))
+
+if (biot_mass_len != nrow(biot_final)) {
+  warning("The transformation prediction dataframes are not the same length.")
+} else if (biot_mass_len == nrow(biot_final)) {
+  message("The transformation prediction dataframes are the same length.")
+}
+
+# because haven't rerun it yet
+def_tib <- xchr9_filt$filt.features.tib # xchr9_filt$filt_features_tib
+
+# biot_final = mass to mzs - > match the m/zs to the m/zs in the data
+predicted_feats <- biot_final %>%
+  dplyr::inner_join(
+    x = .,
+    y = def_tib %>% # xchr9.defs
+      dplyr::mutate(
+        tol = MsCoreUtils::ppm(mzmed, ppm_match),
+        mz_lo = mzmed - tol,
+        mz_hi = mzmed + tol
+      ) %>%
+      dplyr::relocate(c("mz_lo", "mz_hi"), .after = "feature"),
+    by = dplyr::join_by(dplyr::between(mz, mz_lo, mz_hi))
+  )
+
+pred_peak_ids <- sort(unique(predicted_feats$feature))
+
+if (file.exists(file.path(res_folder, "objects", "pred_chrs.rds"))) {
+  pred_chrs <- readRDS(file.path(res_folder, "objects", "pred_chrs.rds"))
+} else {
+  pred_chrs <- xcms::featureChromatograms(
+    object = xchr9,
+    expandRt = 0,
+    expandMz = 0,
+    aggregationFun = "sum",
+    filled = TRUE,
+    features = pred_peak_ids,
+    missing = 0,
+    return.type = "XChromatograms"
+  )
+  saveRDS(
+    object = pred_chrs,
+    file = file.path(res_folder, "objects", "pred_chrs.rds")
+  )
+}
+
+# ==============================================================================
+# Plotting features ------------------------------------------------------------
+# ==============================================================================
 xchr9_filt$final.plotting.features <- unique(
   c(
     glycoside_pairs,
@@ -1457,9 +1629,6 @@ xchr9_filt$final.plotting.features <- unique(
   )
 )
 
-# ==============================================================================
-# Plotting features ------------------------------------------------------------
-# ==============================================================================
 message("Producing feature chromatograms...")
 if (check_saved("feature_chrs.rds")) {
   feature_chrs <- readRDS(

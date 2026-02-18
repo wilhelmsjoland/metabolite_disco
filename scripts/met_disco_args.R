@@ -6,6 +6,18 @@ option_list <- list(
     help = "Working directory [default: %default]"
   ),
   optparse::make_option(
+    c("--biot_dir"),
+    type = "character",
+    default = "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/03_psm/biotransformer3.0jar",
+    help = "Biotransformer directory [default: %default]"
+  ),
+  optparse::make_option(
+    c("--smiles"),
+    type = "character",
+    default = "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O",
+    help = "SMILES for prediction of metabolites [default: %default]"
+  ),
+  optparse::make_option(
     c("-d", "--data_path"),
     type = "character",
     default = "input_data",
@@ -70,6 +82,12 @@ option_list <- list(
     type = "double",
     default = 15,
     help = "Global ppm tolerance [default: %default]"
+  ),
+    optparse::make_option(
+    c("--ppm_match"),
+    type = "double",
+    default = 10,
+    help = "ppm tolerance for matching [default: %default]"
   ),
   optparse::make_option(
     c("--bw_first_grouping"),
@@ -137,6 +155,7 @@ set.seed(opt$seed)
 # ---- map options to variable names ----
 
 data_path <- opt$data_path
+biotransformer_path <- opt$biot_dir
 meta_file <- opt$meta_file
 biotransf_file <- opt$biotransf_file
 res_folder <- opt$output
@@ -147,6 +166,7 @@ glycoside_ppm <- opt$glycoside_ppm
 adduct <- opt$adduct
 polarity <- opt$polarity
 ppm_global <- opt$ppm_global
+ppm_match <- opt$ppm_match
 bw_first_grouping <- opt$bw_first_grouping
 bw_second_grouping <- opt$bw_second_grouping
 workers <- opt$cores

@@ -1,107 +1,3 @@
-if (!file.exists(file.path(getwd(), res_folder, "tables", "apigenin.csv"))) {
-  run_biotransformer(
-    bt_dir = "biotransformer3.0jar",
-    # Needs optparse smiles argument
-    smiles = "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O",
-    b_type = "superbio",
-    k_task = "pred",
-    output_file = "apigenin"
-  )
-} else {
-  biot_pred <- readr::read_csv(
-    file = file.path(res_folder, "tables", "apigenin.csv"),
-    show_col_types = FALSE
-  )
-}
-
-biot_dedup <- biot_pred %>%
-  dplyr::group_by(InChIKey) %>%
-  dplyr::summarize(
-    dplyr::across(
-      .cols = setdiff(colnames(.), "InChIKey"),
-      .fns  = ~ paste(unique(.x), collapse = ", ")
-    ),
-    .groups = "keep"
-  )
-
-biot_mass <- biot_dedup %>%
-  dplyr::mutate(mass = MetaboCoreUtils::calculateMass(`Molecular formula`)) %>%
-  dplyr::relocate(mass, .before = "InChI")
-
-biot_mets <- biot_mass$mass
-names(biot_mets) <- biot_mass$InChIKey
-
-biot_final <- MetaboCoreUtils::mass2mz(
-  x = biot_mets,
-  adduct = MetaboCoreUtils::adducts(polarity = polarity)
-) %>%
-  tibble::as_tibble(., rownames = "InChIKey") %>%
-  tidyr::pivot_longer(
-    cols = 2:ncol(.),
-    names_to = "adduct",
-    values_to = "mz"
-  ) %>%
-  dplyr::arrange(InChIKey) %>%
-  dplyr::left_join(
-    x = .,
-    y = biot_mass,
-    by = "InChIKey",
-    relationship = "many-to-one"
-  )
-
-biot_mass_len <- length(biot_mass$InChIKey) *
-  nrow(adducts(polarity = polarity))
-
-if (biot_mass_len != nrow(biot_final)) {
-  warning("The transformation prediction dataframes are not the same length.")
-} else if (biot_mass_len == nrow(biot_final)) {
-  message("The transformation prediction dataframes are the same length.")
-}
-
-# because haven't rerun it yet
-def_tib <- xchr9_filt$filt.features.tib # xchr9_filt$filt_features_tib
-
-# biot_final = mass to mzs - > match the m/zs to the m/zs in the data
-predicted_feats <- biot_final %>%
-  dplyr::inner_join(
-    x = .,
-    y = def_tib %>% # xchr9.defs
-      dplyr::mutate(
-        tol = MsCoreUtils::ppm(mzmed, 10),
-        mz_lo = mzmed - tol,
-        mz_hi = mzmed + tol
-      ) %>%
-      dplyr::relocate(c("mz_lo", "mz_hi"), .after = "feature"),
-    by = dplyr::join_by(dplyr::between(mz, mz_lo, mz_hi))
-  )
-
-pred_peak_ids <- sort(unique(predicted_feats$feature))
-
-if (file.exists(file.path(res_folder, "objects", "pred_chrs.rds"))) {
-  pred_chrs <- readRDS(file.path(res_folder, "objects", "pred_chrs.rds"))
-} else {
-  pred_chrs <- xcms::featureChromatograms(
-    object = xchr9,
-    expandRt = 0,
-    expandMz = 0,
-    aggregationFun = "sum",
-    filled = TRUE,
-    features = pred_peak_ids,
-    missing = 0,
-    return.type = "XChromatograms"
-  )
-  saveRDS(
-    object = pred_chrs,
-    file = file.path(res_folder, "objects", "pred_chrs.rds")
-  )
-}
-
-# Could stop here with the predictions
-
-# ==============================================================================
-# ------------------------------------------------------------------------------
-# ==============================================================================
-
 # Chemical similarity here
 for (i in pred_peak_ids) {
   tmp_anno_chr <- plot_feat_chrom_int(
@@ -142,9 +38,9 @@ test <- predicted_feats %>%
   dplyr::arrange(InChIKey) %>%
   dplyr::mutate(name = paste(feature, InChIKey)) %>%
   # only for now
-  dplyr::distinct(InChIKey, .keep_all = TRUE) %>%
+  dplyr::distinct(InChIKey, .keep_all = TRUE) # %>%
   # only for now
-  dplyr::filter(grepl("FT03581", feature))
+ #  dplyr::filter(grepl("FT03581", feature))
 
 for (i in test$SMILES) {
   mol.2d <- parse.smiles(i)[[1]]
@@ -181,15 +77,15 @@ biot.sim.final %>%
   ggplot2::ggplot(
     ggplot2::aes(
       x = feature, # target_name
-      y = sim
+      y = sim,
     )
   ) +
   # because there are duplicates - just choose the best one
   ggplot2::geom_col(
-      stat = "summary",
-      fun = "max",
-      color = "black",
-      position = ggplot2::position_dodge()
+    stat = "summary",
+    fun = "max",
+    color = "black",
+    position = ggplot2::position_dodge()
   ) +
   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
   ggplot2::scale_y_continuous(

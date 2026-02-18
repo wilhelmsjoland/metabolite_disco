@@ -69,7 +69,7 @@ run_biotransformer <- function(
   smiles = "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O",
   b_type = "superbio",
   k_task = "pred", # pred for prediction, or cid for compound identification
-  output_file = "apigenin"
+  output_file = "prediction"
 ) {
   old_wd <- getwd()
   new_wd <- file.path(old_wd, bt_dir)
