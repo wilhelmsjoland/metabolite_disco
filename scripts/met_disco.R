@@ -1627,12 +1627,30 @@ anno_filt <- anno %>%
   dplyr::group_by(adduct) %>% # Think this might have fixed the loss of same
   dplyr::distinct(target_inchikey, .keep_all = TRUE)
 
-smiles <- anno_filt$target_smiles
-names(smiles) <- anno_filt$feature
+# TODO
+# ==============================================================================
+# # For checking
+# # These are all the base feature without "." added
+# anno %>%
+#   dplyr::filter(is.na(adduct)) %>%
+#   print(n = 300)
 
-sims <- mol_similarity(
+# # looks good
+# anno %>%
+#   dplyr::group_by(peak_id, adduct) %>%
+#   dplyr::distinct(target_inchikey, .keep_all = TRUE) %>%
+#   dplyr::filter(!is.na(adduct)) %>%
+#   dplyr::group_by(feature, adduct, target_inchikey) %>%
+#   dplyr::summarize(n = n()) %>%
+#   dplyr::filter(n != 1)
+# ==============================================================================
+
+anno_smiles <- anno_filt$target_smiles
+names(anno_smiles) <- anno_filt$feature
+
+anno_sims <- mol_similarity(
   query_smiles = opt$smiles,
-  target_smiles = smiles,
+  target_smiles = anno_smiles,
   kekulise = TRUE, # parsing incorrect smiles with electrons
   omit_nulls = TRUE,
   fingerprint = "circular",
@@ -1673,14 +1691,50 @@ for (i in seq_along(inchi_ks)) {
   full_inchikey_map <- dplyr::bind_rows(full_inchikey_map, inchikey_map)
 }
 
-sims2 <- sims %>%
+anno_sims2 <- anno_sims %>%
   dplyr::left_join(
     x = .,
     y = full_inchikey_map,
     by = c("target_inchikey" = "InChIKey")
   )
 
+# ==============================================================================
+# Molecular similarity biotransformer ------------------------------------------
+# ==============================================================================
+chem_pred_feats <- predicted_feats %>%
+  # This is needed since one inchikey can be annotated to
+  # several features because they can have different adducts
+  # ---------------------------------------------- #
+  dplyr::mutate(met_id = as.character(dplyr::row_number())) %>%
+  dplyr::relocate(met_id, .before = "InChIKey") %>%
+  # ---------------------------------------------- #
 
+  # Here don't need unique since it's not matched against a db
+  # so shouldnt have duplicates for the same feature and adduct
+  # ---------------------------------------------- #
+  dplyr::group_by(feature, adduct) %>%
+  dplyr::distinct(InChIKey, .keep_all = TRUE)
+  # ---------------------------------------------- #
+
+pred_smiles <- chem_pred_feats$SMILES
+names(pred_smiles) <- chem_pred_feats$met_id
+
+pred_sims <- mol_similarity(
+  query_smiles = opt$smiles,
+  target_smiles = pred_smiles,
+  kekulise = TRUE, # parsing incorrect smiles with electrons
+  omit_nulls = TRUE,
+  fingerprint = "circular",
+  circular_type = "ECFP6",
+  method = "tanimoto"
+) %>%
+  # rename to not overlap in the dplyr::left_join()
+  dplyr::rename("met_id" = "feature") %>%
+  dplyr::left_join(
+    x = .,
+    y = chem_pred_feats,
+    by = c("met_id")
+  )
 
 # ==============================================================================
 # Plotting features ------------------------------------------------------------
@@ -1820,42 +1874,79 @@ message("Producing significant intersecting feature boxplots...")
 #   )
 # }
 
-message("Plotting annotated features with chem sim")
-sims2 %>%
-  # TODO
-  # arbitrary for now
-  dplyr::filter(sim > 0.3) %>%
-  dplyr::mutate(
-    Title = forcats::fct_reorder( # target_name
-      .f = Title, # target_name
-      .x = sim,
-      .fun = "mean",
-      .desc = TRUE
-    )
-  ) %>%
-  ggplot2::ggplot(
-    ggplot2::aes(
-      x = Title, # target_name
-      y = sim
-    )
-  ) +
-  # because there are duplicates - just choose the best one
-  ggplot2::geom_col(
-    # aes(fill = peak_id),
-    stat = "summary",
-    fun = "max",
-    color = "black",
-    position = ggplot2::position_dodge()
-  ) +
-  ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
-  ggplot2::scale_y_continuous(
-    expand = ggplot2::expansion(c(0, 0)),
-    limits = c(0, 1)
-  ) +
-  ggplot2::theme_bw() +
-  ggplot2::theme(
-    axis.title.x = ggplot2::element_blank(),
-    axis.title.y = ggplot2::element_text(angle = -90),
-    legend.title = ggplot2::element_blank()
-  ) +
-  ggplot2::labs(y = "Tanimoto similarity")
+message("Plotting annotated features after molecular similarity")
+# anno_sims2 %>%
+#   # TODO
+#   # arbitrary for now
+#   dplyr::filter(sim > 0.3) %>%
+#   dplyr::mutate(
+#     Title = forcats::fct_reorder( # target_name
+#       .f = Title, # target_name
+#       .x = sim,
+#       .fun = "mean",
+#       .desc = TRUE
+#     )
+#   ) %>%
+#   ggplot2::ggplot(
+#     ggplot2::aes(
+#       x = Title, # target_name
+#       y = sim
+#     )
+#   ) +
+#   # because there are duplicates - just choose the best one
+#   ggplot2::geom_col(
+#     # aes(fill = peak_id),
+#     stat = "summary",
+#     fun = "max",
+#     color = "black",
+#     position = ggplot2::position_dodge()
+#   ) +
+#   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+#   ggplot2::scale_y_continuous(
+#     expand = ggplot2::expansion(c(0, 0)),
+#     limits = c(0, 1)
+#   ) +
+#   ggplot2::theme_bw() +
+#   ggplot2::theme(
+#     axis.title.x = ggplot2::element_blank(),
+#     axis.title.y = ggplot2::element_text(angle = -90),
+#     legend.title = ggplot2::element_blank()
+#   ) +
+#   ggplot2::labs(y = "Tanimoto similarity")
+
+message("Plotting predicted features after molecular similarity")
+# pred_sims %>%
+#   dplyr::mutate(
+#     met_id = forcats::fct_reorder( # target_name
+#       .f = met_id, # target_name
+#       .x = sim,
+#       .fun = "mean",
+#       .desc = TRUE
+#     )
+#   ) %>%
+#   ggplot2::ggplot(
+#     ggplot2::aes(
+#       x = met_id, # target_name
+#       y = sim
+#     )
+#   ) +
+#   # because there are duplicates - just choose the best one
+#   ggplot2::geom_col(
+#     aes(fill = feature),
+#     stat = "summary",
+#     fun = "max",
+#     color = "black",
+#     position = ggplot2::position_dodge()
+#   ) +
+#   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+#   ggplot2::scale_y_continuous(
+#     expand = ggplot2::expansion(c(0, 0)),
+#     limits = c(0, 1)
+#   ) +
+#   ggplot2::theme_bw() +
+#   ggplot2::theme(
+#     axis.title.x = ggplot2::element_blank(),
+#     axis.title.y = ggplot2::element_text(angle = -90),
+#     legend.title = ggplot2::element_blank()
+#   ) +
+#   ggplot2::labs(y = "Tanimoto similarity")
