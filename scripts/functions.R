@@ -932,7 +932,7 @@ pred_biot <- function(
   tolerance = NULL,
   features_of_interest = NULL,
   parallel = TRUE,
-  n_workers = max(1, parallel::detectCores() - 1)
+  n_workers = workers # max(1, parallel::detectCores() - 1)
 ) {
   if (is.null(tolerance) & is.null(tolerance_ppm)) {
     stop("Both tolerance and tolerance_ppm are NULL")

@@ -1517,7 +1517,7 @@ anno <- MetaboAnnotation::matchedData(matches) %>%
   dplyr::arrange(abs_score)
 
 # ==============================================================================
-# Biotransformer -------------- ------------------------------------------------
+# Biotransformer.jar -----------------------------------------------------------
 # ==============================================================================
 if (!file.exists(file.path(getwd(), res_folder, "tables", "prediction.csv"))) {
   run_biotransformer(
