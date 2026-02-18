@@ -782,7 +782,7 @@ register_parallel <- function(workers = NULL) {
   BiocParallel::register(bp, default = TRUE)
 }
 
-filt_features <- function(
+filt_features_old <- function(
   object = NULL,
   beta_cor_threshold = 0.3,
   beta_snr_threshold = 6,
@@ -1109,4 +1109,36 @@ pred_biot <- function(
   # 4. Final table of all matched pairs
   matched_diffs <- dplyr::bind_rows(all_matches)
   return(matched_diffs)
+}
+
+filt_features <- function(
+  object = NULL,
+  beta_cor_threshold = 0.3,
+  beta_snr_threshold = 6,
+  sn_threshold = 10
+) {
+  filt_chrompeaks_tib <- tibble::as_tibble(
+    xcms::chromPeaks(object),
+    rownames = "feature"
+  ) %>%
+    dplyr::filter(!is.na(beta_cor) & !is.na(beta_snr)) %>%
+    dplyr::group_by(feature) %>%
+    dplyr::filter(
+      beta_cor >= beta_cor_threshold &
+        beta_snr >= beta_snr_threshold
+    ) %>%
+    dplyr::filter(sn >= sn_threshold) %>%
+    dplyr::mutate(feature2 = as.numeric(gsub("[A-Za-z]", "", feature))) %>%
+    dplyr::relocate(feature2, .after = feature)
+
+  filt_features_tib <- tibble::as_tibble(
+    xcms::featureDefinitions(object),
+    rownames = "feature"
+  ) %>%
+    tidyr::unnest(peakidx) %>%
+    dplyr::filter(peakidx %in% filt_chrompeaks_tib$feature2) %>%
+    tidyr::nest(data = peakidx)
+
+  return(filt_features_tib)
+
 }

@@ -1306,15 +1306,14 @@ message(sprintf(
   beta_snr_threshold
 ))
 
-if (check_saved("xchr9_filt.rds")) {
-  xchr9_filt <- readRDS(file = paste0(res_folder, "/objects/xchr9_filt.rds"))
+if (file.exists(file.path(res_folder, "objects", "xchr9_filt.rds"))) {
+  xchr9_filt <- readRDS(file.path(res_folder, "objects", "xchr9_filt.rds"))
 } else {
   xchr9_filt <- filt_features(
     object = xchr9,
     sn_threshold = sn_threshold,
     beta_cor_threshold = beta_cor_threshold,
-    beta_snr_threshold = beta_snr_threshold,
-    filt_vector = all_sig_diff
+    beta_snr_threshold = beta_snr_threshold
   )
   saveRDS(
     object = xchr9_filt,
@@ -1581,8 +1580,7 @@ if (biot_mass_len != nrow(biot_final)) {
   message("The transformation prediction dataframes are the same length.")
 }
 
-# because haven't rerun it yet
-def_tib <- xchr9_filt$filt.features.tib # xchr9_filt$filt_features_tib
+def_tib <- sort(unique(xchr9_filt$feature))
 
 # biot_final = mass to mzs - > match the m/zs to the m/zs in the data
 predicted_feats <- biot_final %>%
@@ -1620,14 +1618,73 @@ if (file.exists(file.path(res_folder, "objects", "pred_chrs.rds"))) {
 }
 
 # ==============================================================================
+# Molecular similarity m/z matching --------------------------------------------
+# ==============================================================================
+anno_filt <- anno %>%
+  # TODO
+  # DO A more intelligent filtering than this based on
+  # how much information is available in all the rows
+  dplyr::group_by(adduct) %>% # Think this might have fixed the loss of same
+  dplyr::distinct(target_inchikey, .keep_all = TRUE)
+
+smiles <- anno_filt$target_smiles
+names(smiles) <- anno_filt$feature
+
+sims <- mol_similarity(
+  query_smiles = opt$smiles,
+  target_smiles = smiles,
+  kekulise = TRUE, # parsing incorrect smiles with electrons
+  omit_nulls = TRUE,
+  fingerprint = "circular",
+  circular_type = "ECFP6",
+  method = "tanimoto"
+) %>%
+  dplyr::left_join(
+    x = .,
+    y = anno,
+    by = "feature"
+  ) %>%
+  # TODO
+  # Arbitrary for now
+  dplyr::filter(sim > 0.1)
+
+# Get names for individual inchikey
+inchi_ks_split <- split(
+  sims$target_inchikey,
+  ceiling(seq_along(sims$target_inchikey) / 500)
+)
+inchi_ks <- lapply(
+  X = inchi_ks_split,
+  FUN = function(x) {
+    paste0(x, collapse = ",")
+  }
+)
+
+full_inchikey_map <- tibble::tibble()
+for (i in seq_along(inchi_ks)) {
+  cmd <- paste0(
+    "curl -s -d \"inchikey=", inchi_ks[[i]], "\" ",
+    "\"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchikey/property/",
+    "Title,MolecularFormula,InChIKey,ExactMass,XLogP,TPSA/",
+    "CSV\""
+  )
+  results <- system(cmd, intern = TRUE)
+  inchikey_map <- readr::read_csv(file = paste0(results, collapse = "\n"))
+  full_inchikey_map <- dplyr::bind_rows(full_inchikey_map, inchikey_map)
+}
+
+sims2 <- sims %>%
+  dplyr::left_join(
+    x = .,
+    y = full_inchikey_map,
+    by = c("target_inchikey" = "InChIKey")
+  )
+
+
+
+# ==============================================================================
 # Plotting features ------------------------------------------------------------
 # ==============================================================================
-xchr9_filt$final.plotting.features <- unique(
-  c(
-    glycoside_pairs,
-    xchr9_filt$final.plotting.features
-  )
-)
 
 message("Producing feature chromatograms...")
 if (check_saved("feature_chrs.rds")) {
@@ -1641,6 +1698,7 @@ if (check_saved("feature_chrs.rds")) {
     expandMz = 0,
     aggregationFun = "sum",
     filled = TRUE,
+    # TODO Fix
     features = xchr9_filt$final.plotting.features,
     missing = 0,
     return.type = "XChromatograms"
@@ -1679,7 +1737,7 @@ message("Writing all gap filled peaks to plots...")
 # )
 
 message("Writing feature chromatograms and intensity boxplots...")
-# feats_to_plot <- xchr9_filt$filt_sig_features
+# feats_to_plot <- sort(unique(all_sig_diff))
 # for (i in feats_to_plot) {
 #   ft_p <- plot_feat_chrom_int(
 #     feature_chrom = feature_chrs,
@@ -1696,6 +1754,8 @@ message("Writing feature chromatograms and intensity boxplots...")
 # }
 
 message("Plotting feature pairs in filtered biotransformations...")
+# TODO
+# FIX this
 # for (i in seq_len(nrow(xchr9_filt$biot_filt_sig_features_tib))) {
 #   ft_pair_p <- plot_feature_pairs(
 #     feature_chrom = feature_chrs,
@@ -1759,3 +1819,43 @@ message("Producing significant intersecting feature boxplots...")
 #     feat_pairs = FALSE
 #   )
 # }
+
+message("Plotting annotated features with chem sim")
+sims2 %>%
+  # TODO
+  # arbitrary for now
+  dplyr::filter(sim > 0.3) %>%
+  dplyr::mutate(
+    Title = forcats::fct_reorder( # target_name
+      .f = Title, # target_name
+      .x = sim,
+      .fun = "mean",
+      .desc = TRUE
+    )
+  ) %>%
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = Title, # target_name
+      y = sim
+    )
+  ) +
+  # because there are duplicates - just choose the best one
+  ggplot2::geom_col(
+    # aes(fill = peak_id),
+    stat = "summary",
+    fun = "max",
+    color = "black",
+    position = ggplot2::position_dodge()
+  ) +
+  ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+  ggplot2::scale_y_continuous(
+    expand = ggplot2::expansion(c(0, 0)),
+    limits = c(0, 1)
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_blank(),
+    axis.title.y = ggplot2::element_text(angle = -90),
+    legend.title = ggplot2::element_blank()
+  ) +
+  ggplot2::labs(y = "Tanimoto similarity")

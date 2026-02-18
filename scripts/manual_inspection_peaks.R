@@ -5,6 +5,14 @@ hits <- subset_matched_diffs %>%
 
 hits_feats <- sort(unique(c(hits$feat1, hits$feat2)))
 
+hits %>%
+  dplyr::filter(
+    dplyr::if_all(
+      .cols = dplyr::all_of(c("feat1", "feat2")),
+      .fns = ~ .x %in% all_sig_diff
+    )
+  )
+
 if (!exists("hits_chrs")) {
   hits_chrs <- xcms::featureChromatograms(
     object = xchr9,
