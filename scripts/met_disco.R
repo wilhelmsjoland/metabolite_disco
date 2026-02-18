@@ -356,7 +356,7 @@ if (check_saved("xchr.rds")) {
 }
 
 # Use this for the beta-distribution parameters
-# xchr_data <- tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peak")
+xchr_data <- tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peak")
 
 # ==============================================================================
 # Inspect peaks
@@ -1580,13 +1580,13 @@ if (biot_mass_len != nrow(biot_final)) {
   message("The transformation prediction dataframes are the same length.")
 }
 
-def_tib <- sort(unique(xchr9_filt$feature))
+def_tib <- xchr9_filt
 
 # biot_final = mass to mzs - > match the m/zs to the m/zs in the data
 predicted_feats <- biot_final %>%
   dplyr::inner_join(
     x = .,
-    y = def_tib %>% # xchr9.defs
+    y = def_tib %>%
       dplyr::mutate(
         tol = MsCoreUtils::ppm(mzmed, ppm_match),
         mz_lo = mzmed - tol,
@@ -1668,8 +1668,8 @@ anno_sims <- mol_similarity(
 
 # Get names for individual inchikey
 inchi_ks_split <- split(
-  sims$target_inchikey,
-  ceiling(seq_along(sims$target_inchikey) / 500)
+  anno_sims$target_inchikey,
+  ceiling(seq_along(anno_sims$target_inchikey) / 500)
 )
 inchi_ks <- lapply(
   X = inchi_ks_split,
@@ -1687,6 +1687,8 @@ for (i in seq_along(inchi_ks)) {
     "CSV\""
   )
   results <- system(cmd, intern = TRUE)
+  # TODO
+  # vroom warning here
   inchikey_map <- readr::read_csv(file = paste0(results, collapse = "\n"))
   full_inchikey_map <- dplyr::bind_rows(full_inchikey_map, inchikey_map)
 }

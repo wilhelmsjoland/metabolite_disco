@@ -135,13 +135,13 @@ option_list <- list(
   optparse::make_option(
     c("--beta_cor_threshold"),
     type = "double",
-    default = 0.3,
+    default = 0.8, # 0.3
     help = "Beta correlation threshold [default: %default]."
   ),
   optparse::make_option(
     c("--beta_snr_threshold"),
     type = "double",
-    default = 6,
+    default = 3, # 6
     help = "Beta snr threshold [default: %default]."
   )
 )
