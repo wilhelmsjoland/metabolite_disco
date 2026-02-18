@@ -1687,9 +1687,7 @@ for (i in seq_along(inchi_ks)) {
     "CSV\""
   )
   results <- system(cmd, intern = TRUE)
-  # TODO
-  # vroom warning here
-  inchikey_map <- readr::read_csv(file = paste0(results, collapse = "\n"))
+  inchikey_map <- readr::read_csv(file = I(results))
   full_inchikey_map <- dplyr::bind_rows(full_inchikey_map, inchikey_map)
 }
 
@@ -1754,7 +1752,8 @@ if (check_saved("feature_chrs.rds")) {
     expandMz = 0,
     aggregationFun = "sum",
     filled = TRUE,
-    # TODO Fix
+    # TODO 
+    # Fix by filtering
     features = xchr9_filt$final.plotting.features,
     missing = 0,
     return.type = "XChromatograms"
