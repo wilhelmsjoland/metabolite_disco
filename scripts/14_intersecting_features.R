@@ -1,0 +1,41 @@
+# ==============================================================================
+# Find intersecting features ---------------------------------------------------
+# ==============================================================================
+message(
+  "===========================================================================",
+  "\n",
+  "Finding intersecting features ---------------------------------------------",
+  "\n",
+  "==========================================================================="
+)
+
+# Create all comparisons
+combinations <- unlist(
+  lapply(
+    X = seq_along(comparisons),
+    FUN = function(x) combn(comparisons, x, simplify = FALSE)
+  ),
+  recursive = FALSE
+)
+
+upset_comps <- list()
+for (i in seq_along(combinations)) {
+  tmp_intersect_feats <- find_intersect_feat(
+    data = upset_tib,
+    set = combinations[[i]],
+    full_set = comparisons
+  )
+
+  upset_comps[[
+    stringr::str_flatten(combinations[[i]], collapse = "*")
+  ]] <- tmp_intersect_feats$feature
+}
+
+# Only temporary
+upset_comp <- upset_comps[[
+  paste0(
+    "bu_mutant_apiin-bu_wt_apiin*bu_mutant_control",
+    "-",
+    "bu_wt_apiin*bu_wt_apiin-bu_wt_control"
+  )
+]]

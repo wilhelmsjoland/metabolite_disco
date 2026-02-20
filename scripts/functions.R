@@ -1150,3 +1150,25 @@ filt_features <- function(
   return(filt_features_tib)
 
 }
+
+start_pipeline_msg <- function() {
+  block_rule(col = col_white)
+  cli::cli_rule(center = "Metabolite Disco")
+  block_rule(col = col_white)
+  cli::cli_text("")
+  cli::cli_text("Creator: {.emph Wilhelm Sjöland}")
+  cli::cli_text("Email: {.email wilhelm.sjoland@wlab.gu.se}")
+  cli::cli_text("Version: {.val {0.1}}")
+  # cli_li("A URL: {.url https://acme.com}")
+}
+
+block_rule <- function(col = col_white) {
+  rule <- paste(
+    rep(
+      cli::symbol$full_block,
+      cli::console_width()
+    ),
+    collapse = ""
+  )
+  cli_text("{col(rule)}")
+}

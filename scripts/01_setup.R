@@ -4,11 +4,13 @@
 library(this.path)
 library(cli)
 
+# ==============================================================================
+# Information on pipeline ------------------------------------------------------
+# ==============================================================================
+options(cli.unicode = TRUE)
+start_pipeline_msg()
 cli::cli_h1(basename(this.path::this.path()))
 
-# ==============================================================================
-# TODO Add optparse specifications here -> Make it a func
-# ==============================================================================
 
 cli::cli_alert_info("Sourcing dependendencies")
 source("scripts/functions.R")
