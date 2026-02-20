@@ -16,6 +16,12 @@ source("scripts/03_internal_standard.R")
 
 # TODO
 # Anything under has not been formatted or fixed yet.
+# TODO
+# Potentially fix so that parameters can be chosen as well
+# TODO
+# Extract some peaks during peka inspection and check quality of peak picking
+# TODO
+# potentially remove or move the inspecting of called peaks?
 source("scripts/04_peak_calling.R")
 source("scripts/05_alignment.R")
 source("scripts/06_correspondence.R")

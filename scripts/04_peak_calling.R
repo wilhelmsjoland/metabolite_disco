@@ -1,22 +1,9 @@
+cli::cli_h1(basename(this.path::this.path()))
+
 # ==============================================================================
 # Call peaks on whole dataset with parameters
 # ==============================================================================
-message(
-  "===========================================================================",
-  "\n",
-  "Calling peaks -------------------------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
-
-message(
-  "===========================================================================",
-  "\nPeak widths used for peak picking: ",
-  "\n\t Minimal width: ", round(min_peak_width, 3),
-  "\n\t Maximal width: ", round(max_peak_width, 3), "\n",
-  "===========================================================================",
-  sep = ""
-)
+cli::cli_h3("Calling peaks: ")
 
 if (check_saved("xchr.rds")) {
   xchr <- readRDS(file = paste0(opt$output, "/objects/xchr.rds"))
@@ -47,21 +34,16 @@ if (check_saved("xchr.rds")) {
   saveRDS(object = xchr, file = paste0(opt$output, "/objects/xchr.rds"))
 }
 
-# Use this for the beta-distribution parameters
-xchr_data <- tibble::as_tibble(xcms::chromPeaks(xchr), rownames = "peak")
+# ==============================================================================
+# Print peak calling params used to console ------------------------------------
+# ==============================================================================
+xchr_params <- xchr@processHistory[[1]]@param
+peak_calling_param_msg()
 
 # ==============================================================================
-# Inspect peaks
-# TODO
-# Extract some peaks here and check quality of peak picking
+# Inspect peaks ----------------------------------------------------------------
 # ==============================================================================
-message(
-  "===========================================================================",
-  "\n",
-  "Inspecting called peaks ---------------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
+cli::cli_h3("Inspecting called peaks")
 
 # peaks_to_inspect <- as_tibble(chromPeaks(xchr[1:2]), rownames = "peak") %>%
 #     tidyr::drop_na(beta_snr) %>%
