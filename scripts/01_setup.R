@@ -87,12 +87,13 @@ dir.create(file.path("annotation_databases"), FALSE, TRUE)
 # ==============================================================================
 
 meta <- import_mzml(opt$data_path, opt$meta_file)
+ms_exp_path <- file.path(opt$output, "objects", "ms_exp.rds")
 if (check_saved("ms_exp.rds")) {
-  ms_exp <- readRDS(file = file.path(opt$output, "objects/ms_exp.rds"))
+  ms_exp <- readRDS(file = ms_exp_path)
   cli::cli_alert_success(
     paste0(
       "Read saved .mzml files and metadata from ",
-      "{.path {file.path(opt$output, 'objects/ms_exp.rds')}}"
+      "{.path {ms_exp_path}}"
     )
   )
 } else {
@@ -101,11 +102,11 @@ if (check_saved("ms_exp.rds")) {
     spectraFiles = meta$path,
     sampleData = meta
   )
-  saveRDS(object = ms_exp, file = file.path(opt$output, "objects/ms_exp.rds"))
+  saveRDS(object = ms_exp, file = ms_exp_path)
   cli::cli_alert_success(
     paste0(
       "Saved ms experiment to ",
-      "{.path {file.path(opt$output, 'objects/ms_exp.rds')}}"
+      "{.path {ms_exp_path}}"
     )
   )
 }

@@ -2,27 +2,29 @@ cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
 # Create and plot base peak chromatograms --------------------------------------
 # ==============================================================================
-if (check_saved("bpcs.rds")) {
-  bpcs <- readRDS(file = file.path(opt$output, "objects/bpcs.rds"))
+bpc_path <- file.path(opt$output, "objects", "bpcs.rds")
+if (file.exists(bpc_path)) {
+  bpcs <- readRDS(file = bpc_path)
   cli::cli_alert_success(
     paste0(
       "Imported saved base peak chromatograms from",
-      " {.path {file.path(opt$output, 'objects/bpcs.rds')}}"
+      " {.path {bpc_path}}"
     )
   )
 } else {
   cli::cli_alert_info("Creating base peak chromatograms")
   bpcs <- xcms::chromatogram(ms_exp, aggregationFun = "max")
-  saveRDS(object = bpcs, file = file.path(opt$output, "objects/bpcs.rds"))
+  saveRDS(object = bpcs, file = bpc_path)
   cli::cli_alert_success(
     paste0(
       "Saved base peak chromatograms to ",
-      "{.path {file.path(opt$output, 'objects/bpcs.rds')}}"
+      "{.path {bpc_path}}"
     )
   )
 }
 
-pdf(file.path(opt$output, "graphs/bpc/raw_bpc.pdf"))
+raw_bpc_p_path <- file.path(opt$output, "graphs", "bpc", "raw_bpc.pdf")
+pdf(raw_bpc_p_path)
 par(mar = c(4, 4, 3, 2))
 plot(
   x = bpcs,
@@ -33,7 +35,7 @@ invisible(dev.off())
 cli::cli_alert_success(
   paste0(
     "Saved base peak chromatogram plot to ",
-    "{.path {file.path(opt$output, 'graphs/bpc/raw_bpc.pdf')}}"
+    "{.path {raw_bpc_p_path}}"
   )
 )
 
@@ -51,25 +53,23 @@ cormat <- cor(
   ),
   use = "complete.obs" # Because NAs
 )
-
 cormat_rownames <- basename(Biobase::pData(xcms::phenoData(bpcs))$path)
 colnames(cormat) <- rownames(cormat) <- cormat_rownames
-
 # Define which phenodata columns should be highlighted in the plot
 ann <- data.frame(group = bpcs_bin$group)
 rownames(ann) <- cormat_rownames
-
 # Perform the cluster analysis
-cormat_p <- pheatmap::pheatmap(
+raw_bpc_hmp <- pheatmap::pheatmap(
   cormat,
   annotation = ann,
   annotation_color = list(group = group_colors),
   silent = TRUE
 )
 
+raw_bpc_hmp_path <- file.path(opt$output, "graphs", "bpc", "raw_bpc_hmp.pdf")
 ggplot2::ggsave(
-  filename = paste0(opt$output, "/graphs/bpc/raw_bpc_hmp.pdf"),
-  plot = cormat_p,
+  filename = raw_bpc_hmp_path,
+  plot = raw_bpc_hmp,
   device = "pdf",
   height = 10,
   width = 10,
@@ -78,6 +78,6 @@ ggplot2::ggsave(
 cli::cli_alert_success(
   paste0(
     "Saved base peak intensities heatmap to ",
-    "{.path {file.path(opt$output, '/graphs/bpc/raw_bpc_hmp.pdf')}}"
+    "{.path {raw_bpc_hmp_path}}"
   )
 )
