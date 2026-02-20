@@ -2,13 +2,19 @@ option_list <- list(
   optparse::make_option(
     c("--wd"),
     type = "character",
-    default = "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/03_psm",
+    default = paste0(
+      "C:/Users/wilhelm/Documents/MEGA/",
+      "01_juniper/01_arbete/01_projekt/03_psm"
+    ),
     help = "Working directory [default: %default]"
   ),
   optparse::make_option(
     c("--biot_dir"),
     type = "character",
-    default = "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/03_psm/biotransformer3.0jar",
+    default = paste0(
+      "C:/Users/wilhelm/Documents/MEGA/", 
+      "01_juniper/01_arbete/01_projekt/03_psm/biotransformer3.0jar"
+    ),
     help = "Biotransformer directory [default: %default]"
   ),
   optparse::make_option(
@@ -33,7 +39,7 @@ option_list <- list(
     c("-b", "--biotransf_file"),
     type = "character",
     default = "biotransformations.csv",
-    help = "Biotransformations file (relative to data_path or absolute) [default: %default]"
+    help = "Biotransformations.csv file path [default: %default]"
   ),
   optparse::make_option(
     c("-o", "--output"),
@@ -66,16 +72,10 @@ option_list <- list(
     help = "Chemical formula of the aglycone [default: %default]"
   ),
   optparse::make_option(
-    c("--glycoside_ppm"),
-    type = "double",
-    default = 2000,
-    help = "ppm tolerance for glycoside/aglycone search [default: %default]"
-  ),
-  optparse::make_option(
-    c("-a", "--adduct"),
+    c("-a", "--is_adduct"),
     type = "character",
     "default" = "[M-H]-",
-    help = "Chemical formula of the internal standard [default: %default]"
+    help = "Adduct of the internal standard [default: %default]"
   ),
   optparse::make_option(
     c("--ppm_global"),
@@ -83,7 +83,7 @@ option_list <- list(
     default = 15,
     help = "Global ppm tolerance [default: %default]"
   ),
-    optparse::make_option(
+  optparse::make_option(
     c("--ppm_match"),
     type = "double",
     default = 10,
@@ -151,29 +151,27 @@ opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
 # ---- deterministic working dir ----
 setwd(opt$wd)
 set.seed(opt$seed)
+register_parallel(opt$cores)
 
 # ---- map options to variable names ----
 
-data_path <- opt$data_path
-biotransformer_path <- opt$biot_dir
-meta_file <- opt$meta_file
-biotransf_file <- opt$biotransf_file
-res_folder <- opt$output
-internal_standard <- opt$internal_standard
-glycoside_form <- opt$glycoside
-aglycone_form <- opt$aglycone
-glycoside_ppm <- opt$glycoside_ppm
-adduct <- opt$adduct
-polarity <- opt$polarity
-ppm_global <- opt$ppm_global
-ppm_match <- opt$ppm_match
-bw_first_grouping <- opt$bw_first_grouping
-bw_second_grouping <- opt$bw_second_grouping
-workers <- opt$cores
-missing_threshold <- opt$missingness
-p_value_global <- opt$qvalue
-sn_threshold <- opt$sn_threshold
-beta_cor_threshold <- opt$beta_cor_threshold
-beta_snr_threshold <- opt$beta_snr_threshold
-
-register_parallel(workers)
+# data_path <- opt$data_path
+# biotransformer_path <- opt$biot_dir
+# meta_file <- opt$meta_file
+# biotransf_file <- opt$biotransf_file
+# res_folder <- opt$output
+# internal_standard <- opt$internal_standard
+# glycoside_form <- opt$glycoside
+# aglycone_form <- opt$aglycone
+# REMOVE adduct <- opt$is_adduct
+# polarity <- opt$polarity
+# ppm_global <- opt$ppm_global
+# ppm_match <- opt$ppm_match
+# bw_first_grouping <- opt$bw_first_grouping
+# bw_second_grouping <- opt$bw_second_grouping
+# workers <- opt$cores
+# missing_threshold <- opt$missingness
+# p_value_global <- opt$qvalue
+# sn_threshold <- opt$sn_threshold
+# beta_cor_threshold <- opt$beta_cor_threshold
+# beta_snr_threshold <- opt$beta_snr_threshold

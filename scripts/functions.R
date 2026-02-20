@@ -268,6 +268,8 @@ get_rt_mz_range <- function(
 
 # TODO
 # Add colors to the plotting as well
+# Is this one even important as it is?
+# the saving location is hardcoded right now
 inspect_peak <- function(
   chromatogram = NULL,
   peak_data = NULL,
@@ -291,7 +293,7 @@ inspect_peak <- function(
       ) %>%
       Spectra::filterRt(
         c(
-          peak_data[pk_chk, ]$rtmin, 
+          peak_data[pk_chk, ]$rtmin,
           peak_data[pk_chk, ]$rtmax
         )
       ) %>%
@@ -313,7 +315,7 @@ inspect_peak <- function(
       xcms::chromatogram(aggregationFun = "sum")
   }
   if (save_graph == TRUE) {
-    pdf(paste0(res_folder, "/graphs/quality_control/", pk_chk, ".pdf"))
+    pdf(paste0(opt$output, "/graphs/quality_control/", pk_chk, ".pdf"))
     plot(
       x = test_peak,
       main = paste0(
@@ -396,7 +398,7 @@ inspect_peak_intensity <- function(
     )
 
   file_nm <- paste0(
-    res_folder,
+    opt$output,
     "/graphs/per_sample_peaks/",
     deparse(substitute(xchr)),
     "_detected_peaks.pdf"
@@ -452,7 +454,7 @@ plot_chrom_intensity <- function(
     file_name <- paste0(round(min_mz, 3), "-", round(max_mz, 3))
 
     pdf(
-      file = paste0(res_folder, save_loc, file_name, ".pdf"),
+      file = paste0(opt$output, save_loc, file_name, ".pdf"),
       width = 12,
       height = 10,
     )
@@ -527,7 +529,7 @@ plot_feat_chrom_int <- function(
     p1 <- function() {
       par(mar = c(5.1, 4.1, 4.1, 8.6))
       plot(
-        lone_feat, 
+        lone_feat,
         peakType = "polygon",
         peakCol = group_colors[base_group_colors],
         peakBg = NA,
@@ -651,7 +653,7 @@ plot_feat_chrom_int <- function(
     rel_heights = c(1.5, 1)
   )
 
-  file_nm <- paste0(res_folder, save_loc, feature, ".", device)
+  file_nm <- paste0(opt$output, save_loc, feature, ".", device)
 
   if (!is.null(save_loc)) {
     ggplot2::ggsave(
@@ -738,7 +740,7 @@ plot_feature_pairs <- function(
     )
 
   file_nm <- paste0(
-    res_folder, save_pairs_loc,
+    opt$output, save_pairs_loc,
     ft_pair[1], "_", ft_pair[2], ".", device
   )
 
@@ -762,7 +764,7 @@ feat_to_idx <- function(feature_idx = NULL) {
 }
 
 check_saved <- function(filename = NULL) {
-  object_bool <- file.exists(file.path(res_folder, "objects", filename))
+  object_bool <- file.exists(file.path(opt$output, "objects", filename))
   return(object_bool)
 }
 
@@ -770,12 +772,12 @@ register_parallel <- function(workers = NULL) {
   sys <- Sys.info()["sysname"]
   if (sys == "Windows") {
     bp <<- BiocParallel::SnowParam(
-      workers = workers,
+      workers = opt$cores,
       type = "SOCK"
     )
   } else if (sys %in% c("Linux", "Darwin")) {
     bp <<- BiocParallel::MulticoreParam(
-      workers = workers
+      workers = opt$cores
     )
   }
 
@@ -909,13 +911,13 @@ plot_pca <- function(
     ggplot2::scale_color_manual(values = group_colors) +
     ggplot2::labs(
       x = sprintf(
-        "%s (%.2f%%)", 
-        deparse(substitute(x)), 
+        "%s (%.2f%%)",
+        deparse(substitute(x)),
         var_expl[[deparse(substitute(x))]]
       ),
       y = sprintf(
-        "%s (%.2f%%)", 
-        deparse(substitute(y)), 
+        "%s (%.2f%%)",
+        deparse(substitute(y)),
         var_expl[[deparse(substitute(y))]]
       )
     ) +
@@ -932,7 +934,7 @@ pred_biot <- function(
   tolerance = NULL,
   features_of_interest = NULL,
   parallel = TRUE,
-  n_workers = workers # max(1, parallel::detectCores() - 1)
+  n_workers = opt$cores # max(1, parallel::detectCores() - 1)
 ) {
   if (is.null(tolerance) & is.null(tolerance_ppm)) {
     stop("Both tolerance and tolerance_ppm are NULL")
@@ -1113,8 +1115,8 @@ pred_biot <- function(
 
 filt_features <- function(
   object = NULL,
-  beta_cor_threshold = 0.3,
-  beta_snr_threshold = 6,
+  beta_cor_threshold = 0.8,
+  beta_snr_threshold = 3,
   sn_threshold = 10
 ) {
   filt_chrompeaks_tib <- tibble::as_tibble(
