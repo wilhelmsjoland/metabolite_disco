@@ -3,6 +3,7 @@
 # Create output folders --------------------------------------------------------
 # Import metadata --------------------------------------------------------------
 # Set colors for groups --------------------------------------------------------
+# TODO Add optparse specifications here -> make it a func ----------------------
 # ==============================================================================
 source("scripts/01_setup.R")
 
@@ -15,159 +16,25 @@ source("scripts/02_bpc.R")
 # ==============================================================================
 # Inspect internal standard prior to peak-calling ------------------------------
 # Define the rt and m/z range of the peak area ---------------------------------
-# ==============================================================================
-
-message(
-  "===========================================================================",
-  "\n",
-  "Inspecting internal standard peaks prior to peak-calling ------------------",
-  "\n",
-  "==========================================================================="
-)
-mz_theory <- get_theory_mz(
-  chem_form = opt$internal_standard,
-  adduct = opt$is_adduct
-)
-mz_range <- get_short_mz_range(mz_theory, mz_window = 0.02)
-if (check_saved("is_chr.rds")) {
-  is_chr <- readRDS(file = paste0(opt$output, "/objects/is_chr.rds"))
-} else {
-  is_chr <- xcms::chromatogram(
-    object = ms_exp,
-    mz = mz_range,
-    aggregationFun = "sum"
-  )
-  saveRDS(object = is_chr, file = paste0(opt$output, "/objects/is_chr.rds"))
-}
-ranges <- get_rt_mz_range(chromatogram = is_chr, rt_window = 0.02)
-
-# Wide IS chromatogram
-pdf(paste0(opt$output, "/graphs/internal_standard/all_is_wide.pdf"))
-plot(x = is_chr, col = group_colors[is_chr$group], lwd = 3)
-legend("topright", legend = names(group_colors), col = group_colors, pch = 16)
-invisible(dev.off())
-
-# Get the IS XIC
-if (check_saved("is_eic.rds")) {
-  is_eic <- readRDS(file = paste0(opt$output, "/objects/is_eic.rds"))
-} else {
-  is_eic <- xcms::chromatogram(
-    object = ms_exp,
-    mz = ranges$mz_range,
-    rt = ranges$rt_range,
-    aggregationFun = "sum"
-  )
-  saveRDS(object = is_eic, file = paste0(opt$output, "/objects/is_eic.rds"))
-}
-
-# All IS XICs together
-pdf(paste0(opt$output, "/graphs/internal_standard/all_is.pdf"))
-plot(x = is_eic, col = group_colors[is_eic$group], lwd = 3)
-legend("topleft", legend = names(group_colors), col = group_colors, pch = 16)
-invisible(dev.off())
-
-# Individual IS XICs
-for (i in seq_along(is_eic)) {
-  pdf(
-    paste0(
-      opt$output,
-      "/graphs/internal_standard/",
-      colnames(bpcs)[i],
-      ".pdf"
-    )
-  )
-
-  plot(
-    x = is_eic[, i],
-    col = group_colors[
-      names(group_colors) %in% dplyr::filter(
-        meta,
-        rownames(meta) == colnames(bpcs)[i]
-      )$group
-    ],
-    lwd = 3,
-    main = colnames(bpcs)[i]
-  )
-  legend("topleft", legend = names(group_colors), col = group_colors, pch = 16)
-  invisible(dev.off())
-}
-
-# ==============================================================================
-# - Ensure IS peak is chosen
-# - Determine max and min peak width for CentWaveParam() from the IS.
+# ------------------------------------------------------------------------------
+# Ensure IS peak is chosen
+# Determine max and min peak width for CentWaveParam() from the IS.
 # TODO
 # do this for several peaks and not only the IS
+# Plotting wide IS chromatogram ------------------------------------------------
+
+# TODO
+# Isn't the last step of creating a new chromatogram unnecessary?
+# Can't I just use on of the chromatograms I used before?
+
+# IS
+# 1. full
+# 2. narrow
+# 3. wide
+# 4. call peaks on wide
+# 5. take peakwidths from wide
 # ==============================================================================
-message(
-  "Determining minimal and maximal peakwidth ",
-  "based on the internal standard..."
-)
-
-if (check_saved("is_eic_wide.rds")) {
-  is_eic_wide <- readRDS(file = paste0(opt$output, "/objects/is_eic_wide.rds"))
-} else {
-  is_eic_wide <- xcms::chromatogram(
-    ms_exp,
-    mz = mz_range + c(-0.05, 0.05),
-    rt = ranges$rt_range + c(-16, 16),
-    aggregationFun = "sum"
-  )
-  saveRDS(
-    object = is_eic_wide,
-    file = paste0(opt$output, "/objects/is_eic_wide.rds")
-  )
-}
-
-# Run peak detection on the EIC
-if (check_saved("is_chr2.rds")) {
-  is_chr2 <- readRDS(file = paste0(opt$output, "/objects/is_chr2.rds"))
-} else {
-  is_chr2 <- xcms::findChromPeaks(
-    object = is_eic_wide,
-    param = xcms::CentWaveParam(
-      ppm = opt$ppm_global,
-      peakwidth = c(2, 20),
-      prefilter = c(1, 1),
-      snthresh = opt$sn_threshold, # 10
-      mzCenterFun = "wMean",
-      mzdiff = 0.001,
-      integrate = 2,
-      noise = 1000,
-      verboseBetaColumns = TRUE
-    ),
-    ms_level = 1
-  )
-  saveRDS(object = is_chr2, file = paste0(opt$output, "/objects/is_chr2.rds"))
-}
-
-# Calculate peakwidth
-is_peaks <- tibble::as_tibble(
-  x = xcms::chromPeaks(is_chr2),
-  rownames = "rownames"
-) %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(delta_rt = rtmax - rtmin) %>%
-  dplyr::ungroup()
-
-
-# Min: to half of some peaks in the datasets
-# Max: 2-4x times the average size
-is_min_peak_width <- min(is_peaks$delta_rt, na.rm = TRUE)
-is_max_peak_width <- max(is_peaks$delta_rt, na.rm = TRUE)
-min_peak_width <- quantile(is_peaks$delta_rt, 0.05, na.rm = TRUE) * 0.3 # 0.3
-max_peak_width <- quantile(is_peaks$delta_rt, 0.95, na.rm = TRUE) * 4 # 4
-
-message(
-  "===========================================================================",
-  "\nInternal standard: ", "C7H8O2", ", Theoretical m/z: ", round(mz_theory, 3),
-  "\n\tMinimal peak width of IS: ", round(is_min_peak_width, 3),
-  "\n\tMaximal peak width of IS: ", round(is_max_peak_width, 3),
-  "\nPeak widths used for peak picking: ",
-  "\n\t Minimal width: ", round(min_peak_width, 3),
-  "\n\t Maximal width: ", round(max_peak_width, 3), "\n",
-  "===========================================================================",
-  sep = ""
-)
+source("scripts/03_internal_standard.R")
 
 # ==============================================================================
 # Call peaks on whole dataset with parameters
@@ -178,6 +45,15 @@ message(
   "Calling peaks -------------------------------------------------------------",
   "\n",
   "==========================================================================="
+)
+
+message(
+  "===========================================================================",
+  "\nPeak widths used for peak picking: ",
+  "\n\t Minimal width: ", round(min_peak_width, 3),
+  "\n\t Maximal width: ", round(max_peak_width, 3), "\n",
+  "===========================================================================",
+  sep = ""
 )
 
 if (check_saved("xchr.rds")) {

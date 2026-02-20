@@ -5,8 +5,12 @@ library(this.path)
 library(cli)
 
 cli::cli_h1(basename(this.path::this.path()))
-cli::cli_alert_info("Sourcing dependendencies")
 
+# ==============================================================================
+# TODO Add optparse specifications here -> Make it a func
+# ==============================================================================
+
+cli::cli_alert_info("Sourcing dependendencies")
 source("scripts/functions.R")
 source("scripts/chem_functions.R")
 source("scripts/met_disco_args.R")
@@ -85,14 +89,13 @@ dir.create(file.path("annotation_databases"), FALSE, TRUE)
 # ==============================================================================
 # Import metadata --------------------------------------------------------------
 # ==============================================================================
-
 meta <- import_mzml(opt$data_path, opt$meta_file)
 ms_exp_path <- file.path(opt$output, "objects", "ms_exp.rds")
-if (check_saved("ms_exp.rds")) {
+if (file.exists(ms_exp_path)) {
   ms_exp <- readRDS(file = ms_exp_path)
   cli::cli_alert_success(
     paste0(
-      "Read saved .mzml files and metadata from ",
+      "Imported saved .mzml files and metadata object from ",
       "{.path {ms_exp_path}}"
     )
   )
