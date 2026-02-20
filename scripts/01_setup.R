@@ -1,17 +1,20 @@
+# ==============================================================================
+# Source dependendencies and load libraries ------------------------------------
+# ==============================================================================
+library(this.path)
+library(cli)
 
-message(
-  "===========================================================================",
-  "\n",
-  "Source dependendencies and load libraries ---------------------------------",
-  "\n",
-  "==========================================================================="
-)
+cli::cli_h1(basename(this.path::this.path()))
+cli::cli_alert_info("Sourcing dependendencies")
 
 source("scripts/functions.R")
 source("scripts/chem_functions.R")
 source("scripts/met_disco_args.R")
+
+cli::cli_alert_info("Loading libraries")
 suppressWarnings(
   suppressPackageStartupMessages({
+    library(cli)
     library(tidyverse)
     library(MSnbase)
     library(xcms)
@@ -45,14 +48,10 @@ suppressWarnings(
   })
 )
 
-message(
-  "===========================================================================",
-  "\n",
-  "Create output folders -----------------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
-
+# ==============================================================================
+# Create output folders --------------------------------------------------------
+# ==============================================================================
+cli::cli_alert_info("Creating output folders")
 folders <- c(
   "bpc",
   "internal_standard",
@@ -86,14 +85,39 @@ dir.create(file.path("annotation_databases"), FALSE, TRUE)
 # ==============================================================================
 # Import metadata --------------------------------------------------------------
 # ==============================================================================
-message("Importing metadata...")
+
 meta <- import_mzml(opt$data_path, opt$meta_file)
 if (check_saved("ms_exp.rds")) {
   ms_exp <- readRDS(file = file.path(opt$output, "objects/ms_exp.rds"))
+  cli::cli_alert_success(
+    paste0(
+      "Read saved .mzml files and metadata from ",
+      "{.path {file.path(opt$output, 'objects/ms_exp.rds')}}"
+    )
+  )
 } else {
+  cli::cli_alert_info("Importing .mzml files and metadata")
   ms_exp <- MsExperiment::readMsExperiment(
     spectraFiles = meta$path,
     sampleData = meta
   )
   saveRDS(object = ms_exp, file = file.path(opt$output, "objects/ms_exp.rds"))
+  cli::cli_alert_success(
+    paste0(
+      "Saved ms experiment to ",
+      "{.path {file.path(opt$output, 'objects/ms_exp.rds')}}"
+    )
+  )
 }
+
+# ==============================================================================
+# Set colors for groups --------------------------------------------------------
+# ==============================================================================
+cli::cli_alert_info("Setting colors for groups")
+groups_to_use <- unique(MsExperiment::sampleData(ms_exp)$group)
+group_colors <- paste0(
+  RColorBrewer::brewer.pal(
+    n = length(groups_to_use), "Set1"
+  )[seq_along(groups_to_use)]
+)
+group_colors <- setNames(group_colors, groups_to_use)

@@ -38,11 +38,17 @@ import_mzml <- function(
     !meta_matched$sample %in% basename(mzml_files)
   ]
   if (length(samp_lacking_file) > 0) {
-    stop(paste0("Samples in metadata lacking files:", "\n", samp_lacking_file))
+    cli::cli_abort(
+      c(
+        "i" = "Failed to load data",
+        "x" = "File(s) not found: {.path {samp_lacking_file}}"
+      )
+    )
   }
   non_used_files <- mzml_files[!mzml_files %in% meta_matched$path]
   if (length(non_used_files) > 0) {
-    warning("\nFiles in path not in metadata:", paste0("\n", non_used_files))
+    cli::cli_alert_warning("Files in path not in metadata:")
+    cli::cli_ul(non_used_files)
   }
 
   meta_matched_filt <- meta_matched %>%
