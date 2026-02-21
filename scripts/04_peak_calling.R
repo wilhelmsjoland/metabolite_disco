@@ -5,9 +5,18 @@ cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
 cli::cli_h3("Calling peaks: ")
 
-if (check_saved("xchr.rds")) {
-  xchr <- readRDS(file = paste0(opt$output, "/objects/xchr.rds"))
+xchr_path <- file.path(opt$output, "objects", "xchr.rds")
+
+if (file.exists(xchr_path)) {
+  xchr <- readRDS(file = xchr_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported saved peak calling object from: ",
+      "{.path {xchr_path}}"
+    )
+  )
 } else {
+  cli::cli_alert_info("Calling peaks")
   xchr <- xcms::findChromPeaks(
     object = ms_exp,
     BPPARAM = BiocParallel::bpparam(),
@@ -31,7 +40,13 @@ if (check_saved("xchr.rds")) {
       verboseBetaColumns = TRUE
     )
   )
-  saveRDS(object = xchr, file = paste0(opt$output, "/objects/xchr.rds"))
+  saveRDS(object = xchr, file = xchr_path)
+  cli::cli_alert_success(
+    paste0(
+      "Saved peak calling object to: ",
+      "{.path {xchr_path}}"
+    )
+  )
 }
 
 # ==============================================================================
@@ -42,6 +57,7 @@ xchr_params <- xchr@processHistory[[1]]@param
 # instead of peak_calling_param_msg()
 # peak_calling_param_msg()
 # but kind of confusing I'll admit
+cli::cli_alert_success("Called peaks with:")
 purrr::walk(
   .x = slotNames(xchr_params),
   .f = ~ cli::cli_bullets(
