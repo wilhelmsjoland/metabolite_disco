@@ -363,7 +363,7 @@ inspect_peak <- function(
       lwd = 3
     )
   }
-  
+
   dev.off()
   return(filt_chr)
 }

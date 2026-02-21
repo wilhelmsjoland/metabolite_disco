@@ -48,7 +48,7 @@ purrr::walk(
     c(
       "i" = paste0(
         .x, ": ",
-        paste( # needed to not repeat the name
+        paste( # needed to not repeat the names twice for > 1 vectors
           slot(xchr_params, .x),
           collapse = ", "
         )
@@ -72,14 +72,23 @@ peaks_to_inspect <- tibble::as_tibble(chromPeaks(xchr), rownames = "peak") %>%
 
 inspect_peak_p_path <- file.path(opt$output, "graphs", "quality_control")
 for (peak in peaks_to_inspect) {
-  inspect_peaks <- inspect_peak(
-    chrom_obj = xchr,
-    peak = peak,
-    save_loc = file.path(opt$output, "graphs", "quality_control")
-  )
-  cli::cli_alert_success(
-    "Saved peak plot: {.val {peak}} to {inspect_peak_p_path}"
-  )
+  if (!paste0(peak, ".pdf") %in% list.files(inspect_peak_p_path)) {
+    inspect_peaks <- inspect_peak(
+      chrom_obj = xchr,
+      peak = peak,
+      save_loc = file.path(opt$output, "graphs", "quality_control")
+    )
+    cli::cli_alert_success(
+      "Saved peak plot: {.val {peak}} to {inspect_peak_p_path}"
+    )
+  } else {
+    cli::cli_alert_info(
+      paste0(
+        "{.val {peak}} already saved to",
+        " {.path {paste0(inspect_peak_p_path, '/', {peak}, '.pdf')}}"
+      )
+    )
+  }
 }
 
 # ==============================================================================
