@@ -1,18 +1,21 @@
-# ==============================================================================
-# Alignment of retention times
-# ==============================================================================
-message(
-  "===========================================================================",
-  "\n",
-  "Aligning retention times---------------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
+cli::cli_h1(basename(this.path::this.path()))
 
-# TODO Change these to more broad so I don't get a million anchor peaks?
-if (check_saved("xchr5.rds")) {
-  xchr5 <- readRDS(paste0(opt$output, "/objects/xchr5.rds"))
+# ==============================================================================
+# Grouping of peak groups
+# ==============================================================================
+cli::cli_h3("Performing first peak grouping")
+
+xchr5_path <- file.path(opt$output, "objects", "xchr5.rds")
+if (file.exists(xchr5_path)) {
+  xchr5 <- readRDS(xchr5_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported saved peak grouping object from: ",
+      "{.path {xchr5_path}}"
+    )
+  )
 } else {
+  cli::cli_alert_info("First peak grouping")
   xchr5 <- xcms::groupChromPeaks(
     object = xchr, # xchr4
     param = xcms::PeakDensityParam(
@@ -25,9 +28,41 @@ if (check_saved("xchr5.rds")) {
       minSamples = 2 # 1
     )
   )
-  saveRDS(object = xchr5, file = paste0(opt$output, "/objects/xchr5.rds"))
+  saveRDS(object = xchr5, file = xchr5_path)
+  cli::cli_alert_success(
+    paste0(
+      "Saved peak grouping object to: ",
+      "{.path {xchr5_path}}"
+    )
+  )
 }
 
+# ==============================================================================
+# Print first peak grouping params used to console -----------------------------
+# ==============================================================================
+xchr5_params <- xchr5@processHistory[[2]]@param
+
+cli::cli_alert_success("First peak grouping performed with:")
+purrr::walk(
+  .x = slotNames(xchr5_params),
+  .f = ~ cli::cli_bullets(
+    c(
+      "i" = paste0(
+        .x, ": ",
+        paste( # needed to not repeat the names twice for > 1 vectors
+          slot(xchr5_params, .x),
+          collapse = ", "
+        )
+      )
+    )
+  )
+)
+# TODO
+# FROM HERE ====================================================================
+
+# ==============================================================================
+# Alignment of retention times
+# ==============================================================================
 # TODO Use this part to check if anchor peaks cover the whole RT
 # Get the anchor peaks that would be selected
 pgm <- xcms::adjustRtimePeakGroups(
@@ -45,6 +80,7 @@ min_rt_time <- min(chrom_peaks5[, "rtmin"], na.rm = TRUE)
 # quantile(pgm[, 1], na.rm = TRUE) # Remove na.rm = TRUE?
 # End of checking for anchor peak rt distribution
 
+cli::cli_h3("Aligning retention times")
 # Alignment
 if (check_saved("xchr6.rds")) {
   xchr6 <- readRDS(paste0(opt$output, "/objects/xchr6.rds"))

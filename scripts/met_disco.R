@@ -16,6 +16,9 @@ source("scripts/04_peak_calling.R")
 # Anything under has not been formatted or fixed yet.
 # TODO
 # Potentially fix so that parameters can be chosen as well
+# TODO
+# Change the first peak grouping to more broad
+# so I don't get a million anchor peaks?
 source("scripts/05_alignment.R")
 source("scripts/06_correspondence.R")
 source("scripts/07_gap_filling.R")

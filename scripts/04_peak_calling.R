@@ -92,7 +92,7 @@ for (peak in peaks_to_inspect) {
     inspect_peaks <- inspect_peak(
       chrom_obj = xchr,
       peak = peak,
-      save_loc = file.path(opt$output, "graphs", "quality_control")
+      save_loc = inspect_peak_p_path
     )
     cli::cli_alert_success(
       "Saved peak plot: {.val {peak}} to {inspect_peak_p_path}"
