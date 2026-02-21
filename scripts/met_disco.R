@@ -19,6 +19,9 @@ source("scripts/04_peak_calling.R")
 # TODO
 # Change the first peak grouping to more broad
 # so I don't get a million anchor peaks?
+# TODO
+# Could add these as names for the list
+# xchr5@processHistory[[2]]@type
 source("scripts/05_alignment.R")
 source("scripts/06_correspondence.R")
 source("scripts/07_gap_filling.R")

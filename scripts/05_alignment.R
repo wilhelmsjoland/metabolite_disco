@@ -41,25 +41,11 @@ if (file.exists(xchr5_path)) {
 # Print first peak grouping params used to console -----------------------------
 # ==============================================================================
 xchr5_params <- xchr5@processHistory[[2]]@param
-
 cli::cli_alert_success("First peak grouping performed with:")
-purrr::walk(
-  .x = slotNames(xchr5_params),
-  .f = ~ cli::cli_bullets(
-    c(
-      "i" = paste0(
-        .x, ": ",
-        paste( # needed to not repeat the names twice for > 1 vectors
-          slot(xchr5_params, .x),
-          collapse = ", "
-        )
-      )
-    )
-  )
-)
+param_msg(xchr5_params)
+
 # TODO
 # FROM HERE ====================================================================
-
 # ==============================================================================
 # Alignment of retention times
 # ==============================================================================

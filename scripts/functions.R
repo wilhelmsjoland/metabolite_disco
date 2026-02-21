@@ -1217,3 +1217,21 @@ peak_calling_param_msg <- function() {
     )
   )
 }
+
+# kind of confusing I'll admit
+param_msg <- function(process_history = NULL) {
+  purrr::walk(
+    .x = slotNames(process_history),
+    .f = ~ cli::cli_bullets(
+      c(
+        "i" = paste0(
+          .x, ": ",
+          paste( # needed to not repeat the names twice for > 1 vectors
+            slot(process_history, .x),
+            collapse = ", "
+          )
+        )
+      )
+    )
+  )
+}

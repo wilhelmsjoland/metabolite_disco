@@ -53,25 +53,8 @@ if (file.exists(xchr_path)) {
 # Print peak calling params used to console ------------------------------------
 # ==============================================================================
 xchr_params <- xchr@processHistory[[1]]@param
-
-# instead of peak_calling_param_msg()
-# peak_calling_param_msg()
-# but kind of confusing I'll admit
 cli::cli_alert_success("Called peaks with:")
-purrr::walk(
-  .x = slotNames(xchr_params),
-  .f = ~ cli::cli_bullets(
-    c(
-      "i" = paste0(
-        .x, ": ",
-        paste( # needed to not repeat the names twice for > 1 vectors
-          slot(xchr_params, .x),
-          collapse = ", "
-        )
-      )
-    )
-  )
-)
+param_msg(xchr_params)
 
 # ==============================================================================
 # Inspect peaks ----------------------------------------------------------------
