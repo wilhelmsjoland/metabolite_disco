@@ -16,7 +16,7 @@ if (check_saved("xchr.rds")) {
     param = xcms::CentWaveParam(
       ppm = opt$ppm_global,
       peakwidth = c(min_peak_width, max_peak_width),
-      snthresh = opt$sn_threshold, # 10
+      snthresh = opt$sn_threshold,
       prefilter = c(4, 1000), # k pks (left) over intens (right) # c(3, 100)
       mzCenterFun = "wMean",
       integrate = 2,
@@ -38,35 +38,60 @@ if (check_saved("xchr.rds")) {
 # Print peak calling params used to console ------------------------------------
 # ==============================================================================
 xchr_params <- xchr@processHistory[[1]]@param
-peak_calling_param_msg()
+
+# instead of peak_calling_param_msg()
+# peak_calling_param_msg()
+# but kind of confusing I'll admit
+purrr::walk(
+  .x = slotNames(xchr_params),
+  .f = ~ cli::cli_bullets(
+    c(
+      "i" = paste0(
+        .x, ": ",
+        paste( # needed to not repeat the name
+          slot(xchr_params, .x),
+          collapse = ", "
+        )
+      )
+    )
+  )
+)
 
 # ==============================================================================
 # Inspect peaks ----------------------------------------------------------------
 # ==============================================================================
-cli::cli_h3("Inspecting called peaks")
+cli::cli_h3("Inspecting peaks with the largest area for each sample")
+peaks_to_inspect <- tibble::as_tibble(chromPeaks(xchr), rownames = "peak") %>%
+  tidyr::drop_na(beta_cor, beta_snr) %>%
+  dplyr::filter(beta_cor >= opt$beta_cor_threshold) %>%
+  dplyr::filter(beta_cor >= opt$beta_cor_threshold) %>%
+  dplyr::arrange(desc(into)) %>%
+  # Keeps the top peak for every sample
+  dplyr::distinct(sample, .keep_all = TRUE) %>%
+  dplyr::pull(peak)
 
-# peaks_to_inspect <- as_tibble(chromPeaks(xchr[1:2]), rownames = "peak") %>%
-#     tidyr::drop_na(beta_snr) %>%
-#     dplyr::arrange(desc(into)) %>%
-#     dplyr::slice(1:10) %>%
-#     dplyr::pull(peak) %>%
-#     stringr::str_remove_all(., "[A-Za-z]") %>%
-#     as.numeric(.)
-#
-# for (peak in peaks_to_inspect) {
-#     inspect_peaks <- inspect_peak(
-#         chromatogram = xchr[1:2],
-#         peak_data = as_tibble(chromPeaks(xchr[1:2]), rownames = "peak"),
-#         peak_idx = peak,
-#         sample_no = FALSE,
-#         save_graph = TRUE
-#     )
-# }
+inspect_peak_p_path <- file.path(opt$output, "graphs", "quality_control")
+for (peak in peaks_to_inspect) {
+  inspect_peaks <- inspect_peak(
+    chrom_obj = xchr,
+    peak = peak,
+    save_loc = file.path(opt$output, "graphs", "quality_control")
+  )
+  cli::cli_alert_success(
+    "Saved peak plot: {.val {peak}} to {inspect_peak_p_path}"
+  )
+}
 
-
-# Poor peaks: beta_cor < 0.5 (or even < 0.2
-# Good peaks: beta_snr > 7
-# Keep signal to noise at 10, and filter by beta_cor < 0.5, and beta_snr > 7?
-
+# ==============================================================================
+# Plotting per-sample peak counts ----------------------------------------------
+# ==============================================================================
 # These are the per-sample peak counts
-inspect_peak_intensity(chr_data = xchr, value = into, save_graph = TRUE)
+exp_inten_p_path <- file.path(opt$output, "graphs", "quality_control")
+exp_inten_p <- plot_experiment_intensities(
+  chrom_obj = xchr,
+  value = into,
+  save_loc = exp_inten_p_path
+)
+cli::cli_alert_success(
+  "Saved per-sample peak counts to {.path {exp_inten_p_path}}"
+)

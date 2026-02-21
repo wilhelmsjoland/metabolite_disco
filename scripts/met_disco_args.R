@@ -148,30 +148,6 @@ option_list <- list(
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
 
-# ---- deterministic working dir ----
 setwd(opt$wd)
 set.seed(opt$seed)
 register_parallel(opt$cores)
-
-# ---- map options to variable names ----
-
-# data_path <- opt$data_path
-# biotransformer_path <- opt$biot_dir
-# meta_file <- opt$meta_file
-# biotransf_file <- opt$biotransf_file
-# res_folder <- opt$output
-# internal_standard <- opt$internal_standard
-# glycoside_form <- opt$glycoside
-# aglycone_form <- opt$aglycone
-# REMOVE adduct <- opt$is_adduct
-# polarity <- opt$polarity
-# ppm_global <- opt$ppm_global
-# ppm_match <- opt$ppm_match
-# bw_first_grouping <- opt$bw_first_grouping
-# bw_second_grouping <- opt$bw_second_grouping
-# workers <- opt$cores
-# missing_threshold <- opt$missingness
-# p_value_global <- opt$qvalue
-# sn_threshold <- opt$sn_threshold
-# beta_cor_threshold <- opt$beta_cor_threshold
-# beta_snr_threshold <- opt$beta_snr_threshold

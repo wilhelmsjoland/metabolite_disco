@@ -3,6 +3,9 @@
 # ==============================================================================
 library(this.path)
 library(cli)
+source("scripts/functions.R")
+source("scripts/chem_functions.R")
+source("scripts/met_disco_args.R")
 
 # ==============================================================================
 # Information on pipeline ------------------------------------------------------
@@ -10,13 +13,17 @@ library(cli)
 options(cli.unicode = TRUE)
 start_pipeline_msg()
 cli::cli_h1(basename(this.path::this.path()))
+cli::cli_text("Running pipeline with: ")
+purrr::walk2(
+  .x = opt,
+  .y = names(opt),
+  .f = ~ cli::cli_bullets(c("i" = paste0(.y, ": {.val {.x}}")))
+)
+cli::cli_rule()
 
-
-cli::cli_alert_info("Sourcing dependendencies")
-source("scripts/functions.R")
-source("scripts/chem_functions.R")
-source("scripts/met_disco_args.R")
-
+# ==============================================================================
+# Loading libraries ------------------------------------------------------------
+# ==============================================================================
 cli::cli_alert_info("Loading libraries")
 suppressWarnings(
   suppressPackageStartupMessages({
@@ -64,6 +71,7 @@ folders <- c(
   "volcano",
   "upset",
   "feature_boxplot",
+  "quality_control",
   "rtime",
   "filled_peaks",
   "pca",

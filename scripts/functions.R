@@ -272,91 +272,116 @@ get_rt_mz_range <- function(
   return(ranges)
 }
 
-# TODO
-# Add colors to the plotting as well
-# Is this one even important as it is?
-# the saving location is hardcoded right now
-inspect_peak <- function(
-  chromatogram = NULL,
-  peak_data = NULL,
-  peak_idx = TRUE, # if true pick a random peak
-  sample_no = FALSE,
-  save_graph = TRUE
-) {
-  if (isTRUE(peak_idx)) {
-    pk_chk <- sample(nrow(peak_data), 1)
-  } else {
-    pk_chk <- peak_idx
-  }
 
-  if (isFALSE(sample_no)) {
-    test_peak <- chromatogram %>%
-      Spectra::filterMzRange(
-        c(
-          peak_data[pk_chk, ]$mzmin,
-          peak_data[pk_chk, ]$mzmax
+inspect_peak <- function(
+  chrom_obj = NULL,
+  peak = TRUE,
+  save_loc = NULL
+) {
+
+  peak_tib <- tibble::as_tibble(
+    xcms::chromPeaks(chrom_obj),
+    rownames = "peak"
+  )
+  peak_row  <- peak_tib[peak_tib$peak == peak, ]
+  filt_chr <- chrom_obj[peak_row$sample] %>%
+    Spectra::filterMzRange(
+      mz = c(
+        peak_row$mzmin,
+        peak_row$mzmax
+      )
+    ) %>%
+    Spectra::filterRt(
+      rt = c(
+        peak_row$rtmin,
+        peak_row$rtmax
+      )
+    ) %>%
+    xcms::chromatogram(aggregationFun = "sum")
+
+  # Different ways of doing the same thing
+  # basename(fileNames(xchr)[peak_row$sample])
+  # rownames(meta)[peak_row$sample]
+  samp_name <- rownames(MsExperiment::sampleData(xchr)[peak_row$sample, ])
+  samp_group <- meta$group[rownames(meta) == samp_name]
+  samp_color <- group_colors[names(group_colors) == samp_group]
+
+  if (!is.null(save_loc)) {
+    pdf(
+      file.path(
+        save_loc,
+        paste0(
+          peak,
+          ".pdf"
         )
-      ) %>%
-      Spectra::filterRt(
-        c(
-          peak_data[pk_chk, ]$rtmin,
-          peak_data[pk_chk, ]$rtmax
-        )
-      ) %>%
-      xcms::chromatogram(aggregationFun = "sum")
-  } else {
-    test_peak <- chromatogram[sample_no] %>%
-      Spectra::filterMzRange(
-        c(
-          peak_data[pk_chk, ]$mzmin,
-          peak_data[pk_chk, ]$mzmax
-        )
-      ) %>%
-      Spectra::filterRt(
-        c(
-          peak_data[pk_chk, ]$rtmin,
-          peak_data[pk_chk, ]$rtmax
-        )
-      ) %>%
-      xcms::chromatogram(aggregationFun = "sum")
-  }
-  if (save_graph == TRUE) {
-    pdf(paste0(opt$output, "/graphs/quality_control/", pk_chk, ".pdf"))
+      )
+    )
     plot(
-      x = test_peak,
+      x = filt_chr,
       main = paste0(
-        "Peak: ", peak_data[pk_chk, ]$peak,
-        "\n m/z: ", round(peak_data[pk_chk, ]$mzmin, 3),
-        " - ", round(peak_data[pk_chk, ]$mzmax, 3),
-        "\n RT: ", round(peak_data[pk_chk, ]$rtmin, 3),
-        " - ", round(peak_data[pk_chk, ]$rtmax, 3)
+        "Peak: ", peak_row$peak,
+        "\n m/z: ", round(peak_row$mzmin, 3),
+        " - ", round(peak_row$mzmax, 3),
+        "\n RT: ", round(peak_row$rtmin, 3),
+        " - ", round(peak_row$rtmax, 3)
       ),
-      sub = paste0(
-        "Samples: ",
-        stringr::str_flatten(colnames(inspect_peaks), ", ")
-      ),
+      sub = paste0("Sample: ", samp_name),
+      peakType = "polygon",
+      peakCol = samp_color,
       peakBg = NA,
       lwd = 3
     )
-    dev.off()
-  }
+    legend(
+      x = "topleft",
+      legend = samp_group,
+      col = samp_color,
+      lty = 1,
+      lwd = 3
+    )
+  } else {
+    plot(
+      x = filt_chr,
+      main = paste0(
+        "Peak: ", peak_row$peak,
+        "\n m/z: ", round(peak_row$mzmin, 3),
+        " - ", round(peak_row$mzmax, 3),
+        "\n RT: ", round(peak_row$rtmin, 3),
+        " - ", round(peak_row$rtmax, 3)
+      ),
+      sub = paste0("Sample: ", samp_name),
+      peakType = "polygon",
+      peakCol = samp_color,
+      peakBg = NA,
+      lwd = 3
+    )
 
-  return(test_peak)
+    legend(
+      x = "topleft",
+      legend = samp_group,
+      col = samp_color,
+      lty = 1,
+      lwd = 3
+    )
+  }
+  
+  dev.off()
+  return(filt_chr)
 }
 
-inspect_peak_intensity <- function(
-  chr_data = NULL,
+plot_experiment_intensities <- function(
+  chrom_obj = NULL,
   value = "into", # into, intb, maxo
-  save_graph = TRUE
+  save_loc = NULL,
+  device = "pdf"
 ) {
   # Extract a list of per-sample peak intensities (in log2 scale)
   # TODO Do the samples match the colors?
   xchr_peaks <- tibble::as_tibble(
-    xcms::chromPeaks(chr_data),
+    xcms::chromPeaks(chrom_obj),
     rownames = "peak"
   )
   xchr_meta <- tibble::as_tibble(
-    MsExperiment::sampleData(chr_data),
+    MsExperiment::sampleData(chrom_obj),
     rownames = "sample_id"
   ) %>%
     dplyr::mutate(sample = dplyr::row_number())
@@ -403,18 +428,13 @@ inspect_peak_intensity <- function(
       )
     )
 
-  file_nm <- paste0(
-    opt$output,
-    "/graphs/per_sample_peaks/",
-    deparse(substitute(xchr)),
-    "_detected_peaks.pdf"
-  )
+  file_nm <- paste0(save_loc, "/chrom_detected_peaks.", device)
 
-  if (save_graph == TRUE) {
+  if (!is.null(save_loc)) {
     ggplot2::ggsave(
       filename = file_nm,
       plot = xchr_data_p,
-      device = "pdf",
+      device = device,
       height = 6,
       width = 6,
       units = "in"
@@ -1152,9 +1172,9 @@ filt_features <- function(
 }
 
 start_pipeline_msg <- function() {
-  block_rule(col = col_white)
+  block_rule(col = col_cyan)
   cli::cli_rule(center = "Metabolite Disco")
-  block_rule(col = col_white)
+  block_rule(col = col_cyan)
   cli::cli_text("")
   cli::cli_text("Creator: {.emph Wilhelm Sjöland}")
   cli::cli_text("Email: {.email wilhelm.sjoland@wlab.gu.se}")
@@ -1173,6 +1193,7 @@ block_rule <- function(col = col_white) {
   cli_text("{col(rule)}")
 }
 
+# Could remove this
 peak_calling_param_msg <- function() {
   cli::cli_alert_success("Called peaks with:")
   cli::cli_bullets(
