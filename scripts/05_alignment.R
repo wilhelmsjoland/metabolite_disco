@@ -64,7 +64,7 @@ anc_peak_dist_before_path <- file.path(
 pdf(anc_peak_dist_before_path)
 hist(as.vector(pgm), breaks = 30, main = "Anchor peak RT distribution")
 invisible(dev.off())
-cli::cli_alert_info(
+cli::cli_alert_success(
   "Saved anchor peak distribution to: {.path {anc_peak_dist_before_path}}"
 )
 
@@ -85,7 +85,7 @@ hist(
   main = "Anchor peak RT distribution after filtering"
 )
 invisible(dev.off())
-cli::cli_alert_info(
+cli::cli_alert_success(
   paste0(
     "Saved anchor peak distribution after filtering to: ",
     "{.path {anc_peak_dist_after_path}}"

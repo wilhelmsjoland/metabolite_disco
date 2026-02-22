@@ -12,15 +12,15 @@ source("scripts/05_alignment.R")
 # 3. wide
 # 4. call peaks on wide
 # 5. take peakwidths from wide
-# TODO
+# TODO - genreal
 # Potentially fix so that parameters can be chosen as well
-# TODO
+# TODO - 05
 # Change the first peak grouping to more broad
 # so I don't get a million anchor peaks?
-# TODO
+# TODO - general
 # Could add these as names for the list
 # xchr5@processHistory[[2]]@type
-# TODO
+# TODO - 05 -> 02
 # Could potentially move the BPC stuff from 02 to 05 instead?
 # Was in the 05_script
 # - From Sattely paper
@@ -28,7 +28,7 @@ source("scripts/05_alignment.R")
 # - step size of m/z 0.5. Peak alignment was performed with bandwidth
 # - of 3 seconds and minimum fraction (minfrac) of samples
 # - necessary for a valid group of 0.5.
-# TODO
+# TODO - 08
 # Add control flow for using filtering in 08_filter_features or not
 
 # TODO
