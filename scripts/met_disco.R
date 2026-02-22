@@ -35,13 +35,8 @@ source("scripts/10_pca.R")
 # - necessary for a valid group of 0.5.
 # TODO - 08
 # Add control flow for using filtering in 08_filter_features or not
-# TODO 09
-# Change the 09 scaling to missing = 0, instead of missing = "rowmin_half"
-# TODO - 10
-# Move PCAs to run after limma_res where I've already scaled
-# the data and saved it
 # TODO
-# Fix imputing
+# Fix the limma saving of tests etc.
 
 # TODO
 # Anything under has not been formatted or fixed yet.

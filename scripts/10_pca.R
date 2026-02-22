@@ -1,6 +1,6 @@
 cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# PCA - PC1 & PC2 - before and after normalization -----------------------------
+# PCA - PC1 & PC2 - before and after technical normalization -------------------
 # ==============================================================================
 cli::cli_h3("Generating principal components analyses")
 
@@ -18,7 +18,7 @@ pca_raw <- plot_pca(
   x = PC1,
   y = PC2
 ) +
-  ggplot2::labs(title = "Before normalization")
+  ggplot2::labs(title = "Before median scaling")
 
 # Data after normalization
 vals_norm <- SummarizedExperiment::assay(res, "norm_filled") %>%
@@ -34,7 +34,7 @@ pca_adj <- plot_pca(
   x = PC1,
   y = PC2
 ) +
-  ggplot2::labs(title = "After normalization")
+  ggplot2::labs(title = "After median scaling")
 
 norm_filled_12_pca_p <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
@@ -57,13 +57,13 @@ ggplot2::ggsave(
 
 cli::cli_alert_success(
   paste0(
-    "Saved PCA of PC1 & PC2 before and after normalization to: ",
+    "Saved PCA of PC1 & PC2 before and after median scaling to: ",
     "{.path {norm_filled_12_pca_p_path}}"
   )
 )
 
 # ==============================================================================
-# PCA - PC3 & PC4 - before and after normalization -----------------------------
+# PCA - PC3 & PC4 - before and after technical normalization -------------------
 # ==============================================================================
 
 # PC 3-4 before & after normalization
@@ -73,7 +73,7 @@ pca_raw <- plot_pca(
   x = PC3,
   y = PC4
 ) +
-  ggplot2::labs(title = "Before normalization")
+  ggplot2::labs(title = "Before median scaling")
 
 pca_adj <- plot_pca(
   prcomp_res = pca_res_norm,
@@ -81,7 +81,7 @@ pca_adj <- plot_pca(
   x = PC3,
   y = PC4
 ) +
-  ggplot2::labs(title = "After normalization")
+  ggplot2::labs(title = "After median scaling")
 
 norm_filled_34_pca_p  <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
@@ -104,7 +104,7 @@ ggplot2::ggsave(
 
 cli::cli_alert_success(
   paste0(
-    "Saved PCA of PC3 & PC4 before and after normalization to: ",
+    "Saved PCA of PC3 & PC4 before and after median scaling to: ",
     "{.path {norm_filled_34_pca_p_path}}"
   )
 )
