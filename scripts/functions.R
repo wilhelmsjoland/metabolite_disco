@@ -1247,18 +1247,19 @@ median_scale_base <- function(
 ) {
   # Compute median and generate normalization factor
   mdns <- base::apply(
-    SummarizedExperiment::assay(res_obj, assay),
+    X = SummarizedExperiment::assay(res_obj, assay),
     MARGIN = 2,
-    median,
-    na.rm = TRUE
+    FUN = function(x) {
+      median(x, na.rm = TRUE)
+    }
   )
   nf_mdn <- mdns / median(mdns)
 
   # Dividing dataset by median of median and creating a new assay
   base::sweep(
-    SummarizedExperiment::assay(res_obj, assay),
+    x = SummarizedExperiment::assay(res_obj, assay),
     MARGIN = 2,
-    nf_mdn,
-    "/"
+    STATS = nf_mdn,
+    FUN = "/"
   )
 }

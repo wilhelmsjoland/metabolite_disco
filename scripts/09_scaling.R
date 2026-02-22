@@ -5,59 +5,51 @@ cli::cli_h1(basename(this.path::this.path()))
 cli::cli_h3("Median scaling data")
 
 res <- xcms::quantify(
-  xchr9,
+  object = xchr9,
   method = "sum",
   value = "into",
+  intensity = "into",
   filled = FALSE,
-  missing = "rowmin_half" # 0 ? # dont impute
+  missing = NA,
+  msLevel = 1
 )
 
-SummarizedExperiment::assays(res)$raw_filled <- xcms::featureValues(
-  xchr9,
+SummarizedExperiment::assays(res)$raw_fill <- xcms::featureValues(
+  object = xchr9,
   method = "sum",
   value = "into",
+  intensity = "into",
   filled = TRUE,
-  missing = "rowmin_half" # 0 ? # dont impute
+  missing = NA,
+  msLevel = 1
 )
 
-# Compute median and generate normalization factor
-mdns <- apply(
-  SummarizedExperiment::assay(res, "raw"),
-  MARGIN = 2,
-  median,
-  na.rm = TRUE
-)
-nf_mdn <- mdns / median(mdns)
-
-# Dividing dataset by median of median and creating a new assay
-SummarizedExperiment::assays(res)$norm <- sweep(
-  SummarizedExperiment::assay(res, "raw"),
-  MARGIN = 2,
-  nf_mdn,
-  "/"
+SummarizedExperiment::assays(res)$raw_fill_imp <- xcms::featureValues(
+  object = xchr9,
+  method = "sum",
+  value = "into",
+  intensity = "into",
+  filled = TRUE,
+  missing = "rowmin_half",
+  msLevel = 1
 )
 
-# Compute median and generate normalization factor
-mdns <- apply(
-  X = SummarizedExperiment::assay(res, "raw_filled"),
-  MARGIN = 2,
-  FUN = function(x) {
-    median(x, na.rm = TRUE)
-  }
+SummarizedExperiment::assays(res)$norm <- median_scale_base(
+  res_obj = res,
+  assay = "raw"
 )
-nf_mdn <- mdns / median(mdns)
-
-# Dividing dataset by median of median and creating a new assay
-SummarizedExperiment::assays(res)$norm_filled <- sweep(
-  x = SummarizedExperiment::assay(res, "raw_filled"),
-  MARGIN = 2,
-  STATS = nf_mdn,
-  FUN = "/"
+SummarizedExperiment::assays(res)$norm_fill <- median_scale_base(
+  res_obj = res,
+  assay = "raw_fill"
+)
+SummarizedExperiment::assays(res)$norm_fill_imp <- median_scale_base(
+  res_obj = res,
+  assay = "raw_fill_imp"
 )
 
 cli::cli_alert_success(
   paste0(
     "Data median scaled and stored in: ",
-    "{.val {paste0('res$', names(SummarizedExperiment::assays(res)))}}"
+    "{.val {paste0('res$', SummarizedExperiment::assayNames(res))}}"
   )
 )
