@@ -37,9 +37,21 @@ source("scripts/10_pca.R")
 # Add control flow for using filtering in 08_filter_features or not
 # TODO 09
 # Change the 09 scaling to missing = 0, instead of missing = "rowmin_half"
+# TODO - 10
+# Move PCAs to run after limma_res where I've already scaled
+# the data and saved it
+# TODO
+# Fix imputing
 
 # TODO
 # Anything under has not been formatted or fixed yet.
+# TODO
+# Run significance testing on each separate assay
+# log2() on data prior to limma!
+# do not scale prior to limma!
+# Write out what has been done clearly!!
+# TODO
+# Could make p.adjust.method a choice in optparse
 source("scripts/11_limma.R")
 source("scripts/12_volcano.R")
 source("scripts/13_upset.R")

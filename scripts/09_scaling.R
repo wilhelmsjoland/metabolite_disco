@@ -9,7 +9,7 @@ res <- xcms::quantify(
   method = "sum",
   value = "into",
   filled = FALSE,
-  missing = "rowmin_half" # 0 ?
+  missing = "rowmin_half" # 0 ? # dont impute
 )
 
 SummarizedExperiment::assays(res)$raw_filled <- xcms::featureValues(
@@ -17,7 +17,7 @@ SummarizedExperiment::assays(res)$raw_filled <- xcms::featureValues(
   method = "sum",
   value = "into",
   filled = TRUE,
-  missing = "rowmin_half" # 0 ?
+  missing = "rowmin_half" # 0 ? # dont impute
 )
 
 # Compute median and generate normalization factor
@@ -39,19 +39,20 @@ SummarizedExperiment::assays(res)$norm <- sweep(
 
 # Compute median and generate normalization factor
 mdns <- apply(
-  SummarizedExperiment::assay(res, "raw_filled"),
+  X = SummarizedExperiment::assay(res, "raw_filled"),
   MARGIN = 2,
-  median,
-  na.rm = TRUE
+  FUN = function(x) {
+    median(x, na.rm = TRUE)
+  }
 )
 nf_mdn <- mdns / median(mdns)
 
 # Dividing dataset by median of median and creating a new assay
 SummarizedExperiment::assays(res)$norm_filled <- sweep(
-  SummarizedExperiment::assay(res, "raw_filled"),
+  x = SummarizedExperiment::assay(res, "raw_filled"),
   MARGIN = 2,
-  nf_mdn,
-  "/"
+  STATS = nf_mdn,
+  FUN = "/"
 )
 
 cli::cli_alert_success(

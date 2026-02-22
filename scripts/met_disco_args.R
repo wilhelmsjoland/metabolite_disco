@@ -108,13 +108,13 @@ option_list <- list(
   optparse::make_option(
     c("-c", "--cores"),
     type = "integer",
-    default = parallel::detectCores() - 2,
-    help = "Workers, will default to max available - 2 [default: %default]."
+    default = parallel::detectCores() - 1,
+    help = "Workers, will default to max available - 1 [default: %default]."
   ),
   optparse::make_option(
     c("-l", "--missingness"),
     type = "integer",
-    default = 100,
+    default = 70, # 100
     help = paste0(
       "Filter features based on missingness from 0 - 100 percent",
       " [default: %default]."

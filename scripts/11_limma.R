@@ -1,13 +1,8 @@
+cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# Limnear models using limma
+# Linear models using limma ----------------------------------------------------
 # ==============================================================================
-message(
-  "===========================================================================",
-  "\n",
-  "Running linear models -----------------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
+cli::cli_h3("Running linear models using limma")
 
 group_used <- factor(meta$group)
 design <- model.matrix(~ 0 + group_used)
@@ -18,7 +13,12 @@ comparisons <- combn(
   m = 2,
   simplify = TRUE) %>%
   t(.) %>%
-  tibble::as_tibble(., rownames = "rownumber") %>%
+  as.data.frame(.) %>%
+  tibble::as_tibble(
+    x = .,
+    rownames = "rownumber",
+    .name_repair = "universal_quiet"
+  ) %>%
   dplyr::mutate(comp = paste0(V1, "-", V2)) %>%
   dplyr::pull(comp)
 
@@ -41,7 +41,8 @@ for (i in comparisons) {
     coef = i,
     number = Inf,
     adjust.method = "BH",
-    sort.by = "none") %>%
+    sort.by = "none"
+  ) %>%
     tibble::as_tibble(., rownames = "feature") %>%
     dplyr::mutate(contrast = i) %>%
     dplyr::left_join(
@@ -53,6 +54,9 @@ for (i in comparisons) {
   limma_res[[i]] <- tmp
 }
 
+# ==============================================================================
+# Saving limma results to tables -----------------------------------------------
+# ==============================================================================
 full_limma <- tibble::tibble()
 for (i in names(limma_res)) {
   tmp_tib <- limma_res[[i]]

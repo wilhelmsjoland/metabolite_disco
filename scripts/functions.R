@@ -960,7 +960,7 @@ pred_biot <- function(
   tolerance = NULL,
   features_of_interest = NULL,
   parallel = TRUE,
-  n_workers = opt$cores # max(1, parallel::detectCores() - 1)
+  n_workers = opt$cores
 ) {
   if (is.null(tolerance) & is.null(tolerance_ppm)) {
     stop("Both tolerance and tolerance_ppm are NULL")
@@ -1208,5 +1208,57 @@ param_msg <- function(process_history = NULL) {
         )
       )
     )
+  )
+}
+
+median_scale_tidy <- function(
+  res_obj = NULL,
+  assay = NULL
+) {
+  # Compute median and generate normalization factor
+  mdns <- purrr::map_dbl(
+    .x = as.data.frame(SummarizedExperiment::assay(res_obj, assay)),
+    .f = ~ {
+      median(.x, na.rm = TRUE)
+    }
+  )
+
+  nf_mdn <- mdns / median(mdns)
+
+  # Dividing dataset by median of median and creating a new assay
+  as.data.frame(
+    SummarizedExperiment::assay(
+      res_obj,
+      assay
+    )
+  ) %>%
+    dplyr::mutate(
+      dplyr::across(
+        .cols = dplyr::everything(),
+        .fns = ~ . / nf_mdn[dplyr::cur_column()]
+      )
+    ) %>%
+    as.matrix()
+}
+
+median_scale_base <- function(
+  res_obj = NULL,
+  assay = NULL
+) {
+  # Compute median and generate normalization factor
+  mdns <- base::apply(
+    SummarizedExperiment::assay(res_obj, assay),
+    MARGIN = 2,
+    median,
+    na.rm = TRUE
+  )
+  nf_mdn <- mdns / median(mdns)
+
+  # Dividing dataset by median of median and creating a new assay
+  base::sweep(
+    SummarizedExperiment::assay(res_obj, assay),
+    MARGIN = 2,
+    nf_mdn,
+    "/"
   )
 }
