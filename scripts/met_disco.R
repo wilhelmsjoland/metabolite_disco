@@ -3,6 +3,9 @@ source("scripts/02_bpc.R")
 source("scripts/03_internal_standard.R")
 source("scripts/04_peak_calling.R")
 source("scripts/05_alignment.R")
+source("scripts/06_correspondence.R")
+source("scripts/07_gap_filling.R")
+source("scripts/08_filter_features.R")
 
 # TODO 03_internal_standard.R
 # Isn't the last step of creating a new chromatogram unnecessary?
@@ -33,9 +36,6 @@ source("scripts/05_alignment.R")
 
 # TODO
 # Anything under has not been formatted or fixed yet.
-source("scripts/06_correspondence.R")
-source("scripts/07_gap_filling.R")
-source("scripts/08_filter_features.R")
 source("scripts/09_scaling.R")
 source("scripts/10_pca.R")
 source("scripts/11_limma.R")

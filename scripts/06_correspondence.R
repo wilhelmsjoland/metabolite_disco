@@ -1,6 +1,4 @@
 cli::cli_h1(basename(this.path::this.path()))
-
-
 # ==============================================================================
 # Generating chromatograms for simulated bandwiths -----------------------------
 # before correspondence for internal standard ----------------------------------
@@ -35,7 +33,7 @@ if (file.exists(bw_chr_1_path)) {
   cli::cli_alert_success(
     paste0(
       "Saved internal standard chromatogram for bandwidth simulation ",
-       "for internal standard to: ",
+      "for internal standard to: ",
       "{.path {bw_chr_1_path}}"
     )
   )
@@ -76,7 +74,7 @@ is_simul_second_grouping_path <- file.path(
 pdf(is_simul_second_grouping_path)
 xcms::plotChromPeakDensity(
   object = bw_chr_1,
-  param = bw_xcms::PeakDensityParam(
+  param = xcms::PeakDensityParam(
     sampleGroups = MsExperiment::sampleData(xchr6)$group,
     bw = opt$bw_second_grouping
   )

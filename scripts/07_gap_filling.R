@@ -1,95 +1,143 @@
+cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# Gap filling
+# Gap filling ------------------------------------------------------------------
 # ==============================================================================
-# Checking features
-feat_def <- tibble::as_tibble(
-  xcms::featureDefinitions(xchr7),
-  rownames = "feature"
-)
-feat_val <- tibble::as_tibble(
-  xcms::featureValues(xchr7, method = "sum"),
-  rownames = "feature"
+cli::cli_h3("Filling gaps")
+
+xchr8_path <- file.path(
+  opt$output,
+  "objects",
+  "xchr8.rds"
 )
 
-# Extract features with nas for peak filling
-feat_with_na <- feat_val %>%
-  tidyr::pivot_longer(cols = 2:ncol(.)) %>%
-  dplyr::filter(is.na(value)) %>%
-  dplyr::pull(feature) %>%
-  unique(.)
-
-# Filter feature defintions to features with nas
-feat_def_nas <- feat_def %>%
-  dplyr::filter(feature %in% feat_with_na)
-
-# Create a list for checking the features chromatograms
-feat_def_nas_vals <- feat_def_nas %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(
-    feat_extract = rbind(
-      c(
-        mzmed - 0.0015,
-        mzmed + 0.0015,
-        rtmin - 2,
-        rtmax + 2
-      )
+if (file.exists(xchr8_path)) {
+  xchr8 <- readRDS(file = xchr8_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported gap filled object from: ",
+      "{.path {xchr8_path}}"
     )
-  ) %>%
-  dplyr::pull(feat_extract)
-
-message(
-  "Features with NAs prior to gap filling: ",
-  sum(is.na(featureValues(xchr7)))
-)
-
-# Perform gap filling
-if (check_saved("xchr8.rds")) {
-  xchr8 <- readRDS(file = paste0(opt$output, "/objects/xchr8.rds"))
+  )
 } else {
+  cli::cli_alert_info("Filling gaps")
   xchr8 <- xcms::fillChromPeaks(
     object = xchr7,
     param = xcms::ChromPeakAreaParam()
   )
-  saveRDS(object = xchr8, file = paste0(opt$output, "/objects/xchr8.rds"))
+  saveRDS(object = xchr8, file = xchr8_path)
+  cli::cli_alert_success(
+    paste0(
+      "Saved gap filled object to: ",
+      "{.path {xchr8_path}}"
+    )
+  )
 }
 
-# Number of missing values after gap filling
-message(
-  "Features with NAs after gap filling: ",
-  sum(is.na(xcms::featureValues(xchr8)))
+# ==============================================================================
+# Extract information on features with NAs prior to gap filling ----------------
+# ==============================================================================
+na_feat_samp_n <- featureValues(xchr7) %>%
+  tibble::as_tibble(rownames = "feature") %>%
+  dplyr::filter(
+    dplyr::if_any(
+      .cols = dplyr::all_of(contains(".mzML")), 
+      .fns = ~ is.na(.)
+    )
+  ) %>%
+  nrow()
+total_feat_samp_n <- nrow(featureValues(xchr7))
+cli::cli_alert_warning(
+  paste0(
+    "Features with at least one NA across samples prior to gap filling: ",
+    "{.val {na_feat_samp_n}}, total: {.val {total_feat_samp_n}}"
+  )
 )
 
-# Number of filled peaks
-message(
-  "Number of filled peaks: ",
-  sum(is.na(featureValues(xchr7))) - sum(is.na(xcms::featureValues(xchr8)))
+# Number of missing entries
+na_feat_n <- sum(is.na(featureValues(xchr7)))
+# Total number of entries
+total_feat_n <- nrow(featureValues(xchr7)) * ncol(featureValues(xchr7))
+cli::cli_alert_warning(
+  paste0(
+    "Total number of NA entries across samples prior to gap filling: ",
+    "{.val {na_feat_n}}, total: {.val {total_feat_n}}"
+  )
 )
 
-# Plot all non-filled peaks
+# ==============================================================================
+# Extract information on features with NAs after gap filling -------------------
+# ==============================================================================
+# Number of missing entries after gap filling
+filled_na_feat_n <- sum(is.na(featureValues(xchr8)))
+# Total number of entries after gap filling
+filled_total_feat_n <- nrow(featureValues(xchr8)) * ncol(featureValues(xchr8))
+# Total number of filled peaks after gap filling
+filled_peak_n <- abs(filled_na_feat_n - na_feat_n)
+cli::cli_alert_success("Filled {.val {filled_peak_n}} peaks")
+cli::cli_alert_info(
+  paste0(
+    "Total number of NA entries across samples after gap filling: ",
+    "{.val {filled_na_feat_n}}, total: {.val {filled_total_feat_n}}"
+  )
+)
+
+# ==============================================================================
+# Create chromatograms for all features with NA after gap filling ..............
+# ==============================================================================
 # Extract the m/z - rt regions for these features
 # Extract features with nas for peak filling
-feat_with_na_after <- tibble::as_tibble(
-  xcms::featureValues(xchr8, method = "sum"),
-  rownames = "feature"
+feat_with_na_after <- xcms::featureValues(
+  object = xchr8,
+  method = "sum",
+  value = "into",
+  intensity = "into",
+  filled = TRUE,
+  missing = NA,
+  msLevel = 1
 ) %>%
-  tidyr::pivot_longer(cols = 2:ncol(.)) %>%
+  tibble::as_tibble(., rownames = "feature") %>%
+  tidyr::pivot_longer(cols = contains(".mzML")) %>%
   dplyr::filter(is.na(value)) %>%
   dplyr::pull(feature) %>%
   unique(.)
 
-chrs_na_feat <- xcms::featureArea(xchr8, features = feat_with_na_after)
+chrs_na_feat <- xcms::featureArea(
+  object = xchr8,
+  features = feat_with_na_after
+)
 
 # Expand the retention time by 1 second on both sides
 chrs_na_feat[, "rtmin"] <- chrs_na_feat[, "rtmin"] - 1
 chrs_na_feat[, "rtmax"] <- chrs_na_feat[, "rtmax"] + 1
 
-if (check_saved("chrs_na.rds")) {
-  chrs_na <- readRDS(file = paste0(opt$output, "/objects/chrs_na.rds"))
+# For later plotting of non-filled peaks
+chrs_na_path <- file.path(
+  opt$output,
+  "objects",
+  "chrs_na.rds"
+)
+cli::cli_alert_info("Generating chromatograms for all NAs")
+if (file.exists(chrs_na_path)) {
+  chrs_na <- readRDS(file = chrs_na_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported saved chromatograms for NAs from: ",
+      "{.path {chrs_na_path}}"
+    )
+  )
 } else {
+  cli::cli_alert_info("Generating chromatograms for NAs")
   chrs_na <- xcms::chromatogram(
     xchr8,
     mz = chrs_na_feat[, c("mzmin", "mzmax")],
-    rt = chrs_na_feat[, c("rtmin", "rtmax")] # probably increase this a little
+    # mabye increase this a little?
+    rt = chrs_na_feat[, c("rtmin", "rtmax")] 
   )
-  saveRDS(object = chrs_na, file = paste0(opt$output, "/objects/chrs_na.rds"))
+  saveRDS(object = chrs_na, file = chrs_na_path)
+  cli::cli_alert_success(
+    paste0(
+      "Saved chromatograms for NAs to: ",
+      "{.path {chrs_na_path}}"
+    )
+  )
 }
