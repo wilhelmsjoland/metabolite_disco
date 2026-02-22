@@ -1,13 +1,8 @@
+cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# Median scaling & PCA ------------------------------------------------------
+# Median scaling ---------------------------------------------------------------
 # ==============================================================================
-message(
-  "===========================================================================",
-  "\n",
-  "Generating PCAs -----------------------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
+cli::cli_h3("Median scaling data")
 
 res <- xcms::quantify(
   xchr9,
@@ -57,4 +52,11 @@ SummarizedExperiment::assays(res)$norm_filled <- sweep(
   MARGIN = 2,
   nf_mdn,
   "/"
+)
+
+cli::cli_alert_success(
+  paste0(
+    "Data median scaled and stored in: ",
+    "{.val {paste0('res$', names(SummarizedExperiment::assays(res)))}}"
+  )
 )

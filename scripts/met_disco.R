@@ -6,6 +6,8 @@ source("scripts/05_alignment.R")
 source("scripts/06_correspondence.R")
 source("scripts/07_gap_filling.R")
 source("scripts/08_filter_features.R")
+source("scripts/09_scaling.R")
+source("scripts/10_pca.R")
 
 # TODO 03_internal_standard.R
 # Isn't the last step of creating a new chromatogram unnecessary?
@@ -33,11 +35,11 @@ source("scripts/08_filter_features.R")
 # - necessary for a valid group of 0.5.
 # TODO - 08
 # Add control flow for using filtering in 08_filter_features or not
+# TODO 09
+# Change the 09 scaling to missing = 0, instead of missing = "rowmin_half"
 
 # TODO
 # Anything under has not been formatted or fixed yet.
-source("scripts/09_scaling.R")
-source("scripts/10_pca.R")
 source("scripts/11_limma.R")
 source("scripts/12_volcano.R")
 source("scripts/13_upset.R")

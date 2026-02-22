@@ -1,14 +1,8 @@
+cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# PCA ------------------------------------------------------
+# PCA - PC1 & PC2 - before and after normalization -----------------------------
 # ==============================================================================
-message(
-  "===========================================================================",
-  "\n",
-  "Generating PCAs -----------------------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
-
+cli::cli_h3("Generating principal components analyses")
 
 # Data before normalization
 vals <- SummarizedExperiment::assay(res, "raw_filled") %>%
@@ -45,14 +39,32 @@ pca_adj <- plot_pca(
 norm_filled_12_pca_p <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
 
+norm_filled_12_pca_p_path <- file.path(
+  opt$output,
+  "graphs",
+  "pca",
+  "norm_filled_pca_1_2.pdf"
+)
+
 ggplot2::ggsave(
-  filename = paste0(opt$output, "/graphs/pca/norm_filled_pca_1_2.pdf"),
+  filename = norm_filled_12_pca_p_path,
   plot = norm_filled_12_pca_p,
   device = "pdf",
   height = 6,
   width = 6,
   units = "in"
 )
+
+cli::cli_alert_success(
+  paste0(
+    "Saved PCA of PC1 & PC2 before and after normalization to: ",
+    "{.path {norm_filled_12_pca_p_path}}"
+  )
+)
+
+# ==============================================================================
+# PCA - PC3 & PC4 - before and after normalization -----------------------------
+# ==============================================================================
 
 # PC 3-4 before & after normalization
 pca_raw <- plot_pca(
@@ -74,11 +86,25 @@ pca_adj <- plot_pca(
 norm_filled_34_pca_p  <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
 
+norm_filled_34_pca_p_path <- file.path(
+  opt$output,
+  "graphs",
+  "pca",
+  "norm_filled_pca_3_4.pdf"
+)
+
 ggplot2::ggsave(
-  filename = paste0(opt$output, "/graphs/pca/norm_filled_pca_3_4.pdf"),
+  filename = norm_filled_34_pca_p_path,
   plot = norm_filled_34_pca_p,
   device = "pdf",
   height = 6,
   width = 6,
   units = "in"
+)
+
+cli::cli_alert_success(
+  paste0(
+    "Saved PCA of PC3 & PC4 before and after normalization to: ",
+    "{.path {norm_filled_34_pca_p_path}}"
+  )
 )
