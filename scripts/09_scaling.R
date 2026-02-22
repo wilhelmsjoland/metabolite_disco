@@ -47,9 +47,16 @@ SummarizedExperiment::assays(res)$norm_fill_imp <- median_scale_base(
   assay = "raw_fill_imp"
 )
 
-cli::cli_alert_success(
-  paste0(
-    "Data median scaled and stored in: ",
-    "{.val {paste0('res$', SummarizedExperiment::assayNames(res))}}"
+assay_names <- SummarizedExperiment::assayNames(res)
+cli::cli_bullets(
+  c(
+    "i" = paste0(
+      "Unscaled dataframes stored in",
+      "{.val {paste0('res$', assay_names[!grepl('norm', assay_names)])}}"
+    ),
+    "v" = paste0(
+      "Median scaled dataframes stored in",
+      "{.val {paste0('res$', assay_names[grepl('norm', assay_names)])}}"
+    )
   )
 )

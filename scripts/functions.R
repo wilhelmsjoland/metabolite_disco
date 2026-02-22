@@ -1226,7 +1226,7 @@ median_scale_tidy <- function(
   nf_mdn <- mdns / median(mdns)
 
   # Dividing dataset by median of median and creating a new assay
-  as.data.frame(
+  med_scaled <- as.data.frame(
     SummarizedExperiment::assay(
       res_obj,
       assay
@@ -1239,6 +1239,13 @@ median_scale_tidy <- function(
       )
     ) %>%
     as.matrix()
+
+  cli::cli_alert_success(
+    paste0(
+      "assay ({.val {assay}}) median scaled"
+    )
+  )
+  return(med_scaled)
 }
 
 median_scale_base <- function(
@@ -1256,10 +1263,17 @@ median_scale_base <- function(
   nf_mdn <- mdns / median(mdns)
 
   # Dividing dataset by median of median and creating a new assay
-  base::sweep(
+  med_scaled <- base::sweep(
     x = SummarizedExperiment::assay(res_obj, assay),
     MARGIN = 2,
     STATS = nf_mdn,
     FUN = "/"
   )
+
+  cli::cli_alert_success(
+    paste0(
+      "assay ({.val {assay}}) median scaled"
+    )
+  )
+  return(med_scaled)
 }
