@@ -6,7 +6,6 @@ cli::cli_h1(basename(this.path::this.path()))
 cli::cli_h3("Calling peaks: ")
 
 xchr_path <- file.path(opt$output, "objects", "xchr.rds")
-
 if (file.exists(xchr_path)) {
   xchr <- readRDS(file = xchr_path)
   cli::cli_alert_success(
@@ -63,7 +62,7 @@ cli::cli_h3("Inspecting peaks with the largest area for each sample")
 peaks_to_inspect <- tibble::as_tibble(chromPeaks(xchr), rownames = "peak") %>%
   tidyr::drop_na(beta_cor, beta_snr) %>%
   dplyr::filter(beta_cor >= opt$beta_cor_threshold) %>%
-  dplyr::filter(beta_cor >= opt$beta_cor_threshold) %>%
+  dplyr::filter(beta_snr >= opt$beta_snr_threshold) %>%
   dplyr::arrange(desc(into)) %>%
   # Keeps the top peak for every sample
   dplyr::distinct(sample, .keep_all = TRUE) %>%

@@ -1193,31 +1193,6 @@ block_rule <- function(col = col_white) {
   cli_text("{col(rule)}")
 }
 
-# Could remove this
-peak_calling_param_msg <- function() {
-  cli::cli_alert_success("Called peaks with:")
-  cli::cli_bullets(
-    c(
-      "i" = "ppm: {.val {xchr_params@ppm}}",
-      "i" = "Min peak width: {.val {round(xchr_params@peakwidth[1], 2)}}",
-      "i" = "Max peak width: {.val {round(xchr_params@peakwidth[2], 2)}}",
-      "i" = "snthresh: {.val {xchr_params@snthresh}}",
-      "i" = "prefilter: {.val {xchr_params@prefilter}}",
-      "i" = "mzCenterFun: {.val {xchr_params@mzCenterFun}}",
-      "i" = "integrate: {.val {xchr_params@integrate}}",
-      "i" = "mzdiff: {.val {xchr_params@mzdiff}}",
-      "i" = "fitgauss: {.val {xchr_params@fitgauss}}",
-      "i" = "noise: {.val {xchr_params@noise}}",
-      "i" = "verboseColumns: {.val {xchr_params@verboseColumns}}",
-      "i" = "roiList: {.val {xchr_params@roiList}}",
-      "i" = "firstBaselineCheck: {.val {xchr_params@firstBaselineCheck}}",
-      "i" = "roiScales: {.val {xchr_params@roiScales}}",
-      "i" = "extendLengthMSW: {.val {xchr_params@extendLengthMSW}}",
-      "i" = "verboseBetaColumns: {.val {xchr_params@verboseBetaColumns}}"
-    )
-  )
-}
-
 # kind of confusing I'll admit
 param_msg <- function(process_history = NULL) {
   purrr::walk(

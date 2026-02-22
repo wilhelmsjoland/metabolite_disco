@@ -44,40 +44,77 @@ xchr5_params <- xchr5@processHistory[[2]]@param
 cli::cli_alert_success("First peak grouping performed with:")
 param_msg(xchr5_params)
 
-# TODO
-# FROM HERE ====================================================================
 # ==============================================================================
-# Alignment of retention times
+# Evaluating distribution of anchor peaks --------------------------------------
 # ==============================================================================
-# TODO Use this part to check if anchor peaks cover the whole RT
-# Get the anchor peaks that would be selected
+# Conundrum: unreliable peaks at start and end
+# Should I filter these?
+# Or should I just take the less variable ones? -> pgm_filt
+# Use this part to check if anchor peaks cover the whole RT
 pgm <- xcms::adjustRtimePeakGroups(
   xchr5,
   xcms::PeakGroupsParam(minFraction = 0.9)
 )
+anc_peak_dist_before_path <- file.path(
+  opt$output,
+  "graphs",
+  "rtime",
+  "anchor_peak_dist_before.pdf"
+)
+pdf(anc_peak_dist_before_path)
+hist(as.vector(pgm), breaks = 30, main = "Anchor peak RT distribution")
+invisible(dev.off())
+cli::cli_alert_info(
+  "Saved anchor peak distribution to: {.path {anc_peak_dist_before_path}}"
+)
 
-# Evaluate distribution of anchor peaks' rt in the first sample
-# TODO compare this to the full range of retention times from the runs
-chrom_peaks5 <- xcms::chromPeaks(xchr5)
-max_rt_time <- max(chrom_peaks5[, "rtmax"], na.rm = TRUE)
-min_rt_time <- min(chrom_peaks5[, "rtmin"], na.rm = TRUE)
-
-# TODO Add a check here as well!
-# quantile(pgm[, 1], na.rm = TRUE) # Remove na.rm = TRUE?
-# End of checking for anchor peak rt distribution
-
+# Remove rows where the anchor RT variance across samples with variance cutoff
+pgm_filt_sd <- 1
+pgm_filt <- pgm[apply(pgm, 1, function(x) sd(x, na.rm = TRUE) < pgm_filt_sd), ]
+cli::cli_alert_info("Plotting anchor peak distribution after filtering")
+anc_peak_dist_after_path <- file.path(
+  opt$output,
+  "graphs",
+  "rtime",
+  "anchor_peak_dist_after.pdf"
+)
+pdf(anc_peak_dist_after_path)
+hist(
+  as.vector(pgm_filt),
+  breaks = 30,
+  main = "Anchor peak RT distribution after filtering"
+)
+invisible(dev.off())
+cli::cli_alert_info(
+  paste0(
+    "Saved anchor peak distribution after filtering to: ",
+    "{.path {anc_peak_dist_after_path}}"
+  )
+)
+# ==============================================================================
+# Alignment of retention times
+# ==============================================================================
 cli::cli_h3("Aligning retention times")
-# Alignment
-if (check_saved("xchr6.rds")) {
-  xchr6 <- readRDS(paste0(opt$output, "/objects/xchr6.rds"))
+
+xchr6_path <- file.path(opt$output, "objects", "xchr6.rds")
+if (file.exists(xchr6_path)) {
+  xchr6 <- readRDS(file = xchr6_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported grouped peaks object from: ",
+      "{.path {xchr6_path}}"
+    )
+  )
 } else {
+  cli::cli_alert_info("Grouping peaks")
   xchr6 <- xcms::adjustRtime(
     object = xchr5,
     param = xcms::PeakGroupsParam(
-      minFraction = 0.8, # 0.9
+      minFraction = 0.9, # 0.8
       extraPeaks = 0, # 1
       smooth = "loess",
-      span = 0.6, # 0.6
+      peakGroupsMatrix = pgm_filt,
+      span = 0.8, # 0.6
       family = "gaussian",
       peakGroupsMatrix = matrix(nrow = 0, ncol = 0),
       subset = integer(),
@@ -85,13 +122,32 @@ if (check_saved("xchr6.rds")) {
     )
   )
   saveRDS(object = xchr6, file = paste0(opt$output, "/objects/xchr6.rds"))
+  cli::cli_alert_success(
+    paste0(
+      "Saved grouped peaks object to: ",
+      "{.path {xchr6_path}}"
+    )
+  )
 }
 
-# Checking for retention drift
+# ==============================================================================
+# Generating alignment base peak chromatograms ---------------------------------
+# ==============================================================================
+bpc_after_path <- file.path(opt$output, "objects", "bpc_after.rds")
 # Extract base peak chromatograms
-if (check_saved("bpc_after.rds")) {
-  bpc_after <- readRDS(file = paste0(opt$output, "/objects/bpc_after.rds"))
+if (file.exists(bpc_after_path)) {
+  bpc_after <- readRDS(file = bpc_after_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported base peak chromatogram from after ",
+      "retention time adjustment from: ",
+      "{.path {bpc_after_path}}"
+    )
+  )
 } else {
+  cli::cli_alert_info(
+    "Generating retention time adjusted base peak chromatogram"
+  )
   bpc_after <- xcms::chromatogram(
     xchr6,
     aggregationFun = "max",
@@ -99,33 +155,70 @@ if (check_saved("bpc_after.rds")) {
   )
   saveRDS(
     object = bpc_after,
-    file = paste0(opt$output, "/objects/bpc_after.rds")
+    file = bpc_after_path
+  )
+  cli::cli_alert_success(
+    paste0(
+      "Saved retention time adjusted base peak chromatogram to: ",
+      "{.path {bpc_after_path}}"
+    )
   )
 }
 
-pdf(paste0(opt$output, "/graphs/rtime/before_after_alignment.pdf"))
+# ==============================================================================
+# Plotting retention time drift ------------------------------------------------
+# ==============================================================================
+before_after_alignment_path <- file.path(
+  opt$output,
+  "graphs",
+  "rtime",
+  "before_after_alignment.pdf"
+)
+pdf(before_after_alignment_path)
 par(mfrow = c(2, 1))
-# Before retention time alignment
 plot(
   bpcs,
   col = group_colors[MsExperiment::sampleData(xchr6)$group],
   main = "Before retention time alignment"
 )
-
-# After retention time alignment
 plot(
   bpc_after,
   col = group_colors[MsExperiment::sampleData(xchr6)$group],
   main = "After retention time alignment"
 )
 invisible(dev.off())
+cli::cli_alert_success(
+  paste0(
+    "Saved alignment for base peak chromatogram to ",
+    "{.path {before_after_alignment_path}}"
+  )
+)
 
-# Checking for retention drift in IS
-if (check_saved("is_drift_check_before.rds")) {
-  is_drift_check_before <- readRDS(
-    file = paste0(opt$output, "/objects/is_drift_check_before.rds")
+# ==============================================================================
+# Generating alignment base peak chromatograms for internal standards ----------
+# ==============================================================================
+is_drift_check_before_path <- file.path(
+  opt$output,
+  "objects",
+  "is_drift_check_before.rds"
+)
+
+if (file.exists(is_drift_check_before_path)) {
+  is_drift_check_before <- readRDS(file = is_drift_check_before_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported base peak chromatogram from before ",
+      "retention time adjustment for internal standards from: ",
+      "{.path {is_drift_check_before_path}}"
+    )
   )
 } else {
+  cli::cli_alert_info(
+    paste0(
+      "Generating non-retention time adjusted base peak chromatogram ",
+      "for internal standards"
+    )
+  )
   is_drift_check_before <- xchr %>%
     Spectra::filterRt(ranges$rt_range) %>%
     Spectra::filterMzRange(ranges$mz_range) %>%
@@ -135,15 +228,39 @@ if (check_saved("is_drift_check_before.rds")) {
     )
   saveRDS(
     object = is_drift_check_before,
-    file = paste0(opt$output, "/objects/is_drift_check_before.rds")
+    file = is_drift_check_before_path
+  )
+  cli::cli_alert_success(
+    paste0(
+      "Saved non-retention time adjusted base peak chromatogram ",
+      "for internal standards to: ",
+      "{.path {is_drift_check_before_path}}"
+    )
   )
 }
 
-if (check_saved("is_drift_check_after.rds")) {
-  is_drift_check_after <- readRDS(
-    file = paste0(opt$output, "/objects/is_drift_check_after.rds")
+is_drift_check_after_path <- file.path(
+  opt$output,
+  "objects",
+  "is_drift_check_after.rds"
+)
+
+if (file.exists(is_drift_check_after_path)) {
+  is_drift_check_after <- readRDS(file = is_drift_check_after_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported base peak chromatogram from after ",
+      "retention time adjustment for internal standards from: ",
+      "{.path {is_drift_check_after_path}}"
+    )
   )
 } else {
+  cli::cli_alert_info(
+    paste0(
+      "Generating retention time adjusted base peak chromatogram ",
+      "for internal standards"
+    )
+  )
   is_drift_check_after <- xchr6 %>%
     Spectra::filterRt(ranges$rt_range) %>%
     Spectra::filterMzRange(ranges$mz_range) %>%
@@ -153,12 +270,27 @@ if (check_saved("is_drift_check_after.rds")) {
     )
   saveRDS(
     object = is_drift_check_after,
-    file = paste0(opt$output, "/objects/is_drift_check_after.rds")
+    file = is_drift_check_after_path
+  )
+  cli::cli_alert_success(
+    paste0(
+      "Saved retention time adjusted base peak chromatogram ",
+      "for internal standards to: ",
+      "{.path {is_drift_check_after_path}}"
+    )
   )
 }
 
-# Checking the adjustment in the IS peak
-pdf(paste0(opt$output, "/graphs/rtime/is_before_after_alignment.pdf"))
+# ==============================================================================
+# Plotting retention time drift in internal standards --------------------------
+# ==============================================================================
+is_before_after_alignment_path <- file.path(
+  opt$output,
+  "graphs",
+  "rtime",
+  "is_before_after_alignment.pdf"
+)
+pdf(is_before_after_alignment_path)
 par(mfrow = c(1, 2))
 plot(
   is_drift_check_before,
@@ -166,7 +298,6 @@ plot(
   main = "Before:\nRT: 130 - 175 (s)\nM/z range: 226.9 - 228",
   lwd = 3
 )
-
 plot(
   is_drift_check_after,
   col = group_colors[MsExperiment::sampleData(xchr6)$group],
@@ -174,9 +305,35 @@ plot(
   lwd = 3
 )
 invisible(dev.off())
+cli::cli_alert_success(
+  paste0(
+    "Saved alignment for base peak chromatogram ",
+    "of internal standards to: ",
+    "{.path {is_before_after_alignment_path}}"
+  )
+)
 
-# From Sattely paper
-# Retention time correction was performed using the obiwarp method, with a
-# step size of m/z 0.5. Peak alignment was performed with bandwidth
-# of 3 seconds and minimum fraction (minfrac) of samples
-# necessary for a valid group of 0.5.
+# ==============================================================================
+# Plotting anchor peaks before and after adjustment ----------------------------
+# ==============================================================================
+# Before
+anchor_peaks_before_path <- file.path(
+  opt$output,
+  "graphs",
+  "rtime",
+  "anchor_peaks_before.pdf"
+)
+pdf(anchor_peaks_before_path)
+plotAdjustedRtime(xchr6, adjusted = FALSE)
+invisible(dev.off())
+
+# After
+anchor_peaks_after_path <- file.path(
+  opt$output,
+  "graphs",
+  "rtime",
+  "anchor_peaks_after.pdf"
+)
+pdf(anchor_peaks_after_path)
+plotAdjustedRtime(xchr6, adjusted = TRUE)
+invisible(dev.off())
