@@ -8,27 +8,28 @@ intensities_mat <- purrr::map(
   .f = ~ {
     mat <- SummarizedExperiment::assay(res, .x)
 
-    if (grepl("norm", .x)) {
-      list(
-        untransformed = mat,
-        log2 = log2(mat),
-        log2_scale = mat %>%
-          log2() %>%
-          t() %>%
-          scale(center = TRUE, scale = TRUE) %>%
-          t()
-      )
-    } else {
-      list(untransformed = mat)
-    }
+    list(
+      untransformed = mat,
+      log2 = log2(mat),
+      log2_scale = mat %>%
+        log2() %>%
+        t() %>%
+        scale(center = TRUE, scale = TRUE) %>%
+        t()
+    )
   }
+)
+cli::cli_alert_success(
+  paste0( # just took a random one for 'intensities_mat$norm' (shouldn't matter)
+    "Generated dataframes of {.val {names(intensities_mat$norm)}} for: ",
+    "{.val {names(intensities_mat)}}"
+  )
 )
 
 # ==============================================================================
 # Run fits on all normalized assays --------------------------------------------
 # ==============================================================================
 cli::cli_h3("Running linear models using limma")
-
 group_used <- factor(meta$group)
 design <- model.matrix(~ 0 + group_used)
 colnames(design) <- levels(group_used)
@@ -69,6 +70,12 @@ limma_fits <- purrr::map(
     fit <- limma::eBayes(fit, trend = TRUE, robust = TRUE)
   }
 )
+cli::cli_alert_success(
+  paste0(
+    "Ran linear models with limma on: ",
+    "{.val {norm_names}}"
+  )
+)
 
 # ==============================================================================
 # Extract all fits and comparisons ---------------------------------------------
@@ -91,11 +98,19 @@ for (i in norm_names) {
   }
 
   if (nrow(tmp_all_comp) != (nrow(tmp) * length(comparisons))) {
-    cli::cli_abort("The lengths of limma tables is mismatched")
+    cli::cli_abort("The lengths of limma tables are mismatched")
   } else {
     full_limmas[[i]] <- tmp_all_comp
   }
 }
+cli::cli_bullets(
+  c(
+    "v" = paste0(
+      "Extracted all fits for: {.val {norm_names}} for comparisons: "
+    ),
+    setNames(comparisons, rep("i", length(comparisons)))
+  )
+)
 
 # ==============================================================================
 # Map all feature definitions to intensity tibbles -----------------------------
@@ -121,29 +136,73 @@ intensities <- purrr::modify_depth(
 # ==============================================================================
 # Saving intensity information to .csv tables ----------------------------------
 # ==============================================================================
-message("Saving intensity information to tables...")
 for (i in names(intensities)) {
   for (j in names(intensities[[i]])) {
-    readr::write_csv(
-      x = intensities[[i]][[j]],
-      file = paste0(opt$output, "/tables/", i, "_", j, ".csv"),
-      na = "NA",
-      col_names = TRUE,
-      append = FALSE
-    )
+    tmp_file_path <- paste0(opt$output, "/tables/", i, "_", j, ".csv")
+    if (file.exists(tmp_file_path)) {
+      cli::cli_alert_danger(
+        paste0(
+          "{.path {tmp_file_path} already exists. Not overwriting.}"
+        )
+      )
+    } else {
+      readr::write_csv(
+        x = intensities[[i]][[j]],
+        file = tmp_file_path,
+        na = "NA",
+        col_names = TRUE,
+        append = FALSE
+      )
+      cli::cli_alert_success(
+        paste0(
+          "Saved {.val {intensities[[i]][[j]]}} to: ",
+          "{.path {tmp_file_path}}"
+        )
+      )
+    }
   }
 }
+
+cli::cli_alert_success(
+  paste0( # just took a random one for 'intensities_mat$norm' (shouldn't matter)
+    "Dataframes of {.val {names(intensities_mat$norm)}} for: ",
+    "{.val {names(intensities_mat)}} saved in ",
+    "{.path {file.path(opt$output, 'tables')}}"
+  )
+)
 
 # ==============================================================================
 # Saving linear model information to .csv tables -------------------------------
 # ==============================================================================
-message("Saving intensity information to tables...")
 for (i in names(full_limmas)) {
-  readr::write_csv(
-    x = full_limmas[[i]],
-    file = paste0(opt$output, "/tables/limma_", i, ".csv"),
-    na = "NA",
-    col_names = TRUE,
-    append = FALSE
-  )
+  tmp_file_path <- paste0(opt$output, "/tables/limma_", i, ".csv")
+  if (file.exists(tmp_file_path)) {
+    cli::cli_alert_danger(
+      paste0(
+        "{.path {tmp_file_path} already exists. Not overwriting.}"
+      )
+    )
+  } else {
+    readr::write_csv(
+      x = full_limmas[[i]],
+      file = paste0(opt$output, "/tables/limma_", i, ".csv"),
+      na = "NA",
+      col_names = TRUE,
+      append = FALSE
+    )
+
+    cli::cli_alert_success(
+      paste0(
+        "Saved {.val {full_limmas[[i]]}} to: ",
+        "{.path {tmp_file_path}}"
+      )
+    )
+  }
 }
+
+cli::cli_alert_success(
+  paste0(
+    "Dataframes of {.val {names(full_limmas)}} saved in: ",
+    "{.path {file.path(opt$output, 'tables')}}"
+  )
+)

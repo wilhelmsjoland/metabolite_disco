@@ -7,8 +7,16 @@ source("scripts/06_correspondence.R")
 source("scripts/07_gap_filling.R")
 source("scripts/08_filter_features.R")
 source("scripts/09_scaling.R")
-source("scripts/10_pca.R")
-source("scripts/11_limma.R")
+source("scripts/10_limma.R")
+source("scripts/11_pca.R")
+
+# TODO
+# Implement MsFeatures - grouping of features!!!!
+# https://bioconductor.org/packages/3.22/bioc/manuals/MsFeatures/man/MsFeatures.pdf
+# https://bioconductor.org/packages/3.22/bioc/vignettes/MsFeatures/inst/doc/MsFeatures.html
+# https://sneumann.github.io/xcms/articles/LC-MS-feature-grouping.html
+# Try CAMERA AGAIN!!!!!!!!!!!!!!!!!!
+
 # TODO 03_internal_standard.R
 # Isn't the last step of creating a new chromatogram unnecessary?
 # Can't I just use on of the chromatograms I used before?
