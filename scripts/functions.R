@@ -1008,7 +1008,6 @@ pred_biot <- function(
   ## 3. For each biotransformation, find all matching peak pairs
   if (parallel && n_trans > 1) {
     # Set up future plan
-    library(future.apply)
     oplan <- future::plan(future::multisession, workers = n_workers)
     on.exit(future::plan(oplan), add = TRUE)
 

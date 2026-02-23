@@ -1,31 +1,43 @@
+cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# m/z predictions subset -------------------------------------------------------
+# Fetching potential glycoside/aglycone features -------------------------------
 # ==============================================================================
-message(
-  "Predicting potential biotransformations based on:\n\t",
-  "Biotransformation database: ", opt$biotransf_file, # + the other kegg stuff
-  "\n\tppm: ", opt$ppm_match,
-  sep = ""
+cli::cli_h3(
+  paste0(
+    "Generating biotransformation predictions from ",
+    "mass-to-charge ratio derived mass estimations"
+  )
 )
 
 # Checking specifically for the glycoside anad aglycone m/zs
 glycoside <- MetaboCoreUtils::mass2mz(
-  MetaboCoreUtils::calculateMass(opt$glycoside)[[1]],
-  adduct = MetaboCoreUtils::adducts(polarity = opt$polarity)) %>%
+  x = MetaboCoreUtils::calculateMass(opt$glycoside)[[1]],
+  adduct = MetaboCoreUtils::adducts(polarity = opt$polarity)
+) %>%
   t() %>%
-  tibble::as_tibble(., rownames = "adduct") %>%
+  as.data.frame() %>%
+  tibble::as_tibble(
+    x = .,
+    rownames = "adduct",
+    .name_repair = "universal_quiet"
+  ) %>%
   dplyr::rename("glycoside" = V1)
 
 aglycone <- MetaboCoreUtils::mass2mz(
-  MetaboCoreUtils::calculateMass(opt$aglycone)[[1]],
-  adduct = MetaboCoreUtils::adducts(polarity = opt$polarity)) %>%
+  x = MetaboCoreUtils::calculateMass(opt$aglycone)[[1]],
+  adduct = MetaboCoreUtils::adducts(polarity = opt$polarity)
+) %>%
   t() %>%
-  tibble::as_tibble(., rownames = "adduct") %>%
+  as.data.frame() %>%
+  tibble::as_tibble(
+    x = .,
+    rownames = "adduct",
+    .name_repair = "universal_quiet"
+  ) %>%
   dplyr::rename("aglycone" = V1)
 
 # This is okay for now since it's only looking for the glycone and aglycone
-# this functions sucks though
-range_tol <- ppm_to_num(2000) # used to be glycoside_ppm at 2000
+range_tol <- 0.002 # used to be glycoside_ppm at 2000
 
 gly_agly_adducts <- glycoside %>%
   dplyr::left_join(
@@ -62,21 +74,62 @@ for (i in seq_along(gly_agly_adducts)) {
 }
 
 pot_glycosides <- unique(gly_agly$feature)
-subset_matched_diffs <- pred_biot(
-  data = possible_adducts_signif,
-  biotransf_data = bio_transf2, # bio_transf
-  tolerance_ppm = opt$ppm_match,
-  features_of_interest = pot_glycosides,
-  parallel = TRUE
-) %>%
-  dplyr::mutate(
-    pair = purrr::map2(
-      .x = feat1,
-      .y = feat2,
-      .f = c
-    ),
-    obs_diff = abs(obs_delta_mass - delta_mass)
+cli::cli_alert_info(
+  paste0(
+    "Potential glycosides/aglycones",
+    "{.val {pot_glycosides}}"
   )
+)
+
+# ==============================================================================
+# m/z predictions subset -------------------------------------------------------
+# ==============================================================================
+cli::cli_bullets(
+  c(
+    "i" = "Predicting subset of potential biotransformations based on: ",
+    "i" = "\tdatabase: {.val {opt$biotransf_file}}", # + the other kegg stuff
+    "i" = "\tppm: {.val {opt$ppm_match}}"
+  )
+)
+
+subset_matched_diffs_path <- file.path(
+  opt$output,
+  "objects",
+  "subset_matched_diffs.rds"
+)
+
+if (file.exists(subset_matched_diffs_path)) {
+  subset_matched_diffs <- readRDS(subset_matched_diffs_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported subsetted m/z predictions object from: ",
+      "{.path {subset_matched_diffs_path}}"
+    )
+  )
+} else {
+  cli::cli_alert_info("Predicting subsetted m/zs")
+  subset_matched_diffs <- pred_biot(
+    data = possible_adducts_signif,
+    biotransf_data = bio_transf2,
+    tolerance_ppm = opt$ppm_match,
+    features_of_interest = pot_glycosides,
+    parallel = TRUE
+  ) %>%
+    dplyr::mutate(
+      pair = purrr::map2(
+        .x = feat1,
+        .y = feat2,
+        .f = c
+      ),
+      obs_diff = abs(obs_delta_mass - delta_mass)
+    )
+  cli::cli_alert_success(
+    paste0(
+      "Saved subsetted m/z predictions to: ",
+      "{.path {subset_matched_diffs_path}}"
+    )
+  )
+}
 
 glycoside_pairs <- unique(
   c(
@@ -89,25 +142,49 @@ glycoside_pairs <- unique(
 # m/z predictions all ----------------------------------------------------------
 # ==============================================================================
 
+cli::cli_bullets(
+  c(
+    "i" = "Predicting all potential biotransformations based on: ",
+    "i" = "\tdatabase: {.val {opt$biotransf_file}}", # + the other kegg stuff
+    "i" = "\tppm: {.val {opt$ppm_match}}"
+  )
+)
 # Turn this around
-if (file.exists(file.path(opt$output, "objects", "matched_diffs.rds"))) {
-  matched_diffs <- readRDS(
-    file = file.path(opt$output, "objects", "matched_diffs.rds")
+matched_diffs_path <- file.path(
+  opt$output,
+  "objects",
+  "matched_diffs.rds"
+)
+
+if (file.exists(matched_diffs_path)) {
+  matched_diffs <- readRDS(file = matched_diffs_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported m/z predictions object from: ",
+      "{.path {matched_diffs_path}}"
+    )
   )
 } else {
+  cli::cli_alert_info("Predicting m/zs")
   matched_diffs <- pred_biot(
     data = possible_adducts_signif,
     biotransf_data = bio_transf2,
-    tolerance_ppm = opt$ppm_match, # try 5 and 10, # 15 too much
+    tolerance_ppm = opt$ppm_match,
     parallel = TRUE
   )
   saveRDS(
     object = matched_diffs,
     file = paste0(opt$output, "/objects/matched_diffs.rds")
   )
+  cli::cli_alert_success(
+    paste0(
+      "Saved subsetted m/z predictions to: ",
+      "{.path {matched_diffs_path}}"
+    )
+  )
 }
 
-matched_diffs2 <- matched_diffs %>%
+matched_diffs <- matched_diffs %>%
   dplyr::filter(
     dplyr::if_all(
       .cols = dplyr::all_of(c("mass1", "mass2")),
@@ -115,19 +192,24 @@ matched_diffs2 <- matched_diffs %>%
     )
   ) %>%
   dplyr::filter(feat1 != feat2)
-  # Too slow just do for a few when filtered
-  # dplyr::mutate(
-  #   pair = purrr::map2(
-  #     .x = feat1,
-  #     .y = feat2,
-  #     .f = c
-  #   ),
-  #   obs_diff = abs(obs_delta_mass - delta_mass)
-  # )
 
-message("Writing predictions to table...")
+cli::cli_alert_success(
+  paste0(
+    "Filtered full m/z predictions"
+  )
+)
+
 # TODO This needs filtering first
-# readr::write_csv(
-#   x = matched_diffs2,
-#   file = file.path(opt$output, "tables", "matched_diffs.csv")
+# cli::cli_alert_info("Writing predictions to table")
+# match_diffs_table_path <- file.path(
+#   opt$output,
+#   "tables",
+#   "matched_diffs.csv"
+# )
+# readr::write_csv(x = matched_diffs, file = match_diffs_table_path)
+# cli::cli_alert_success(
+#   paste0(
+#     "Wrote predictions to: ",
+#     "{.val {match_diffs_table_path}}"
+#   )
 # )

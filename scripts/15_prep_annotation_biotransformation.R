@@ -6,7 +6,11 @@ cli::cli_h3("Preparing to search for potential biotransformations")
 cli::cli_alert_info("Expanding possible adducts")
 
 xchr9_defs <- xcms::featureDefinitions(xchr9) %>%
-  tibble::as_tibble(., rownames = "feature")
+  tibble::as_tibble(
+    x =.,
+    rownames = "feature",
+    .name_repair = "universal"
+  )
 
 xchr9_mzs <- xchr9_defs$mzmed
 names(xchr9_mzs) <- xchr9_defs$feature

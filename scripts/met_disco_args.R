@@ -86,7 +86,7 @@ option_list <- list(
   optparse::make_option(
     c("--ppm_match"),
     type = "double",
-    default = 10,
+    default = 5, # 10
     help = "ppm tolerance for matching [default: %default]"
   ),
   optparse::make_option(
@@ -160,3 +160,16 @@ opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
 setwd(opt$wd)
 set.seed(opt$seed)
 register_parallel(opt$cores)
+
+# ==============================================================================
+# Parse validity of options in optparse list -----------------------------------
+# ==============================================================================
+valid_gap_fill <- c("norm", "norm_fill", "norm_fill_imp")
+if (!opt$gap_filling %in% valid_gap_fill) {
+  cli::cli_abort(
+    paste0(
+      "--gap_filling must be one of: ",
+      paste(valid_gap_fill, collapse = ", ")
+    )
+  )
+}

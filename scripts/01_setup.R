@@ -51,6 +51,7 @@ suppressWarnings(
     library(patchwork)
     library(AnnotationHub)
     library(optparse)
+    library(future.apply)
 
     # for examine_biotransformations_hits.R
     library(ComplexHeatmap)

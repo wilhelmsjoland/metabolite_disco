@@ -41,6 +41,6 @@ matches <- MetaboAnnotation::matchValues(
 )
 
 anno <- MetaboAnnotation::matchedData(matches) %>%
-  tibble::as_tibble(., rownames = "feature") %>%
+  tibble::as_tibble(x = ., rownames = "feature") %>%
   dplyr::mutate(abs_score = abs(score)) %>%
   dplyr::arrange(abs_score)
