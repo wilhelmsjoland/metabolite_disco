@@ -40,7 +40,7 @@ na_feat_samp_n <- featureValues(xchr7) %>%
   tibble::as_tibble(rownames = "feature") %>%
   dplyr::filter(
     dplyr::if_any(
-      .cols = dplyr::all_of(contains(".mzML")), 
+      .cols = dplyr::contains(".mzML"),
       .fns = ~ is.na(.)
     )
   ) %>%

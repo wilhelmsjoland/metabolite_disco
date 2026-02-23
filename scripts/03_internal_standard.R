@@ -1,5 +1,4 @@
 cli::cli_h1(basename(this.path::this.path()))
-
 # ==============================================================================
 # Inspect internal standard prior to peak-calling ------------------------------
 # Define the rt and m/z range of the peak area ---------------------------------

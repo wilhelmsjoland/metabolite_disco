@@ -66,7 +66,7 @@ biot.sim.final <- mol_similarity(
   fingerprint = "circular",
   circular_type = "ECFP6",
   method = "tanimoto"
-) 
+)
 
 biot.sim.final %>%
   dplyr::left_join(
