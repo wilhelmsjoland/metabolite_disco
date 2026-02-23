@@ -9,6 +9,11 @@ source("scripts/08_filter_features.R")
 source("scripts/09_scaling.R")
 source("scripts/10_limma.R")
 source("scripts/11_pca.R")
+source("scripts/12_volcano.R")
+source("scripts/13_upset.R")
+
+# TODO - met_disco_args
+# Create a switch statement for "--gap_filling"
 
 # TODO
 # Implement MsFeatures - grouping of features!!!!
@@ -51,12 +56,11 @@ source("scripts/11_pca.R")
 # x = .x, y = res_def, not opposite
 # TODO 12_volcano.R
 # Add limma_res <- full_limmas[["norm_fill_imp"]] to optparse
+# this is also used in 13_upset.R
 
 # TODO
 # Anything under has not been formatted or fixed yet.
 
-# source("scripts/12_volcano.R")
-# source("scripts/13_upset.R")
 # source("scripts/14_intersecting_features.R")
 # source("scripts/15_prep_annotation_biotransformation.R")
 # source("scripts/16_mz_predictions.R")

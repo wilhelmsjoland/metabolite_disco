@@ -143,6 +143,15 @@ option_list <- list(
     type = "double",
     default = 3, # 6
     help = "Beta snr threshold [default: %default]."
+  ),
+  optparse::make_option(
+    c("--gap_filling"),
+    type = "character",
+    default = "norm_fill_imp",
+    help = paste0(
+      "Can choose between 'norm', 'norm_fill', 'norm_fill_imp'",
+      " [default: %default]."
+    )
   )
 )
 

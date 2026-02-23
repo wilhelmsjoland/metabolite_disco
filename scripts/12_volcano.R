@@ -4,8 +4,9 @@ cli::cli_h1(basename(this.path::this.path()))
 # Generating volcano plots -----------------------------------------------------
 # ==============================================================================
 cli::cli_h3("Generating volcano plots")
-# Add this to optparse
-limma_res <- full_limmas[["norm_fill_imp"]]
+
+# From optparse
+full_limma <- full_limmas[[opt$gap_filling]]
 
 volc_plot_list <- list()
 for (i in comparisons) {
@@ -18,7 +19,7 @@ for (i in comparisons) {
       )
     )
   } else {
-    tmp <- limma_res %>%
+    tmp <- full_limma %>%
       dplyr::filter(contrast == i)
 
     tmp_tib <- tmp %>%
@@ -109,7 +110,7 @@ for (i in comparisons) {
 
 cli::cli_alert_success(
   paste0(
-    "Volcano plots saved in: ",
+    "Volcano plots for {.val {opt$gap_filling}} saved in: ",
     "{.path {file.path(opt$output, '/graphs/volcano/')}}"
   )
 )
