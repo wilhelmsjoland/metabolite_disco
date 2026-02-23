@@ -11,6 +11,7 @@ source("scripts/10_limma.R")
 source("scripts/11_pca.R")
 source("scripts/12_volcano.R")
 source("scripts/13_upset.R")
+source("scripts/14_intersecting_features.R")
 
 # TODO - met_disco_args
 # Create a switch statement for "--gap_filling"
@@ -57,11 +58,12 @@ source("scripts/13_upset.R")
 # TODO 12_volcano.R
 # Add limma_res <- full_limmas[["norm_fill_imp"]] to optparse
 # this is also used in 13_upset.R
+# TODO
+# Have a temporary thing in 14_intersecting_features.R
+# Remove later.....
 
 # TODO
 # Anything under has not been formatted or fixed yet.
-
-# source("scripts/14_intersecting_features.R")
 # source("scripts/15_prep_annotation_biotransformation.R")
 # source("scripts/16_mz_predictions.R")
 # source("scripts/17_annotation.R")

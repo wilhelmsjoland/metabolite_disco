@@ -1,19 +1,16 @@
+cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# Find intersecting features ---------------------------------------------------
+# Finding intersecting features ------------------------------------------------
 # ==============================================================================
-message(
-  "===========================================================================",
-  "\n",
-  "Finding intersecting features ---------------------------------------------",
-  "\n",
-  "==========================================================================="
-)
+cli::cli_h3("Finding intersecting features")
 
 # Create all comparisons
 combinations <- unlist(
   lapply(
     X = seq_along(comparisons),
-    FUN = function(x) combn(comparisons, x, simplify = FALSE)
+    FUN = function(x) {
+      combn(comparisons, x, simplify = FALSE)
+    }
   ),
   recursive = FALSE
 )
