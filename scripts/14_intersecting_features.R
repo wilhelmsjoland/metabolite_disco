@@ -27,6 +27,11 @@ for (i in seq_along(combinations)) {
     stringr::str_flatten(combinations[[i]], collapse = "*")
   ]] <- tmp_intersect_feats$feature
 }
+cli::cli_alert_success(
+  paste0(
+    "Generated intersecting features"
+  )
+)
 
 # Only temporary
 upset_comp <- upset_comps[[

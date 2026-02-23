@@ -1,7 +1,10 @@
+cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# Prepare biotransformation checking -------------------------------------------
+# Preparing to search for potential biotransformations -------------------------
 # ==============================================================================
-message("Expanding possible adducts...")
+cli::cli_h3("Preparing to search for potential biotransformations")
+cli::cli_alert_info("Expanding possible adducts")
+
 xchr9_defs <- xcms::featureDefinitions(xchr9) %>%
   tibble::as_tibble(., rownames = "feature")
 
@@ -25,22 +28,28 @@ possible_adducts <- MetaboCoreUtils::mz2mass(
   )
 
 if (nrow(xchr9_defs) * 17 == nrow(possible_adducts)) {
-  message("Adducts expanded")
+  cli::cli_alert_success("Adducts expanded")
 } else {
-  warning("Adducts did not correctly expanded")
+  cli::cli_alert_danger("Adducts did not correctly expanded")
 }
 
-message("Importing biotransformation file...")
+cli::cli_alert_info("Importing biotransformation file")
 bio_transf <- import_biotransform_meta(
   file = paste0(opt$data_path, "/", opt$biotransf_file)
 )
+cli::cli_alert_success("Imported biotransformation file")
 
 if (!exists("biotransf_append")) {
+  cli::cli_alert_info(
+    paste0(
+      "'biotransf_append' doesn't exist, generating"
+    )
+  )
   data <- readr::read_tsv(
     "scripts/search_compounds/output/rpairs.tsv",
     show_col_types = FALSE
   ) %>%
-  dplyr::mutate(rpair_num = paste0("RP", dplyr::row_number()))
+    dplyr::mutate(rpair_num = paste0("RP", dplyr::row_number()))
 
   df <- data %>%
     tidyr::drop_na(formula1, formula2) %>%
@@ -107,7 +116,7 @@ if (!exists("biotransf_append")) {
     # subtracted
     tidyr::drop_na(delta_mass)
 } else {
-  message("'biotransf_append' already exists.")
+  cli::cli_alert_info("'biotransf_append' already exists, using it")
 }
 
 bio_transf2 <- dplyr::bind_rows(

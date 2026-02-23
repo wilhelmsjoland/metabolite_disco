@@ -12,6 +12,7 @@ source("scripts/11_pca.R")
 source("scripts/12_volcano.R")
 source("scripts/13_upset.R")
 source("scripts/14_intersecting_features.R")
+source("scripts/15_prep_annotation_biotransformation.R")
 
 # TODO - met_disco_args
 # Create a switch statement for "--gap_filling"
@@ -61,10 +62,12 @@ source("scripts/14_intersecting_features.R")
 # TODO
 # Have a temporary thing in 14_intersecting_features.R
 # Remove later.....
+# TODO 15_prep_annotation... .R
+# search_compound is sourced from within the file.... -> FIX THIS
 
 # TODO
 # Anything under has not been formatted or fixed yet.
-# source("scripts/15_prep_annotation_biotransformation.R")
+# 
 # source("scripts/16_mz_predictions.R")
 # source("scripts/17_annotation.R")
 # source("scripts/18_biotransformer.R")
