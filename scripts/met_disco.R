@@ -43,21 +43,18 @@ source("scripts/11_pca.R")
 # - necessary for a valid group of 0.5.
 # TODO - 08
 # Add control flow for using filtering in 08_filter_features or not
-# TODO
-# Fix the limma saving of tests etc.
-# TODO 10
-# the pcas are on the imputed values for now!!!!!!!!! - FIX
-# TODO 10-11
-# Move 11 before 10 so the pcas aleady have the calculated 3x3
-# list of tibbles - untransformed, log2, log2+scaled
-# then i can remove the first part of 10_pca.R
+# TODO 11_pca
+# the pcas are on the imputed values for now!
+# TODO 10_limma
+# Could make p.adjust.method a choice in optparse
+# perhaps change the ordering of the left_joins in this script.
+# x = .x, y = res_def, not opposite
+# TODO 12_volcano.R
+# Add limma_res <- full_limmas[["norm_fill_imp"]] to optparse
 
 # TODO
 # Anything under has not been formatted or fixed yet.
-# TODO - 11_limma
-# Write out what has been done clearly!!
-# TODO
-# Could make p.adjust.method a choice in optparse
+
 # source("scripts/12_volcano.R")
 # source("scripts/13_upset.R")
 # source("scripts/14_intersecting_features.R")

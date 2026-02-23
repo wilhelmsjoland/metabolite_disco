@@ -115,7 +115,6 @@ cli::cli_bullets(
 # ==============================================================================
 # Map all feature definitions to intensity tibbles -----------------------------
 # ==============================================================================
-# Don't map the limmas to the definitions as it isn't needed
 res_defs <- tibble::as_tibble(
   x = SummarizedExperiment::rowData(res),
   rownames = "feature"
@@ -127,7 +126,27 @@ intensities <- purrr::modify_depth(
   .f = ~ {
     res_defs %>%
       dplyr::left_join(
-        y = tibble::as_tibble(.x, rownames = "feature"),
+        x = .,
+        y = tibble::as_tibble(
+          x = .x,
+          rownames = "feature"
+        ),
+        by = "feature"
+      )
+  }
+)
+
+# ==============================================================================
+# Map all feature definitions to limma tibbles -----------------------------
+# ==============================================================================
+full_limmas <- map2(
+  .x = full_limmas,
+  .y = names(full_limmas),
+  .f = ~ {
+    .x %>%
+      dplyr::left_join(
+        x = .,
+        y = res_defs,
         by = "feature"
       )
   }
@@ -155,7 +174,7 @@ for (i in names(intensities)) {
       )
       cli::cli_alert_success(
         paste0(
-          "Saved {.val {intensities[[i]][[j]]}} to: ",
+          "Saved {.val {i}_{j}} to: ",
           "{.path {tmp_file_path}}"
         )
       )
@@ -193,7 +212,7 @@ for (i in names(full_limmas)) {
 
     cli::cli_alert_success(
       paste0(
-        "Saved {.val {full_limmas[[i]]}} to: ",
+        "Saved {.val limma_{i}} to: ",
         "{.path {tmp_file_path}}"
       )
     )
