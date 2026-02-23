@@ -5,12 +5,21 @@ cli::cli_h1(basename(this.path::this.path()))
 cli::cli_h3("Generating principal components analyses")
 
 # Data before normalization
-vals <- SummarizedExperiment::assay(res, "raw_filled") %>%
+vals <- SummarizedExperiment::assay(res, "raw_fill_imp") %>%
   log2() %>%
   t() %>%
   scale(center = TRUE, scale = TRUE) %>%
   as.matrix(.)
 
+# Data after normalization
+vals_norm <- SummarizedExperiment::assay(res, "norm_fill_imp") %>%
+  log2() %>%
+  t() %>%
+  scale(center = TRUE, scale = TRUE) %>%
+  as.matrix(.)
+# ==============================================================================
+# PCA - PC1 & PC2 - before and after technical normalization -------------------
+# ==============================================================================
 pca_res <- prcomp(vals, scale = FALSE, center = FALSE)
 pca_raw <- plot_pca(
   prcomp_res = pca_res,
@@ -19,13 +28,6 @@ pca_raw <- plot_pca(
   y = PC2
 ) +
   ggplot2::labs(title = "Before median scaling")
-
-# Data after normalization
-vals_norm <- SummarizedExperiment::assay(res, "norm_filled") %>%
-  log2() %>%
-  t() %>%
-  scale(center = TRUE, scale = TRUE) %>%
-  as.matrix(.)
 
 pca_res_norm <- prcomp(vals_norm, scale = FALSE, center = FALSE)
 pca_adj <- plot_pca(

@@ -8,7 +8,7 @@ source("scripts/07_gap_filling.R")
 source("scripts/08_filter_features.R")
 source("scripts/09_scaling.R")
 source("scripts/10_pca.R")
-
+source("scripts/11_limma.R")
 # TODO 03_internal_standard.R
 # Isn't the last step of creating a new chromatogram unnecessary?
 # Can't I just use on of the chromatograms I used before?
@@ -37,24 +37,26 @@ source("scripts/10_pca.R")
 # Add control flow for using filtering in 08_filter_features or not
 # TODO
 # Fix the limma saving of tests etc.
+# TODO 10
+# the pcas are on the imputed values for now!!!!!!!!! - FIX
+# TODO 10-11
+# Move 11 before 10 so the pcas aleady have the calculated 3x3
+# list of tibbles - untransformed, log2, log2+scaled
+# then i can remove the first part of 10_pca.R
 
 # TODO
 # Anything under has not been formatted or fixed yet.
-# TODO
-# Run significance testing on each separate assay
-# log2() on data prior to limma!
-# do not scale prior to limma!
+# TODO - 11_limma
 # Write out what has been done clearly!!
 # TODO
 # Could make p.adjust.method a choice in optparse
-source("scripts/11_limma.R")
-source("scripts/12_volcano.R")
-source("scripts/13_upset.R")
-source("scripts/14_intersecting_features.R")
-source("scripts/15_prep_annotation_biotransformation.R")
-source("scripts/16_mz_predictions.R")
-source("scripts/17_annotation.R")
-source("scripts/18_biotransformer.R")
-source("scripts/19_molecular_similarity.R")
-source("scripts/20_produce_chromatograms.R")
-source("scripts/21_plotting_features.R")
+# source("scripts/12_volcano.R")
+# source("scripts/13_upset.R")
+# source("scripts/14_intersecting_features.R")
+# source("scripts/15_prep_annotation_biotransformation.R")
+# source("scripts/16_mz_predictions.R")
+# source("scripts/17_annotation.R")
+# source("scripts/18_biotransformer.R")
+# source("scripts/19_molecular_similarity.R")
+# source("scripts/20_produce_chromatograms.R")
+# source("scripts/21_plotting_features.R")

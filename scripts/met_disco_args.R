@@ -12,7 +12,7 @@ option_list <- list(
     c("--biot_dir"),
     type = "character",
     default = paste0(
-      "C:/Users/wilhelm/Documents/MEGA/", 
+      "C:/Users/wilhelm/Documents/MEGA/",
       "01_juniper/01_arbete/01_projekt/03_psm/biotransformer3.0jar"
     ),
     help = "Biotransformer directory [default: %default]"
@@ -114,9 +114,9 @@ option_list <- list(
   optparse::make_option(
     c("-l", "--missingness"),
     type = "integer",
-    default = 70, # 100
+    default = 50, # 100 # 70 # 50 is okay since it's per group with f
     help = paste0(
-      "Filter features based on missingness from 0 - 100 percent",
+      "Filter features based on proportion missingness per group (0 - 100)",
       " [default: %default]."
     )
   ),

@@ -1,6 +1,31 @@
 cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
-# Linear models using limma ----------------------------------------------------
+# For each tibble create 1. untransformed, 2. log2, 3. log2 & scaled -----------
+# ==============================================================================
+all_names <- setNames(assay_names, assay_names)
+intensities_mat <- purrr::map(
+  .x = all_names,
+  .f = ~ {
+    mat <- SummarizedExperiment::assay(res, .x)
+
+    if (grepl("norm", .x)) {
+      list(
+        untransformed = mat,
+        log2 = log2(mat),
+        log2_scale = mat %>%
+          log2() %>%
+          t() %>%
+          scale(center = TRUE, scale = TRUE) %>%
+          t()
+      )
+    } else {
+      list(untransformed = mat)
+    }
+  }
+)
+
+# ==============================================================================
+# Run fits on all normalized assays --------------------------------------------
 # ==============================================================================
 cli::cli_h3("Running linear models using limma")
 
@@ -11,9 +36,10 @@ colnames(design) <- levels(group_used)
 comparisons <- combn(
   x = levels(group_used),
   m = 2,
-  simplify = TRUE) %>%
-  t(.) %>%
-  as.data.frame(.) %>%
+  simplify = TRUE
+) %>%
+  t() %>%
+  as.data.frame() %>%
   tibble::as_tibble(
     x = .,
     rownames = "rownumber",
@@ -27,78 +53,95 @@ contrasts_mat <- limma::makeContrasts(
   levels = design
 )
 
-fit <- limma::lmFit(
-  log2(SummarizedExperiment::assay(res, "norm")), # don't use imputed
-  design = design
+norm_names <- assay_names[grepl("norm", assay_names)]
+norm_names <- setNames(norm_names, norm_names)
+
+# Do not test raws since they are not median-scaled
+# which is used for removing technical variation
+limma_fits <- purrr::map(
+  .x = norm_names,
+  .f = ~ {
+    fit <- limma::lmFit(
+      object = intensities_mat[[.x]][["log2"]],
+      design = design
+    )
+    fit <- limma::contrasts.fit(fit, contrasts_mat)
+    fit <- limma::eBayes(fit, trend = TRUE, robust = TRUE)
+  }
 )
-fit <- limma::contrasts.fit(fit, contrasts_mat)
-fit <- limma::eBayes(fit, trend = TRUE, robust = TRUE)
-
-limma_res <- list()
-for (i in comparisons) {
-  tmp <- limma::topTable(
-    fit = fit,
-    coef = i,
-    number = Inf,
-    adjust.method = "BH",
-    sort.by = "none"
-  ) %>%
-    tibble::as_tibble(., rownames = "feature") %>%
-    dplyr::mutate(contrast = i) %>%
-    dplyr::left_join(
-      x = .,
-      y = SummarizedExperiment::rowData(res) %>%
-        tibble::as_tibble(., rownames = "feature"),
-      by = "feature"
-    )
-  limma_res[[i]] <- tmp
-}
 
 # ==============================================================================
-# Saving limma results to tables -----------------------------------------------
+# Extract all fits and comparisons ---------------------------------------------
 # ==============================================================================
-full_limma <- tibble::tibble()
-for (i in names(limma_res)) {
-  tmp_tib <- limma_res[[i]]
-  full_limma <- dplyr::bind_rows(full_limma, tmp_tib)
-}
+full_limmas <- list()
+for (i in norm_names) {
+  tmp_all_comp <- tibble::tibble()
+  for (j in comparisons) {
+    tmp <- limma::topTable(
+      fit = limma_fits[[i]],
+      coef = j,
+      number = Inf,
+      adjust.method = "BH",
+      sort.by = "none"
+    ) %>%
+      tibble::as_tibble(., rownames = "feature") %>%
+      dplyr::mutate(contrast = j)
 
-message("Saving intensity information to tables...")
-# Creating tables of all output data and saving to tables
-# TODO Fix this dumb logic here or use as witch statement?
-assay_names <- names(SummarizedExperiment::assays(res))
-for (i in assay_names) {
-  if (i %in% c("norm", "norm_filled")) {
-    full_data <- dplyr::left_join(
-      x = SummarizedExperiment::rowData(res) %>%
-        tibble::as_tibble(., rownames = "feature"),
-      y = SummarizedExperiment::assay(res, i) %>%
-        log2() %>%
-        t() %>%
-        scale(., center = TRUE, scale = TRUE) %>%
-        t() %>%
-        tibble::as_tibble(., rownames = "feature"),
-      by = "feature"
-    )
-  } else if (i %in% c("raw", "raw_filled")) {
-    full_data <- dplyr::left_join(
-      x = SummarizedExperiment::rowData(res) %>%
-        tibble::as_tibble(., rownames = "feature"),
-      y = SummarizedExperiment::assay(res, i) %>%
-        tibble::as_tibble(., rownames = "feature"),
-      by = "feature"
-    )
+    tmp_all_comp <- dplyr::bind_rows(tmp_all_comp, tmp)
   }
 
-  assign(
-    x = paste0("full_", i),
-    value = full_data,
-    envir = .GlobalEnv
-  )
+  if (nrow(tmp_all_comp) != (nrow(tmp) * length(comparisons))) {
+    cli::cli_abort("The lengths of limma tables is mismatched")
+  } else {
+    full_limmas[[i]] <- tmp_all_comp
+  }
+}
 
+# ==============================================================================
+# Map all feature definitions to intensity tibbles -----------------------------
+# ==============================================================================
+# Don't map the limmas to the definitions as it isn't needed
+res_defs <- tibble::as_tibble(
+  x = SummarizedExperiment::rowData(res),
+  rownames = "feature"
+)
+
+intensities <- purrr::modify_depth(
+  .x = intensities_mat,
+  .depth = 2,
+  .f = ~ {
+    res_defs %>%
+      dplyr::left_join(
+        y = tibble::as_tibble(.x, rownames = "feature"),
+        by = "feature"
+      )
+  }
+)
+
+# ==============================================================================
+# Saving intensity information to .csv tables ----------------------------------
+# ==============================================================================
+message("Saving intensity information to tables...")
+for (i in names(intensities)) {
+  for (j in names(intensities[[i]])) {
+    readr::write_csv(
+      x = intensities[[i]][[j]],
+      file = paste0(opt$output, "/tables/", i, "_", j, ".csv"),
+      na = "NA",
+      col_names = TRUE,
+      append = FALSE
+    )
+  }
+}
+
+# ==============================================================================
+# Saving linear model information to .csv tables -------------------------------
+# ==============================================================================
+message("Saving intensity information to tables...")
+for (i in names(full_limmas)) {
   readr::write_csv(
-    x = full_data,
-    file = paste0(opt$output, "/tables/full_", i, ".csv"),
+    x = full_limmas[[i]],
+    file = paste0(opt$output, "/tables/limma_", i, ".csv"),
     na = "NA",
     col_names = TRUE,
     append = FALSE
