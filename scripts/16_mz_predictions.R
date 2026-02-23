@@ -42,7 +42,7 @@ gly_agly_adducts <- glycoside %>%
 
 gly_agly <- tibble::tibble()
 for (i in seq_along(gly_agly_adducts)) {
-  tmp <- full_raw_filled %>%
+  tmp <- intensities$raw_fill_imp$untransformed %>%
     dplyr::filter(
       dplyr::between(
         mzmed,

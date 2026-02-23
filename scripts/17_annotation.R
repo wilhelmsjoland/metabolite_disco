@@ -1,7 +1,7 @@
 # ==============================================================================
 # Matching m/z's against databases -------------------------------------------
 # ==============================================================================
-peaks_used <- full_norm_filled %>%
+peaks_used <- intensities$norm_fill_imp$untransformed %>%
   dplyr::select(feature, mzmed, rtmed) %>%
   dplyr::rename("mz" = "mzmed", "rtime" = "rtmed") %>%
   # All comps with at least one significant difference

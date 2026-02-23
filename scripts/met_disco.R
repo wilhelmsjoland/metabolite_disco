@@ -50,15 +50,10 @@ source("scripts/15_prep_annotation_biotransformation.R")
 # - necessary for a valid group of 0.5.
 # TODO - 08
 # Add control flow for using filtering in 08_filter_features or not
-# TODO 11_pca
-# the pcas are on the imputed values for now!
 # TODO 10_limma
 # Could make p.adjust.method a choice in optparse
 # perhaps change the ordering of the left_joins in this script.
 # x = .x, y = res_def, not opposite
-# TODO 12_volcano.R
-# Add limma_res <- full_limmas[["norm_fill_imp"]] to optparse
-# this is also used in 13_upset.R
 # TODO
 # Have a temporary thing in 14_intersecting_features.R
 # Remove later.....
@@ -67,7 +62,6 @@ source("scripts/15_prep_annotation_biotransformation.R")
 
 # TODO
 # Anything under has not been formatted or fixed yet.
-# 
 # source("scripts/16_mz_predictions.R")
 # source("scripts/17_annotation.R")
 # source("scripts/18_biotransformer.R")

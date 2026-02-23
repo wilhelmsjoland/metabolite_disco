@@ -79,7 +79,7 @@ if (!exists("biotransf_append")) {
     dplyr::ungroup() %>%
     dplyr::relocate(rpair_num, .before = "entry") %>%
     dplyr::mutate(
-      across(
+      dplyr::across(
         .cols = tidyselect::all_of(c("name1", "name2")),
         .fns = ~ stringr::str_trim(stringr::str_extract(., "^[^;]+"))
       )
