@@ -10,41 +10,70 @@ plot_twenty_feats(
 )
 cli::cli_progress_done()
 
-
-
-message("Writing feature chromatograms and intensity boxplots...")
-# feats_to_plot <- sort(unique(all_sig_diff))
-# for (i in feats_to_plot) {
-#   ft_p <- plot_feat_chrom_int(
-#     feature_chrom = feature_chrs,
-#     feature = i,
-#     method = "sum",
-#     value = "into",
-#     filled = TRUE,
-#     missing = 0,
-#     ms_level = 1,
-#     save_loc = "/graphs/feature_chromatogram_intensity/",
-#     device = "pdf",
-#     feat_pairs = FALSE
-#   )
-# }
-
-message("Plotting feature pairs in filtered biotransformations...")
 # TODO
-# FIX this
-# for (i in seq_len(nrow(xchr9_filt$biot_filt_sig_features_tib))) {
-#   ft_pair_p <- plot_feature_pairs(
-#     feature_chrom = feature_chrs,
-#     filt_match_row = xchr9_filt$biot_filt_sig_features_tib[i, ],
-#     method = "sum",
-#     value = "into",
-#     filled = TRUE,
-#     missing = 0,
-#     ms_level = 1,
-#     save_pairs_loc = "/graphs/feature_pairs/",
-#     device = "pdf"
-#   )
-# }
+# Choose features to plot from:
+# 1. all the chem sim 1 & 2
+# 2. biotransformer.jar,
+# 3. biotransformations
+# 4. anno
+# placeholder
+# feats_to_plot <- sort(unique(all_sig_diff))
+# placeholder
+cli::cli_progress_step(
+  "Writing feature chromatograms and intensity boxplots"
+)
+feats_to_plot <- rownames(xcms::featureDefinitions(feature_chrs))[1:10]
+for (i in feats_to_plot) {
+  ft_p <- plot_feat_chrom_int(
+    feature_chrom = feature_chrs,
+    feature = i,
+    method = "sum",
+    value = "into",
+    filled = TRUE,
+    missing = 0,
+    ms_level = 1,
+    save_loc = "/graphs/feature_chromatogram_intensity/",
+    device = "pdf",
+    feat_pairs = FALSE,
+    overwrite = FALSE
+  )
+}
+cli::cli_progress_done()
+
+cli::cli_progress_step("Plotting feature pairs in filtered biotransformations")
+# TODO
+# FIX the feature vector to plot with
+# Also make sure that i dont plot the same features but with
+# different adducts or anything like that
+# for (i in seq_len(nrow(xchr9_filt$biot_filt_sig_features_tib))) <- old
+
+test <- subset_matched_diffs %>%
+  dplyr::filter(
+    dplyr::if_all(
+      .cols = dplyr::all_of(c("feat1", "feat2")),
+      .fns = ~ .x %in% c(
+        "FT02088", "FT02089", "FT08181", "FT02223",
+        "FT02409", "FT02839", "FT02925", "FT03582",
+        "FT04452", "FT06025"
+      )
+    )
+  )
+
+for (i in seq_len(nrow(test[1:5, ]))) {
+  ft_pair_p <- plot_feature_pairs(
+    feature_chrom = feature_chrs,
+    filt_match_row = test[i, ],
+    method = "sum",
+    value = "into",
+    filled = TRUE,
+    missing = 0,
+    ms_level = 1,
+    save_pairs_loc = "/graphs/feature_pairs/",
+    device = "pdf",
+    overwrite = FALSE
+  )
+}
+cli::cli_progress_done()
 
 message(
   "Writing feature chromatograms and intensity boxplots ",

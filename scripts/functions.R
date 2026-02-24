@@ -510,17 +510,30 @@ plot_feat_chrom_int <- function(
   ms_level = 1,
   save_loc = NULL,
   device = "pdf",
-  feat_pairs = FALSE
+  feat_pairs = FALSE,
+  overwrite = FALSE
 ) {
 
+  file_nm <- paste0(opt$output, save_loc, feature, ".", device)
+  if (
+    file.exists(file_nm) &&
+      !overwrite &&
+      !is.null(save_loc)
+  ) {
+    cli::cli_alert_info(
+      "{.path {file_nm}} already exists, skipping"
+    )
+    return(invisible(NULL))
+  }
+
   feat_tib <- tibble::as_tibble(
-    xcms::featureDefinitions(feature_chrom),
+    x = xcms::featureDefinitions(feature_chrom),
     rownames = "feature"
   )
   feat_idx <- which(feat_tib$feature == feature)
   lone_feat <- feature_chrom[feat_idx, ]
   lone_feat_def <- tibble::as_tibble(
-    xcms::featureDefinitions(lone_feat),
+    x = xcms::featureDefinitions(lone_feat),
     rownames = "feature"
   )
 
@@ -597,7 +610,7 @@ plot_feat_chrom_int <- function(
     tidyr::pivot_longer(cols = contains(".mzML")) %>%
     dplyr::left_join(
       x = .,
-      y = tibble::as_tibble(meta, rownames = "file") %>%
+      y = tibble::as_tibble(x = meta, rownames = "file") %>%
         dplyr::select(file, group),
       by = c("name" = "file")
     )
@@ -681,8 +694,6 @@ plot_feat_chrom_int <- function(
     rel_heights = c(1.5, 1)
   )
 
-  file_nm <- paste0(opt$output, save_loc, feature, ".", device)
-
   if (!is.null(save_loc)) {
     ggplot2::ggsave(
       filename = file_nm,
@@ -691,6 +702,9 @@ plot_feat_chrom_int <- function(
       height = 6,
       width = 6,
       units = "in"
+    )
+    cli::cli_alert_success(
+      "Saved {.path {file_nm}}"
     )
   }
 
@@ -714,10 +728,22 @@ plot_feature_pairs <- function(
   missing = NULL,
   ms_level = 1,
   save_pairs_loc = NULL,
-  device = "pdf"
+  device = "pdf",
+  overwrite = FALSE
 ) {
 
   ft_pair <- filt_match_row[["pair"]][[1]]
+  file_nm <- paste0(
+    opt$output, save_pairs_loc,
+    ft_pair[1], "_", ft_pair[2], ".", device
+  )
+
+  if (file.exists(file_nm) && !overwrite) {
+    cli::cli_alert_info(
+      "{.path {file_nm}} already exists, skipping"
+    )
+    return(invisible(NULL))
+  }
 
   feat1 <- plot_feat_chrom_int(
     feature_chrom = feature_chrom,
@@ -767,11 +793,6 @@ plot_feature_pairs <- function(
       )
     )
 
-  file_nm <- paste0(
-    opt$output, save_pairs_loc,
-    ft_pair[1], "_", ft_pair[2], ".", device
-  )
-
   if (!is.null(save_pairs_loc)) {
     ggplot2::ggsave(
       filename = file_nm,
@@ -780,6 +801,9 @@ plot_feature_pairs <- function(
       height = 7,
       width = 7,
       units = "in"
+    )
+    cli::cli_alert_success(
+      "Saved {.path {file_nm}}"
     )
   }
 
