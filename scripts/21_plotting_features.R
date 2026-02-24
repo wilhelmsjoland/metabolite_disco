@@ -75,55 +75,66 @@ for (i in seq_len(nrow(test[1:5, ]))) {
 }
 cli::cli_progress_done()
 
-message(
-  "Writing feature chromatograms and intensity boxplots ",
-  "for glycosides/aglycones..."
+cli::cli_progress_step(
+  paste0(
+    "Writing feature chromatograms and intensity boxplots ",
+    "for glycosides/aglycones..."
+  )
 )
-# for (i in pot_glycosides) {
-#   ft_p <- plot_feat_chrom_int(
-#     feature_chrom = feature_chrs,
-#     feature = i,
-#     method = "sum",
-#     value = "into",
-#     filled = TRUE,
-#     missing = 0,
-#     ms_level = 1,
-#     save_loc = "/graphs/glycoside/",
-#     device = "pdf",
-#     feat_pairs = FALSE
-#   )
-# }
+for (i in pot_glycosides) {
+  ft_p <- plot_feat_chrom_int(
+    feature_chrom = feature_chrs,
+    feature = i,
+    method = "sum",
+    value = "into",
+    filled = TRUE,
+    missing = 0,
+    ms_level = 1,
+    save_loc = "/graphs/glycoside/",
+    device = "pdf",
+    feat_pairs = FALSE,
+    overwrite = FALSE
+  )
+}
+cli::cli_progress_done()
 
-message("Plotting glycoside/aglycone feature pairs biotransformations...")
-# for (i in seq_len(nrow(filt_match_diffs2))) {
-#   ft_pair_p <- plot_feature_pairs(
-#     feature_chrom = feature_chrs,
-#     filt_match_row = filt_match_diffs2[i, ],
-#     method = "sum",
-#     value = "into",
-#     filled = TRUE,
-#     missing = 0,
-#     ms_level = 1,
-#     save_pairs_loc = "/graphs/glycoside_feature_pairs/",
-#     device = "pdf"
-#   )
-# }
+cli::cli_progress_step(
+  "Plotting glycoside/aglycone feature pair biotransformations"
+)
+for (i in seq_len(nrow(test[1:5, ]))) {
+  ft_pair_p <- plot_feature_pairs(
+    feature_chrom = feature_chrs,
+    filt_match_row = test[i, ],
+    method = "sum",
+    value = "into",
+    filled = TRUE,
+    missing = 0,
+    ms_level = 1,
+    save_pairs_loc = "/graphs/glycoside_feature_pairs/",
+    device = "pdf",
+    overwrite = FALSE
+  )
+}
+cli::cli_progress_done()
 
-message("Producing significant intersecting feature boxplots...")
-# for (i in upset_comp) {
-#   ft_p <- plot_feat_chrom_int(
-#     feature_chrom = feature_chrs,
-#     feature = i,
-#     method = "sum",
-#     value = "into",
-#     filled = TRUE,
-#     missing = 0,
-#     ms_level = 1,
-#     save_loc = "/graphs/feature_chromatogram_intensity/",
-#     device = "pdf",
-#     feat_pairs = FALSE
-#   )
-# }
+cli::cli_progress_step("Producing significant intersecting feature boxplots...")
+# Should work in the future but feature_chrs is wrong for now
+for (i in upset_comp) {
+  ft_p <- plot_feat_chrom_int(
+    feature_chrom = feature_chrs,
+    feature = i,
+    method = "sum",
+    value = "into",
+    filled = TRUE,
+    missing = 0,
+    ms_level = 1,
+    save_loc = "/graphs/feature_chromatogram_intensity/",
+    device = "pdf",
+    feat_pairs = FALSE,
+    overwrite = FALSE
+  )
+}
+cli::cli_progress_done()
 
 message("Plotting annotated features after molecular similarity")
 # anno_sims2 %>%

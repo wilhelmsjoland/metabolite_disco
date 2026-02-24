@@ -192,14 +192,12 @@ import_biotransform_meta <- function(file = NULL) {
   return(biotransf_meta)
 }
 
-num_to_ppm <- function(number = NULL) {
-  ppm_val <- number * 1e6
-  return(ppm_val)
+ppm_to_num <- function(mz, ppm) {
+  abs(mz * ppm * 1e-06)
 }
 
-ppm_to_num <- function(number = NULL) {
-  ppm_val <- number / 1e6
-  return(ppm_val)
+num_to_ppm <- function(mz, diff) {
+  abs(diff / mz * 1e06)
 }
 
 get_theory_mz <- function(
