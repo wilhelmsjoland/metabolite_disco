@@ -18,9 +18,7 @@ source("scripts/16_mz_predictions.R")
 source("scripts/17_annotation.R")
 source("scripts/18_biotransformer.R")
 source("scripts/19_molecular_similarity.R")
-
-# TODO - met_disco_args
-# Create a switch statement for "--gap_filling"
+source("scripts/20_produce_chromatograms.R")
 
 # TODO
 # Implement MsFeatures - grouping of features!!!!
@@ -72,5 +70,5 @@ source("scripts/19_molecular_similarity.R")
 
 # TODO
 # Anything under has not been formatted or fixed yet.
-# source("scripts/20_produce_chromatograms.R")
+
 # source("scripts/21_plotting_features.R")

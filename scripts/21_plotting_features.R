@@ -1,26 +1,16 @@
+cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
 # Plotting features ------------------------------------------------------------
 # ==============================================================================
+cli::cli_progress_step("Writing feature chromatograms to plots...")
+# Features
+plot_twenty_feats(
+  chromatogram = feature_chrs,
+  save_loc = "/graphs/features/"
+)
+cli::cli_progress_done()
 
-message("Writing feature chromatograms to plots...")
-# # Features
-# plot_chrom_intensity(
-#   chromatogram = feature_chrs,
-#   chrom_object = xchr9,
-#   save_loc = "/graphs/features/",
-#   # amount = 1,
-#   peaks_or_feats = "features"
-# )
 
-message("Writing all gap filled peaks to plots...")
-# # Gap filled peaks only
-# plot_chrom_intensity(
-#   chromatogram = chrs_na,
-#   chrom_object = xchr8,
-#   save_loc = "/graphs/filled_peaks/",
-#   # amount = 1,
-#   peaks_or_feats = "peaks"
-# )
 
 message("Writing feature chromatograms and intensity boxplots...")
 # feats_to_plot <- sort(unique(all_sig_diff))

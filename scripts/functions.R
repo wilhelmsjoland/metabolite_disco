@@ -444,57 +444,59 @@ plot_experiment_intensities <- function(
   return(xchr_data_p)
 }
 
-plot_chrom_intensity <- function(
+plot_twenty_feats <- function(
   chromatogram = NULL,
-  chrom_object = NULL,
-  save_loc = NULL,
-  amount = NULL,
-  peaks_or_feats = c("features", "peaks")
+  save_loc = "/graphs/features/"
 ) {
-  seq_plots <- seq.int(from = 0, to = nrow(chromatogram), by = 20)
-  chrs_na_seq_slices <- pmin(seq_plots + 20 - 1, seq_plots)
+  chrom_feats <- xcms::featureDefinitions(chromatogram) %>%
+    tibble::as_tibble(
+      x = .,
+      rownames = "feature"
+    ) %>%
+    dplyr::arrange(mzmed)
 
-  if (is.null(amount)) {
-    length_chrs_na_seq_slices <- length(chrs_na_seq_slices) - 1
-  } else {
-    length_chrs_na_seq_slices <- amount
-  }
+  splitted <- split(
+    chrom_feats$row,
+    ceiling(seq_along(chrom_feats$row) / 20)
+  )
 
-  for (i in 1:length_chrs_na_seq_slices) {
-    first_slice <- chrs_na_seq_slices[i] + 1
-    second_slice <- chrs_na_seq_slices[i + 1]
-
-    sliced_chr <- chromatogram[first_slice:second_slice, ]
-
-    if (peaks_or_feats == "features") {
-      slice_chr_peaks <- as.data.frame(xcms::featureDefinitions(sliced_chr))
-    } else if (peaks_or_feats == "peaks") {
-      slice_chr_peaks <- as.data.frame(xcms::chromPeaks(sliced_chr))
-    } else {
-      stop("'peaks_or_feats' needs to be either 'features' or 'peaks")
-    }
-
-    min_mz <- min(slice_chr_peaks$mzmin, na.rm = TRUE)
-    max_mz <- max(slice_chr_peaks$mzmax, na.rm = TRUE)
-
+  for (i in seq_along(splitted)) {
+    idx_feats <- dplyr::filter(chrom_feats, row %in% splitted[[i]])
+    min_mz <- min(idx_feats$mzmed, na.rm = TRUE)
+    max_mz <- max(idx_feats$mzmed, na.rm = TRUE)
     file_name <- paste0(round(min_mz, 3), "-", round(max_mz, 3))
+    plot_name <- paste0(opt$output, save_loc, file_name, ".pdf")
+    if (file.exists(plot_name)) {
+      cli::cli_alert_info(
+        "{.path {plot_name}} already exists, skipping"
+      )
+      next
+    } else {
+      sliced_chr <- chromatogram[splitted[[i]], ]
+      peaks <- xcms::chromPeaks(sliced_chr)
+      peak_colors <- group_colors[
+        Biobase::pData(chromatogram)$group[peaks[, "column"]]
+      ]
 
-    pdf(
-      file = paste0(opt$output, save_loc, file_name, ".pdf"),
-      width = 12,
-      height = 10,
-    )
+      pdf(
+        file = plot_name,
+        width = 12,
+        height = 10,
+      )
 
-    plot(
-      sliced_chr,
-      # TODO triple check if this is correct
-      # Probably do it the same way i do it for the plot_feat_chrom_int()
-      col = group_colors[MsExperiment::sampleData(chrom_object)$group],
-      peakType = "polygon",
-      peakBg = NA,
-      lwd = 2
-    )
-    invisible(dev.off())
+      plot(
+        sliced_chr,
+        peakType = "polygon",
+        col = group_colors[Biobase::pData(chromatogram)$group],
+        peakCol = peak_colors,
+        peakBg = NA,
+        lwd = 3
+      )
+      invisible(dev.off())
+      cli::cli_alert_success(
+        "Saved {.path {plot_name}}"
+      )
+    }
   }
 }
 
@@ -1189,7 +1191,7 @@ block_rule <- function(col = col_white) {
     ),
     collapse = ""
   )
-  cli_text("{col(rule)}")
+  cli::cli_text("{col(rule)}")
 }
 
 # kind of confusing I'll admit

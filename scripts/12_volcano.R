@@ -111,6 +111,6 @@ for (i in comparisons) {
 cli::cli_alert_success(
   paste0(
     "Volcano plots for {.val {opt$gap_filling}} saved in: ",
-    "{.path {file.path(opt$output, '/graphs/volcano/')}}"
+    "{.path {file.path(opt$output, 'graphs', 'volcano')}}"
   )
 )

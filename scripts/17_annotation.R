@@ -52,9 +52,9 @@ if (file.exists(anno_path)) {
     .f = ~ cli::cli_alert_info("{.x}: {.y}")
   )
 
-  cli::cli_alert_info("Importing annotation database")
+  cli::cli_progress_step("Importing annotation database")
   cdb <- annotation_hub[[ah_id]]
-  cli::cli_alert_success("Imported annotation database")
+  cli::cli_progess_done("Imported annotation database")
 
   target_df <- ProtGenerics::compounds(
     cdb,
@@ -100,7 +100,7 @@ if (file.exists(anno_path)) {
   cli::cli_alert_success(
     paste0(
       "Feature annotatations saved to :",
-      "{.val {anno_path}}"
+      "{.path {anno_path}}"
     )
   )
 }
