@@ -36,8 +36,8 @@ cli::cli_alert_success(
 # Only temporary
 upset_comp <- upset_comps[[
   paste0(
-    "bu_mutant_apiin-bu_wt_apiin*bu_mutant_control",
-    "-",
-    "bu_wt_apiin*bu_wt_apiin-bu_wt_control"
+    "bu_mutant_apiin-bu_wt_apiin*",
+    "bu_mutant_control-bu_wt_apiin*",
+    "bu_wt_apiin-bu_wt_control"
   )
 ]]

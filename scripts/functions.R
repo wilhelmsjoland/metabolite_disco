@@ -1306,3 +1306,77 @@ median_scale_base <- function(
   )
   return(med_scaled)
 }
+
+# Distinct is all that are distinctly significant in this set
+# Intersect are all that are significant alone and together
+m <- upset_tib %>%
+  tibble::column_to_rownames(var = "feature") %>%
+  ComplexHeatmap::make_comb_mat(
+    mode = "intersect"
+  )
+
+produce_complex_upset <- function(
+  input = upset_intersect,
+  comps = comparisons
+) {
+  ComplexHeatmap::UpSet(
+    input,
+    set_order = comps,
+    comb_order = order(comb_size(input), decreasing = TRUE),
+    column_title = paste0("Features with p adjusted < ", opt$qvalue),
+    row_names_max_width = ComplexHeatmap::max_text_width(
+      ComplexHeatmap::set_name(
+        input
+      )
+    ),
+    # Numbers on the intersection size bars (top)
+    top_annotation = ComplexHeatmap::HeatmapAnnotation(
+      "Intersection size" = ComplexHeatmap::anno_barplot(
+        comb_size(input),
+        add_numbers = TRUE,
+        border = FALSE,
+        height = unit(14, "cm")
+      ),
+      annotation_name_side = "left"
+    ),
+    # Set size bars on the right with numbers
+    left_annotation = ComplexHeatmap::upset_left_annotation(
+      input,
+      add_numbers = TRUE
+    )
+  )
+}
+
+upset_intersect <- upset_tib %>%
+  tibble::column_to_rownames(var = "feature") %>%
+  ComplexHeatmap::make_comb_mat(mode = "intersect")
+
+upset_intersect_p_path <- file.path(
+  opt$output,
+  "graphs",
+  "upset",
+  "upset_intersection.pdf"
+)
+pdf(file = upset_intersect_p_path, width = 12, height = 8)
+produce_complex_upset(
+  input = upset_intersect,
+  comps = comparisons
+)
+invisible(dev.off())
+
+upset_distinct <- upset_tib %>%
+  tibble::column_to_rownames(var = "feature") %>%
+  ComplexHeatmap::make_comb_mat(mode = "distinct")
+
+upset_distinct_p_path <- file.path(
+  opt$output,
+  "graphs",
+  "upset",
+  "upset_distinct.pdf"
+)
+pdf(file = upset_distinct_p_path, width = 12, height = 8)
+produce_complex_upset(
+  input = upset_distinct,
+  comps = comparisons
+)
+invisible(dev.off())
