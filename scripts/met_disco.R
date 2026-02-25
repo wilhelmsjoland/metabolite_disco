@@ -12,7 +12,6 @@ source("scripts/11_pca.R")
 source("scripts/12_volcano.R")
 source("scripts/13_upset.R")
 source("scripts/14_intersecting_features.R")
-# TODO - fix importing
 source("scripts/15_prep_annotation_biotransformation.R")
 source("scripts/16_mz_predictions.R")
 source("scripts/17_annotation.R")

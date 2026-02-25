@@ -152,6 +152,12 @@ option_list <- list(
       "Can choose between 'norm', 'norm_fill', 'norm_fill_imp'",
       " [default: %default]."
     )
+  ),
+  optparse::make_option(
+    c("--rpairs_path"),
+    type = "character",
+    default = "scripts/search_compounds/output/rpairs.tsv",
+    help = "Path of rpairs.tsv [default: %default]."
   )
 )
 
