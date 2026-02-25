@@ -2,42 +2,59 @@ cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
 # Finding intersecting features ------------------------------------------------
 # ==============================================================================
-cli::cli_h3("Finding intersecting features")
+cli::cli_progress_step("Extracting intersecting features")
 
-# Create all comparisons
-combinations <- unlist(
-  lapply(
-    X = seq_along(comparisons),
-    FUN = function(x) {
-      combn(comparisons, x, simplify = FALSE)
-    }
-  ),
-  recursive = FALSE
+# Generate all distinct upsets comparisons
+upset_distinct_comps_path <- file.path(
+  opt$output,
+  "objects",
+  "upset_distinct_comps.rds"
 )
-
-upset_comps <- list()
-for (i in seq_along(combinations)) {
-  tmp_intersect_feats <- find_intersect_feat(
-    data = upset_tib,
-    set = combinations[[i]],
-    full_set = comparisons
+if (file.exists(upset_distinct_comps_path)) {
+  cli::cli_alert_info(
+    "{.path {upset_distinct_comps_path}} already exists, skipping"
   )
-
-  upset_comps[[
-    stringr::str_flatten(combinations[[i]], collapse = "*")
-  ]] <- tmp_intersect_feats$feature
+  upset_distinct_comps <- readRDS(upset_distinct_comps_path)
+} else {
+  upset_distinct_comps <- extract_upset_comps(upset_distinct)
+  saveRDS(upset_distinct_comps, upset_distinct_comps_path)
+  cli::cli_alert_success(
+    paste0(
+      "Saved distinc upset comparisons to: ",
+      "{.path {upset_distinct_comps_path}}"
+    )
+  )
 }
-cli::cli_alert_success(
-  paste0(
-    "Generated intersecting features"
-  )
+
+# Generate all intersecting upsets comparisons
+upset_intersect_comps_path <- file.path(
+  opt$output,
+  "objects",
+  "upset_intersect_comps.rds"
 )
+if (file.exists(upset_intersect_comps_path)) {
+  cli::cli_alert_info(
+    "{.path {upset_intersect_comps_path}} already exists, skipping"
+  )
+  upset_intersect_comps <- readRDS(upset_intersect_comps_path)
+} else {
+  upset_intersect_comps <- extract_upset_comps(upset_distinct)
+  saveRDS(upset_intersect_comps, upset_intersect_comps_path)
+  cli::cli_alert_success(
+    paste0(
+      "Saved intersecting upset comparisons to: ",
+      "{.path {upset_intersect_comps_path}}"
+    )
+  )
+}
+cli::cli_progress_done()
 
 # Only temporary
-upset_comp <- upset_comps[[
-  paste0(
-    "bu_mutant_apiin-bu_wt_apiin*",
-    "bu_mutant_control-bu_wt_apiin*",
-    "bu_wt_apiin-bu_wt_control"
-  )
-]]
+# Find the exact index of the groups, regardless of order
+int_upset_comp <- c(
+  "bu_mutant_apiin-bu_wt_apiin",
+  "bu_mutant_control-bu_wt_apiin",
+  "bu_wt_apiin-bu_wt_control"
+)
+upset_intersect_id <- extract_upset_id(upset_distinct, int_upset_comp)
+upset_comp <- upset_distinct_comps[[upset_intersect_id]]

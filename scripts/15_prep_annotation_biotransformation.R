@@ -132,10 +132,20 @@ if (file.exists(opt$rpairs_path)) {
     biotransf_append
   )
 } else {
+  cli::cli_alert_warning(
+    paste0(
+      "{.val {opt$rpairs_path} doesn't exist, skipping}"
+    )
+  )
   bio_transf2 <- bio_transf
 }
 
-all_sig_diff <- sort(unique(unlist(upset_comps, use.names = FALSE)))
+all_sig_diff <- full_limma %>%
+  dplyr::filter(adj.P.Val < opt$qvalue) %>%
+  pull(feature) %>%
+  unique() %>%
+  sort()
+
 possible_adducts_signif <- possible_adducts %>%
   dplyr::filter(feature %in% all_sig_diff)
 

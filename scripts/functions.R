@@ -1307,19 +1307,11 @@ median_scale_base <- function(
   return(med_scaled)
 }
 
-# Distinct is all that are distinctly significant in this set
-# Intersect are all that are significant alone and together
-m <- upset_tib %>%
-  tibble::column_to_rownames(var = "feature") %>%
-  ComplexHeatmap::make_comb_mat(
-    mode = "intersect"
-  )
-
 produce_complex_upset <- function(
   input = upset_intersect,
   comps = comparisons
 ) {
-  ComplexHeatmap::UpSet(
+  tmp_p <- ComplexHeatmap::UpSet(
     input,
     set_order = comps,
     comb_order = order(comb_size(input), decreasing = TRUE),
@@ -1345,38 +1337,23 @@ produce_complex_upset <- function(
       add_numbers = TRUE
     )
   )
+  draw(tmp_p)
 }
 
-upset_intersect <- upset_tib %>%
-  tibble::column_to_rownames(var = "feature") %>%
-  ComplexHeatmap::make_comb_mat(mode = "intersect")
+extract_upset_id <- function(
+  upset = NULL,
+  comps = NULL
+) {
+  set_comp <- ComplexHeatmap::set_name(upset)
+  paste0(as.integer(set_comp %in% comps), collapse = "")
+}
 
-upset_intersect_p_path <- file.path(
-  opt$output,
-  "graphs",
-  "upset",
-  "upset_intersection.pdf"
-)
-pdf(file = upset_intersect_p_path, width = 12, height = 8)
-produce_complex_upset(
-  input = upset_intersect,
-  comps = comparisons
-)
-invisible(dev.off())
-
-upset_distinct <- upset_tib %>%
-  tibble::column_to_rownames(var = "feature") %>%
-  ComplexHeatmap::make_comb_mat(mode = "distinct")
-
-upset_distinct_p_path <- file.path(
-  opt$output,
-  "graphs",
-  "upset",
-  "upset_distinct.pdf"
-)
-pdf(file = upset_distinct_p_path, width = 12, height = 8)
-produce_complex_upset(
-  input = upset_distinct,
-  comps = comparisons
-)
-invisible(dev.off())
+extract_upset_comps <- function(
+  upset = NULL
+) {
+  combs <- ComplexHeatmap::comb_name(upset, readable = FALSE)
+  map(
+    .x = magrittr::set_names(combs, combs),
+    .f = ~ ComplexHeatmap::extract_comb(upset, .x)
+  )
+}

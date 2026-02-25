@@ -55,7 +55,7 @@ if (file.exists(upset_intersect_p_path)) {
   invisible(dev.off())
   cli::cli_alert_success(
     paste0(
-      "Upset plot for {.val {opt$gap_filling}} saved to: ",
+      "Intersection upset plot for {.val {opt$gap_filling}} saved to: ",
       "{.path {upset_intersect_p_path}}"
     )
   )
@@ -95,13 +95,8 @@ if (file.exists(upset_distinct_p_path)) {
   invisible(dev.off())
   cli::cli_alert_success(
     paste0(
-      "Upset plot for {.val {opt$gap_filling}} saved to: ",
+      "Distinct upset plot for {.val {opt$gap_filling}} saved to: ",
       "{.path {upset_distinct_p_path}}"
     )
   )
 }
-
-
-# Not correct -> upset_p changes order of stuff
-extract_comb(m, "001110") %>% length
-extract_comb(m, "010101") %>% length

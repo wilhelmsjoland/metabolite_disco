@@ -5,9 +5,6 @@ cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
 cli::cli_h3("Generating volcano plots")
 
-# From optparse
-full_limma <- full_limmas[[opt$gap_filling]]
-
 volc_plot_list <- list()
 for (i in comparisons) {
   tmp_volc_p_path <- paste0(opt$output, "/graphs/volcano/", i, ".pdf")
