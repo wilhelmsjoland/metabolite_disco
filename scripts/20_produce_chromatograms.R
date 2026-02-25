@@ -24,9 +24,7 @@ if (file.exists(feature_chrs_path)) {
     expandMz = 0,
     aggregationFun = "sum",
     filled = TRUE,
-    # TODO
-    # Fix by filtering
-    features = xchr9_filt$final.plotting.features,
+    features = all_sig_diff,
     missing = 0,
     return.type = "XChromatograms"
   )

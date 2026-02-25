@@ -107,7 +107,7 @@ if (file.exists(subset_matched_diffs_path)) {
     )
   )
 } else {
-  cli::cli_alert_info("Predicting subsetted m/zs")
+  cli::cli_progress_step("Predicting subsetted m/zs")
   subset_matched_diffs <- pred_biot(
     data = possible_adducts_signif,
     biotransf_data = bio_transf2,
@@ -121,8 +121,14 @@ if (file.exists(subset_matched_diffs_path)) {
         .y = feat2,
         .f = c
       ),
-      obs_diff = abs(obs_delta_mass - delta_mass)
+      obs_diff = abs(obs_delta_mass - delta_mass),
+      ppm_diff = num_to_ppm(mz = delta_mass, diff = obs_diff),
+      ppm_mz = num_to_ppm(mz = pmax(mz1, mz2), diff = obs_diff)
     )
+
+  cli::cli_progress_done()
+  saveRDS(subset_matched_diffs, subset_matched_diffs_path)
+
   cli::cli_alert_success(
     paste0(
       "Saved subsetted m/z predictions to: ",

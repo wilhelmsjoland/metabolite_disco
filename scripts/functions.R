@@ -202,7 +202,7 @@ num_to_ppm <- function(mz, diff) {
 
 get_theory_mz <- function(
   chem_form = NULL,
-  adduct = "[M-H]-"
+  adduct = NULL
 ) {
   chem_mass <- MetaboCoreUtils::calculateMass(chem_form)
   chem_theory_mz <- MetaboCoreUtils::mass2mz(chem_mass, adduct)
@@ -1063,12 +1063,15 @@ pred_biot <- function(
 
         partner_idx <- seq.int(start_idx, end_idx)
 
-        # FIXED: Different logic for features_of_interest vs all-vs-all
+        # """"""""""""""""""""""""""""""
+        # Also exclude partners with same feature name (same feature,
+        # different adduct)
         partner_idx <- if (!is.null(features_of_interest)) {
-          partner_idx[partner_idx != i]  # FOI: include all partners except self
+          partner_idx[partner_idx != i & feat_vec[partner_idx] != feat_vec[i]]
         } else {
-          partner_idx[partner_idx > i]   # All-vs-all: avoid duplicates
+          partner_idx[partner_idx > i & feat_vec[partner_idx] != feat_vec[i]]
         }
+        # """"""""""""""""""""""""""""""
 
         if (length(partner_idx) == 0) next
 
@@ -1125,12 +1128,15 @@ pred_biot <- function(
 
         partner_idx <- seq.int(start_idx, end_idx)
 
-        # FIXED: Different logic for features_of_interest vs all-vs-all
+        # """"""""""""""""""""""""""""""
+        # Also exclude partners with same feature name (same feature,
+        # different adduct)
         partner_idx <- if (!is.null(features_of_interest)) {
-          partner_idx[partner_idx != i]  # FOI: include all partners except self
+          partner_idx[partner_idx != i & feat_vec[partner_idx] != feat_vec[i]]
         } else {
-          partner_idx[partner_idx > i]   # All-vs-all: avoid duplicates
+          partner_idx[partner_idx > i & feat_vec[partner_idx] != feat_vec[i]]
         }
+        # """"""""""""""""""""""""""""""
 
         if (length(partner_idx) == 0) next
 
