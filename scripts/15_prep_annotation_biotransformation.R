@@ -37,11 +37,11 @@ if (nrow(xchr9_defs) * 17 == nrow(possible_adducts)) {
   cli::cli_alert_danger("Adducts did not correctly expanded")
 }
 
-cli::cli_alert_info("Importing biotransformation file")
+cli::cli_progress_step("Import biotransformation file")
 bio_transf <- import_biotransform_meta(
   file = paste0(opt$data_path, "/", opt$biotransf_file)
 )
-cli::cli_alert_success("Imported biotransformation file")
+cli::cli_progress_done()
 
 if (file.exists(opt$rpairs_path)) {
   if (!exists("biotransf_append")) {

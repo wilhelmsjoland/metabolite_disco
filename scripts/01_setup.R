@@ -1,16 +1,16 @@
 # ==============================================================================
-# Source dependendencies and load libraries ------------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
-library(this.path)
-library(cli)
 source("scripts/functions.R")
 source("scripts/chem_functions.R")
 source("scripts/met_disco_args.R")
+start_log()
+library(this.path)
+library(cli)
 
 # ==============================================================================
 # Information on pipeline ------------------------------------------------------
 # ==============================================================================
-options(cli.unicode = TRUE)
 start_pipeline_msg()
 cli::cli_h1(basename(this.path::this.path()))
 cli::cli_text("Running pipeline with: ")
@@ -65,7 +65,7 @@ suppressWarnings(
 # ==============================================================================
 # Create output folders --------------------------------------------------------
 # ==============================================================================
-cli::cli_alert_info("Creating output folders")
+cli::cli_progress_step("Creating output folders")
 folders <- c(
   "bpc",
   "internal_standard",
@@ -96,7 +96,7 @@ for (folder in folders) {
   )
 }
 dir.create(file.path("annotation_databases"), FALSE, TRUE)
-
+cli::cli_progress_done()
 # ==============================================================================
 # Import metadata --------------------------------------------------------------
 # ==============================================================================

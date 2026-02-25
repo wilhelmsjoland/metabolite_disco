@@ -40,3 +40,13 @@ if (file.exists(feature_chrs_path)) {
     )
   )
 }
+
+# Only temporary
+# Find the exact index of the groups, regardless of order
+int_upset_comp <- c(
+  "bu_mutant_apiin-bu_wt_apiin",
+  "bu_mutant_control-bu_wt_apiin",
+  "bu_wt_apiin-bu_wt_control"
+)
+upset_intersect_id <- extract_upset_id(upset_distinct, int_upset_comp)
+upset_comp <- upset_distinct_comps[[upset_intersect_id]]

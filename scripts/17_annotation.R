@@ -25,7 +25,8 @@ anno_path <- file.path(
 if (file.exists(anno_path)) {
   anno <- readr::read_csv(
     file = anno_path,
-    show_col_types = FALSE
+    show_col_types = FALSE,
+    progress = FALSE
   )
   cli::cli_bullets(
     c(

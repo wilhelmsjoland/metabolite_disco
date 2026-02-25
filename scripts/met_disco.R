@@ -17,7 +17,10 @@ source("scripts/16_mz_predictions.R")
 source("scripts/17_annotation.R")
 source("scripts/18_biotransformer.R")
 source("scripts/19_molecular_similarity.R")
-source("scripts/20_produce_chromatograms.R")
+end_log()
+
+# Split the pipeline here. This is only my analysis
+# source("scripts/20_produce_chromatograms.R")
 
 # TODO
 # Implement MsFeatures - grouping of features!!!!
@@ -44,21 +47,12 @@ source("scripts/20_produce_chromatograms.R")
 # xchr5@processHistory[[2]]@type
 # TODO - 05 -> 02
 # Could potentially move the BPC stuff from 02 to 05 instead?
-# Was in the 05_script
-# - From Sattely paper
-# - Retention time correction was performed using the obiwarp method, with a
-# - step size of m/z 0.5. Peak alignment was performed with bandwidth
-# - of 3 seconds and minimum fraction (minfrac) of samples
-# - necessary for a valid group of 0.5.
 # TODO - 08
 # Add control flow for using filtering in 08_filter_features or not
 # TODO 10_limma
 # Could make p.adjust.method a choice in optparse
 # perhaps change the ordering of the left_joins in this script.
 # x = .x, y = res_def, not opposite
-# TODO
-# Have a temporary thing in 14_intersecting_features.R
-# Remove later.....
 # TODO 15_prep_annotation... .R
 # search_compound is sourced from within the file.... -> FIX THIS
 # TODO 16_mz_predictions.R

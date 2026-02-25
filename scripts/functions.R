@@ -23,7 +23,8 @@ import_mzml <- function(
 
   meta <<- readr::read_csv(
     file = meta_file,
-    show_col_types = FALSE
+    show_col_types = FALSE,
+    progress = FALSE
   )
 
   meta_matched <- dplyr::left_join(
@@ -174,7 +175,8 @@ import_biotransform_meta <- function(file = NULL) {
   biotransf_meta <- readr::read_csv(
     file = file,
     comment = "#",
-    show_col_types = FALSE
+    show_col_types = FALSE,
+    progress = FALSE
   ) %>%
     tidyr::uncount(
       .,
@@ -1200,15 +1202,51 @@ filt_features <- function(
 
 }
 
+start_log <- function() {
+  Sys.setlocale("LC_CTYPE", ".utf8")
+  options(
+    cli.ansi = FALSE,
+    cli.unicode = TRUE,
+    cli.width = 80,
+    width = 80,
+    crayon.enabled = FALSE,
+    readr.show_progress = FALSE
+  )
+  con <<- file(
+    file.path(
+      opt$output,
+      paste0(opt$output, ".log")
+    ), 
+    open = "wt",
+    encoding = "UTF-8"
+  )
+  sink(con, type = "output")
+  sink(con, type = "message", append = TRUE)
+}
+
+end_log <- function() {
+  cli::cli_alert_success(
+    "Pipeline finished on {.time {format(Sys.time())}}"
+  )
+  sink(type = "message")
+  sink(type = "output")
+  close(con)
+}
+
 start_pipeline_msg <- function() {
   block_rule(col = col_cyan)
   cli::cli_rule(center = "Metabolite Disco")
   block_rule(col = col_cyan)
-  cli::cli_text("")
-  cli::cli_text("Creator: {.emph Wilhelm Sjöland}")
-  cli::cli_text("Email: {.email wilhelm.sjoland@wlab.gu.se}")
-  cli::cli_text("Version: {.val {0.1}}")
-  # cli_li("A URL: {.url https://acme.com}")
+  cli::cli_bullets(
+    c(
+      " " = "",
+      "i" = "Creator: {.emph Wilhelm Sjöland}",
+      "i" = "Email: {.email wilhelm.sjoland@wlab.gu.se}",
+      "i" = "Version: {.val {0.1}}",
+      "i" = "Started pipeline: {.time {format(Sys.time())}}"
+      # "i" = "A URL: {.url https://acme.com}"
+    )
+  )
 }
 
 block_rule <- function(col = col_white) {
