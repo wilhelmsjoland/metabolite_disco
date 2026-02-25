@@ -162,7 +162,7 @@ if (file.exists(bw_chr_2_path)) {
     rt = ranges$rt_range + c(-16, 16),
     aggregationFun = "max"
   )
-  saveRDS(object = chr_2, file = bw_chr_2_path)
+  saveRDS(object = bw_chr_2, file = bw_chr_2_path)
   cli::cli_alert_success(
     paste0(
       "Saved chromatogram for internal standards to: ",

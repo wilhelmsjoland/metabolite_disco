@@ -9,21 +9,6 @@ option_list <- list(
     help = "Working directory [default: %default]"
   ),
   optparse::make_option(
-    c("--biot_dir"),
-    type = "character",
-    default = paste0(
-      "C:/Users/wilhelm/Documents/MEGA/",
-      "01_juniper/01_arbete/01_projekt/03_psm/biotransformer3.0jar"
-    ),
-    help = "Biotransformer directory [default: %default]"
-  ),
-  optparse::make_option(
-    c("--smiles"),
-    type = "character",
-    default = "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O",
-    help = "SMILES for prediction of metabolites [default: %default]"
-  ),
-  optparse::make_option(
     c("-d", "--data_path"),
     type = "character",
     default = "input_data",
@@ -42,6 +27,27 @@ option_list <- list(
     help = "Biotransformations.csv file path [default: %default]"
   ),
   optparse::make_option(
+    c("--biot_dir"),
+    type = "character",
+    default = paste0(
+      "C:/Users/wilhelm/Documents/MEGA/",
+      "01_juniper/01_arbete/01_projekt/03_psm/biotransformer3.0jar"
+    ),
+    help = "Biotransformer directory [default: %default]"
+  ),
+  optparse::make_option(
+    c("--smiles"),
+    type = "character",
+    default = "C1=CC(=CC=C1C2=CC(=O)C3=C(C=C(C=C3O2)O)O)O",
+    help = "SMILES for prediction of metabolites [default: %default]"
+  ),
+  optparse::make_option(
+    c("--rpairs_path"),
+    type = "character",
+    default = "scripts/search_compounds/output/rpairs.tsv",
+    help = "Path of rpairs.tsv [default: %default]."
+  ),
+  optparse::make_option(
     c("-o", "--output"),
     type = "character",
     default = "apiin_bu",
@@ -52,6 +58,12 @@ option_list <- list(
     type = "character",
     default = "C7H8O2",
     help = "Chemical formula of the internal standard [default: %default]"
+  ),
+  optparse::make_option(
+    c("-a", "--is_adduct"),
+    type = "character",
+    "default" = "[M-H]-",
+    help = "Adduct of the internal standard [default: %default]"
   ),
   optparse::make_option(
     c("-p", "--polarity"),
@@ -72,12 +84,6 @@ option_list <- list(
     help = "Chemical formula of the aglycone [default: %default]"
   ),
   optparse::make_option(
-    c("-a", "--is_adduct"),
-    type = "character",
-    "default" = "[M-H]-",
-    help = "Adduct of the internal standard [default: %default]"
-  ),
-  optparse::make_option(
     c("--ppm_global"),
     type = "double",
     default = 15,
@@ -90,26 +96,22 @@ option_list <- list(
     help = "ppm tolerance for matching [default: %default]"
   ),
   optparse::make_option(
+    c("--peak_anchor_sd"),
+    type = "double",
+    default = 1,
+    help = "standard deviation threshold for anchor peaks [default: %default]"
+  ),
+  optparse::make_option(
     c("--bw_first_grouping"),
     type = "double",
     default = 3,
-    help = "Bandwidth for first grouping [default: %default]"),
+    help = "Bandwidth for first grouping [default: %default]")
+  ,
   optparse::make_option(
     c("--bw_second_grouping"),
     type = "double",
     default = 0.5,
-    help = "Bandwidth for second grouping [default: %default]"),
-  optparse::make_option(
-    c("-x", "--seed"),
-    type = "integer",
-    default = 123,
-    help = "Random seed [default: %default]"
-  ),
-  optparse::make_option(
-    c("-c", "--cores"),
-    type = "integer",
-    default = parallel::detectCores() - 1,
-    help = "Workers, will default to max available - 1 [default: %default]."
+    help = "Bandwidth for second grouping [default: %default]"
   ),
   optparse::make_option(
     c("-l", "--missingness"),
@@ -154,10 +156,16 @@ option_list <- list(
     )
   ),
   optparse::make_option(
-    c("--rpairs_path"),
-    type = "character",
-    default = "scripts/search_compounds/output/rpairs.tsv",
-    help = "Path of rpairs.tsv [default: %default]."
+    c("-x", "--seed"),
+    type = "integer",
+    default = 123,
+    help = "Random seed [default: %default]"
+  ),
+  optparse::make_option(
+    c("-c", "--cores"),
+    type = "integer",
+    default = parallel::detectCores() - 1,
+    help = "Workers, will default to max available - 1 [default: %default]."
   )
 )
 

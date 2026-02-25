@@ -4,6 +4,7 @@
 source("scripts/functions.R")
 source("scripts/chem_functions.R")
 source("scripts/met_disco_args.R")
+dir.create(opt$output, FALSE, TRUE)
 start_log()
 library(this.path)
 library(cli)
@@ -83,7 +84,6 @@ folders <- c(
   "glycoside",
   "glycoside_feature_pairs"
 )
-dir.create(opt$output, FALSE, TRUE)
 dir.create(file.path(opt$output, "objects"), FALSE, TRUE)
 dir.create(file.path(opt$output, "tables"), FALSE, TRUE)
 for (folder in folders) {

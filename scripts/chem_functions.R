@@ -73,7 +73,7 @@ run_biotransformer <- function(
 ) {
   old_wd <- getwd()
   new_wd <- file.path(old_wd, bt_dir)
-  biot_output_loc <- file.path(old_wd, res_folder, "tables")
+  biot_output_loc <- file.path(old_wd, opt$output, "tables")
   clean_nm <- gsub("\\..*$", "", output_file)
 
   cmd <- paste(

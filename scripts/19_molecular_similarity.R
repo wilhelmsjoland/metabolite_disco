@@ -65,7 +65,7 @@ if (file.exists(anno_sims_final_path)) {
     }
   )
 
-  cli::cli_progess_step(
+  cli::cli_progress_step(
     paste0(
       "Annotating molecular similarity dataframes with info from pubchem"
     )

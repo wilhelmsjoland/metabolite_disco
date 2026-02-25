@@ -55,7 +55,7 @@ if (file.exists(anno_path)) {
 
   cli::cli_progress_step("Importing annotation database")
   cdb <- annotation_hub[[ah_id]]
-  cli::cli_progess_done("Imported annotation database")
+  cli::cli_progress_done("Imported annotation database")
 
   target_df <- ProtGenerics::compounds(
     cdb,

@@ -38,7 +38,7 @@ if (file.exists(upset_intersect_comps_path)) {
   )
   upset_intersect_comps <- readRDS(upset_intersect_comps_path)
 } else {
-  upset_intersect_comps <- extract_upset_comps(upset_distinct)
+  upset_intersect_comps <- extract_upset_comps(upset_intersect)
   saveRDS(upset_intersect_comps, upset_intersect_comps_path)
   cli::cli_alert_success(
     paste0(

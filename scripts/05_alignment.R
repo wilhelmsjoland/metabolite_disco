@@ -68,8 +68,17 @@ cli::cli_alert_success(
 )
 
 # Remove rows where the anchor RT variance across samples with variance cutoff
-pgm_filt_sd <- 1
-pgm_filt <- pgm[apply(pgm, 1, function(x) sd(x, na.rm = TRUE) < pgm_filt_sd), ]
+
+
+pgm_apply <- apply(
+  X = pgm,
+  MARGIN = 1,
+  FUN = function(x) {
+    sd(x, na.rm = TRUE) < opt$peak_anchor_sd
+  }
+)
+pgm_filt <- pgm[pgm_apply, ]
+
 cli::cli_alert_info("Plotting anchor peak distribution after filtering")
 anc_peak_dist_after_path <- file.path(
   opt$output,
@@ -115,7 +124,7 @@ if (file.exists(xchr6_path)) {
       peakGroupsMatrix = pgm_filt,
       span = 0.8, # 0.6
       family = "gaussian",
-      peakGroupsMatrix = matrix(nrow = 0, ncol = 0),
+      # peakGroupsMatrix = matrix(nrow = 0, ncol = 0),
       subset = integer(),
       subsetAdjust = c("average", "previous")
     )

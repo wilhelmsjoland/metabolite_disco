@@ -1215,8 +1215,8 @@ start_log <- function() {
   con <<- file(
     file.path(
       opt$output,
-      paste0(opt$output, ".log")
-    ), 
+      paste0(basename(opt$output), ".log")
+    ),
     open = "wt",
     encoding = "UTF-8"
   )
