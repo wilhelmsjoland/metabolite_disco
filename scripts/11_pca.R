@@ -6,14 +6,14 @@ cli::cli_h3("Generating principal components analyses")
 
 # Data before median normalization
 pca_res <- prcomp(
-  x = intensities_mat$raw_fill_imp$log2_scale,
+  x = t(intensities_mat$raw_fill_imp$log2_scale),
   scale = FALSE,
   center = FALSE
 )
 
 # Data after median normalization
 pca_res_norm <- prcomp(
-  x = intensities_mat$norm_fill_imp$log2_scale,
+  x = t(intensities_mat$norm_fill_imp$log2_scale),
   scale = FALSE,
   center = FALSE
 )
@@ -26,7 +26,7 @@ pca_raw <- plot_pca(
   x = PC1,
   y = PC2
 ) +
-  ggplot2::labs(title = "Before median scaling")
+  ggplot2::labs(title = "Before median scaling - log2 transformed")
 
 pca_adj <- plot_pca(
   prcomp_res = pca_res_norm,
@@ -34,7 +34,7 @@ pca_adj <- plot_pca(
   x = PC1,
   y = PC2
 ) +
-  ggplot2::labs(title = "After median scaling")
+  ggplot2::labs(title = "After median scaling - log2 transformed")
 
 norm_filled_12_pca_p <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
@@ -73,7 +73,7 @@ pca_raw <- plot_pca(
   x = PC3,
   y = PC4
 ) +
-  ggplot2::labs(title = "Before median scaling")
+  ggplot2::labs(title = "Before median scaling - log2 transformed")
 
 pca_adj <- plot_pca(
   prcomp_res = pca_res_norm,
@@ -81,7 +81,7 @@ pca_adj <- plot_pca(
   x = PC3,
   y = PC4
 ) +
-  ggplot2::labs(title = "After median scaling")
+  ggplot2::labs(title = "After median scaling - log2 transformed")
 
 norm_filled_34_pca_p  <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
