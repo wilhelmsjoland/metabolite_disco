@@ -24,7 +24,7 @@ if (file.exists(anno_sims_final_path)) {
   cli::cli_progress_step(
     paste0(
       "Calculate molecular similarity of databased annotated features to: ",
-      "{.val {opt$smiles}} using similarity cutoff 0.1"
+      "{.val {opt$smiles}} " # using similarity cutoff 0.1" # NOT
     )
   )
   anno_filt <- anno %>%
@@ -47,9 +47,9 @@ if (file.exists(anno_sims_final_path)) {
       x = .,
       y = anno,
       by = "feature"
-    ) %>%
+    ) # %>%
     # Arbitrary for now
-    dplyr::filter(sim > 0.1)
+    # dplyr::filter(sim > 0.1)
 
   cli::cli_progress_done()
 

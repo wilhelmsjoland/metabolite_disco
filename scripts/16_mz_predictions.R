@@ -73,6 +73,23 @@ for (i in seq_along(gly_agly_adducts)) {
   gly_agly <- bind_rows(gly_agly, tmp)
 }
 
+gly_agly_path <- file.path(
+  opt$output,
+  "tables",
+  "gly_agly.csv"
+)
+
+if (file.exists(gly_agly_path)) {
+  cli::cli_alert_info("Glycone/aglycone table already exists, skipping")
+} else {
+  readr::write_csv(gly_agly, gly_agly_path)
+  cli::cli_alert_info(
+    paste0(
+      "Glycone/aglycone table saved to {.path {gly_agly_path}}"
+    )
+  )
+}
+
 pot_glycosides <- unique(gly_agly$feature)
 cli::cli_alert_info(
   paste0(
@@ -147,7 +164,6 @@ glycoside_pairs <- unique(
 # ==============================================================================
 # m/z predictions all ----------------------------------------------------------
 # ==============================================================================
-
 cli::cli_bullets(
   c(
     "i" = "Predicting all potential biotransformations based on: ",

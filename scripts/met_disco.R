@@ -19,10 +19,26 @@ source("scripts/18_biotransformer.R")
 source("scripts/19_molecular_similarity.R")
 end_log()
 
-# Split the pipeline here. This is only my analysis
-# source("scripts/20_produce_chromatograms.R")
-
 # TODO
+# FILTERING XCHR9 too hard, losing apigenin!!!!!!!!!
+# beta_cor isnt everything, mabye make ppm smaller?
+# this is likely because the peak is wide as hell???
+# Mabye fix the model they use OR
+# use beta_snr OR beta_cor as cutoff - either one has to be GOOD?
+# Add so the pipeline doesn't just save over the last log all the time
+# Another thing to scale down the biotransformations is finding
+# a good way to classify what peaks are good ->
+# mabye use the beta_snr and beta_cor more intelligently
+# Should probably do both ppms at 5 and not one at 10 and one at 5
+# Better to start looking at interesting features and annotate them!
+# Look at what seth marked me in, in longs PR
+# TODO
+# THE UPSET_COMP COMPARISONS WORKS THE BEST HONESTLY
+# FOR EVERY EXPERIMENT -> DEFINE THE INTERESTING COMPS!!!!!!!!!!!
+# Run the similarity with several methods
+# and combine them -> they all are important anyway
+# ECPF4 & EPCF6
+
 # Implement MsFeatures - grouping of features!!!!
 # https://bioconductor.org/packages/3.22/bioc/manuals/MsFeatures/man/MsFeatures.pdf
 # https://bioconductor.org/packages/3.22/bioc/vignettes/MsFeatures/inst/doc/MsFeatures.html
@@ -60,8 +76,3 @@ end_log()
 # Filter the m/z predictions to the most reasonable..........
 # The fill matched_diffs needs filtering before saving
 # 3 Gigs is way too much for a table
-
-# TODO
-# Anything under has not been formatted or fixed yet.
-
-# source("scripts/21_plotting_features.R")

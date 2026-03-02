@@ -29,10 +29,7 @@ option_list <- list(
   optparse::make_option(
     c("--biot_dir"),
     type = "character",
-    default = paste0(
-      "C:/Users/wilhelm/Documents/MEGA/",
-      "01_juniper/01_arbete/01_projekt/03_psm/biotransformer3.0jar"
-    ),
+    default = "biotransformer3.0jar",
     help = "Biotransformer directory [default: %default]"
   ),
   optparse::make_option(
@@ -50,7 +47,7 @@ option_list <- list(
   optparse::make_option(
     c("-o", "--output"),
     type = "character",
-    default = "apiin_bu",
+    default = "output/apiin_bu",
     help = "Results folder [default: %default]"
   ),
   optparse::make_option(
@@ -86,7 +83,7 @@ option_list <- list(
   optparse::make_option(
     c("--ppm_global"),
     type = "double",
-    default = 15,
+    default = 10,
     help = "Global ppm tolerance [default: %default]"
   ),
   optparse::make_option(
@@ -137,13 +134,13 @@ option_list <- list(
   optparse::make_option(
     c("--beta_cor_threshold"),
     type = "double",
-    default = 0.8, # 0.3
+    default = 0.8,
     help = "Beta correlation threshold [default: %default]."
   ),
   optparse::make_option(
     c("--beta_snr_threshold"),
     type = "double",
-    default = 3, # 6
+    default = 3,
     help = "Beta snr threshold [default: %default]."
   ),
   optparse::make_option(

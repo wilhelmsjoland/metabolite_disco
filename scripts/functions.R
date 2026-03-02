@@ -21,7 +21,7 @@ import_mzml <- function(
     path = mzml_files
   )
 
-  meta <<- readr::read_csv(
+  meta <- readr::read_csv(
     file = meta_file,
     show_col_types = FALSE,
     progress = FALSE
@@ -678,7 +678,8 @@ plot_feat_chrom_int <- function(
           label = adj.P.Val.signif,
           y.position = y.pos * 1.005
         ),
-        step.increase = 0.1
+        step.increase = 0.15,
+        vjust = 0.1
       )
     } else {
       NULL
@@ -1212,25 +1213,31 @@ start_log <- function() {
     crayon.enabled = FALSE,
     readr.show_progress = FALSE
   )
-  con <<- file(
-    file.path(
-      opt$output,
-      paste0(basename(opt$output), ".log")
-    ),
-    open = "wt",
-    encoding = "UTF-8"
-  )
-  sink(con, type = "output")
-  sink(con, type = "message", append = TRUE)
+
+  if (!interactive()) {
+    con <<- file(
+      file.path(
+        opt$output,
+        paste0(basename(opt$output), ".log")
+      ),
+      open = "wt",
+      encoding = "UTF-8"
+    )
+    sink(con, type = "output")
+    sink(con, type = "message", append = TRUE)
+  }
 }
 
 end_log <- function() {
   cli::cli_alert_success(
     "Pipeline finished on {.time {format(Sys.time())}}"
   )
-  sink(type = "message")
-  sink(type = "output")
-  close(con)
+
+  if (!interactive()) {
+    sink(type = "message")
+    sink(type = "output")
+    close(con)
+  }
 }
 
 start_pipeline_msg <- function() {

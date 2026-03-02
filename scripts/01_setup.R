@@ -101,6 +101,20 @@ cli::cli_progress_done()
 # Import metadata --------------------------------------------------------------
 # ==============================================================================
 meta <- import_mzml(opt$data_path, opt$meta_file)
+
+# TODO
+# Fix so that the metadata is saved and said that it is saved here
+meta_path <- file.path(
+  opt$output,
+  "tables",
+  "metadata.csv"
+)
+if (!file.exists(meta_path)) {
+  readr::write_csv(meta, meta_path)
+}
+#############
+
+
 ms_exp_path <- file.path(opt$output, "objects", "ms_exp.rds")
 if (file.exists(ms_exp_path)) {
   ms_exp <- readRDS(file = ms_exp_path)
