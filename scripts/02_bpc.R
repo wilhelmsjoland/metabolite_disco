@@ -43,7 +43,7 @@ cli::cli_alert_success(
 # Create a heatmap of base peak intensities ------------------------------------
 # ==============================================================================
 # Calculate correlation on the log2 transformed base peak intensities
-bpcs_bin <- bin(bpcs, binSize = 1)
+bpcs_bin <- ProtGenerics::bin(bpcs, binSize = 1)
 cormat <- cor(
   log2(
     do.call(
