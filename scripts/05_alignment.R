@@ -118,11 +118,11 @@ if (file.exists(xchr6_path)) {
   xchr6 <- xcms::adjustRtime(
     object = xchr5,
     param = xcms::PeakGroupsParam(
-      minFraction = 0.9, # 0.8
-      extraPeaks = 0, # 1
+      minFraction = opt$min_fraction_align, # 0.8
+      extraPeaks = opt$extra_peaks, # 0 
       smooth = "loess",
       peakGroupsMatrix = pgm_filt,
-      span = 0.8, # 0.6
+      span = opt$span, # 0.6 # 0.8
       family = "gaussian",
       # peakGroupsMatrix = matrix(nrow = 0, ncol = 0),
       subset = integer(),
