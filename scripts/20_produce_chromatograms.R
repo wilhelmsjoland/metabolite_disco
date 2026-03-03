@@ -41,19 +41,19 @@ if (file.exists(feature_chrs_path)) {
   )
 }
 
-
+# TODO
 # Make a list out of this -> of interesting comparisons
 int_upset_comp <- c(
   "bu_mutant_apiin-bu_mutant_control",
   "bu_mutant_apiin-bu_wt_control",
-  "bu_mutant_control-but_wt_apiin",
+  "bu_mutant_control-bu_wt_apiin",
   "bu_wt_apiin-bu_wt_control"
 )
 
 int_upset_comp2 <- c(
   "bu_mutant_apiin-bu_mutant_control",
   "bu_mutant_apiin-bu_wt_control",
-  "bu_mutant_control-but_wt_apiin",
+  "bu_mutant_control-bu_wt_apiin",
   "bu_wt_apiin-bu_wt_control",
   "bu_mutant_apiin-bu_wt_apiin"
 )
@@ -71,5 +71,4 @@ int_upset_ids <- purrr::map_vec(
 
 upset_distinct_comp <- upset_distinct_comps[c(int_upset_ids)]
 
-# TODO
-# If pipeline already has been run -> make an increment and create a new log
+upset_distinct_comp
