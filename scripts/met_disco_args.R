@@ -47,7 +47,7 @@ option_list <- list(
   optparse::make_option(
     c("-o", "--output"),
     type = "character",
-    default = "output/apiin_bu",
+    default = "output/apiin_bu_5_ppm",
     help = "Results folder [default: %default]"
   ),
   optparse::make_option(
@@ -83,14 +83,38 @@ option_list <- list(
   optparse::make_option(
     c("--ppm_global"),
     type = "double",
-    default = 10,
+    default = 25,
     help = "Global ppm tolerance [default: %default]"
+  ),
+  optparse::make_option(
+    c("--mzdiff"),
+    type = "double",
+    default = 0.01,
+    help = "mzdiff for CentWaveParam [default: %default]"
   ),
   optparse::make_option(
     c("--ppm_match"),
     type = "double",
     default = 5, # 10
     help = "ppm tolerance for matching [default: %default]"
+  ),
+  optparse::make_option(
+    c("--span"),
+    type = "double",
+    default = 0.6,
+    help = "span for alignment [defmentault: %default]"
+  ),
+  optparse::make_option(
+    c("--min_fraction_align"),
+    type = "double",
+    default = 0.9,
+    help = "minFraction for alignment [defmentault: %default]"
+  ),
+  optparse::make_option(
+    c("--extra_peaks"),
+    type = "double",
+    default = 0,
+    help = "extraPeaks for alignment [defmentault: %default]"
   ),
   optparse::make_option(
     c("--peak_anchor_sd"),
