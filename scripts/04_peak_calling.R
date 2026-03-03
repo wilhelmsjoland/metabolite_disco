@@ -24,11 +24,11 @@ if (file.exists(xchr_path)) {
       ppm = opt$ppm_global,
       peakwidth = c(min_peak_width, max_peak_width),
       snthresh = opt$sn_threshold,
-      prefilter = c(4, 1000), # k pks (left) over intens (right) # c(3, 100)
+      prefilter = c(3, 1000), # k pks (left) over intens (right) # c(4, 1000)
       mzCenterFun = "wMean",
       integrate = 2,
-      mzdiff = 0.001,
-      fitgauss = FALSE,
+      mzdiff = opt$mzdiff, # 0.001
+      fitgauss = TRUE,
       noise = 1000,
       verboseColumns = TRUE,
       roiList = list(),

@@ -41,12 +41,35 @@ if (file.exists(feature_chrs_path)) {
   )
 }
 
-# Only temporary
-# Find the exact index of the groups, regardless of order
+
+# Make a list out of this -> of interesting comparisons
 int_upset_comp <- c(
-  "bu_mutant_apiin-bu_wt_apiin",
-  "bu_mutant_control-bu_wt_apiin",
+  "bu_mutant_apiin-bu_mutant_control",
+  "bu_mutant_apiin-bu_wt_control",
+  "bu_mutant_control-but_wt_apiin",
   "bu_wt_apiin-bu_wt_control"
 )
-upset_intersect_id <- extract_upset_id(upset_distinct, int_upset_comp)
-upset_comp <- upset_distinct_comps[[upset_intersect_id]]
+
+int_upset_comp2 <- c(
+  "bu_mutant_apiin-bu_mutant_control",
+  "bu_mutant_apiin-bu_wt_control",
+  "bu_mutant_control-but_wt_apiin",
+  "bu_wt_apiin-bu_wt_control",
+  "bu_mutant_apiin-bu_wt_apiin"
+)
+
+int_upset_comps <- list(
+  int_upset_comp,
+  int_upset_comp2
+)
+
+# Find the exact index of the groups, regardless of order
+int_upset_ids <- purrr::map_vec(
+  .x = int_upset_comps,
+  .f = ~ extract_upset_id(upset_distinct, .x)
+)
+
+upset_distinct_comp <- upset_distinct_comps[c(int_upset_ids)]
+
+# TODO
+# If pipeline already has been run -> make an increment and create a new log
