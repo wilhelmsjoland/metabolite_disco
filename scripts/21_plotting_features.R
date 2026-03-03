@@ -137,78 +137,80 @@ for (i in upset_comp) {
 cli::cli_progress_done()
 
 message("Plotting annotated features after molecular similarity")
-# anno_sims2 %>%
-#   # TODO
-#   # arbitrary for now
-#   dplyr::filter(sim > 0.3) %>%
-#   dplyr::mutate(
-#     Title = forcats::fct_reorder( # target_name
-#       .f = Title, # target_name
-#       .x = sim,
-#       .fun = "mean",
-#       .desc = TRUE
-#     )
-#   ) %>%
-#   ggplot2::ggplot(
-#     ggplot2::aes(
-#       x = Title, # target_name
-#       y = sim
-#     )
-#   ) +
-#   # because there are duplicates - just choose the best one
-#   ggplot2::geom_col(
-#     # ggplot2::aes(fill = peak_id),
-#     stat = "summary",
-#     fun = "max",
-#     color = "black",
-#     position = ggplot2::position_dodge()
-#   ) +
-#   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
-#   ggplot2::scale_y_continuous(
-#     expand = ggplot2::expansion(c(0, 0)),
-#     limits = c(0, 1)
-#   ) +
-#   ggplot2::theme_bw() +
-#   ggplot2::theme(
-#     axis.title.x = ggplot2::element_blank(),
-#     axis.title.y = ggplot2::element_text(angle = -90),
-#     legend.title = ggplot2::element_blank()
-#   ) +
-#   ggplot2::labs(y = "Tanimoto similarity")
+anno_sims_final %>%
+  dplyr::filter(feature %in% unname(unlist(upset_distinct_comp))) %>%
+  dplyr::filter(sim > 0.2) %>%
+  dplyr::mutate(
+    Title = forcats::fct_reorder( # target_name
+      .f = Title, # target_name
+      .x = sim,
+      .fun = "mean",
+      .desc = TRUE
+    )
+  ) %>%
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = Title, # target_name
+      y = sim
+    )
+  ) +
+  # because there are duplicates - just choose the best one
+  ggplot2::geom_col(
+    ggplot2::aes(fill = peak_id),
+    stat = "summary",
+    fun = "max",
+    color = "black",
+    position = ggplot2::position_dodge()
+  ) +
+  ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+  ggplot2::scale_y_continuous(
+    expand = ggplot2::expansion(c(0, 0)),
+    limits = c(0, 1)
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_blank(),
+    axis.title.y = ggplot2::element_text(angle = -90),
+    legend.title = ggplot2::element_blank()
+  ) +
+  ggplot2::labs(y = "Tanimoto similarity")
 
 message("Plotting predicted features after molecular similarity")
-# pred_sims %>%
-#   dplyr::mutate(
-#     met_id = forcats::fct_reorder( # target_name
-#       .f = met_id, # target_name
-#       .x = sim,
-#       .fun = "mean",
-#       .desc = TRUE
-#     )
-#   ) %>%
-#   ggplot2::ggplot(
-#     ggplot2::aes(
-#       x = met_id, # target_name
-#       y = sim
-#     )
-#   ) +
-#   # because there are duplicates - just choose the best one
-#   ggplot2::geom_col(
-#     ggplot2::aes(fill = feature),
-#     stat = "summary",
-#     fun = "max",
-#     color = "black",
-#     position = ggplot2::position_dodge()
-#   ) +
-#   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
-#   ggplot2::scale_y_continuous(
-#     expand = ggplot2::expansion(c(0, 0)),
-#     limits = c(0, 1)
-#   ) +
-#   ggplot2::theme_bw() +
-#   ggplot2::theme(
-#     axis.title.x = ggplot2::element_blank(),
-#     axis.title.y = ggplot2::element_text(angle = -90),
-#     legend.title = ggplot2::element_blank()
-#   ) +
-#   ggplot2::labs(y = "Tanimoto similarity")
+chem_pred_feats %>%
+  dplyr::mutate(met_id = as.factor(met_id)) %>%
+  dplyr::filter(feature %in% unname(unlist(upset_distinct_comp))) %>%
+  dplyr::filter(sim > 0.2) %>%
+  dplyr::mutate(
+    met_id = forcats::fct_reorder( # target_name
+      .f = met_id, # target_name
+      .x = sim,
+      .fun = "mean",
+      .desc = TRUE
+    )
+  ) %>%
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = met_id, # target_name
+      y = sim
+    )
+  ) +
+  # because there are duplicates - just choose the best one
+  ggplot2::geom_col(
+    ggplot2::aes(fill = feature),
+    stat = "summary",
+    fun = "max",
+    color = "black",
+    position = ggplot2::position_dodge()
+  ) +
+  ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+  ggplot2::scale_y_continuous(
+    expand = ggplot2::expansion(c(0, 0)),
+    limits = c(0, 1)
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(
+    axis.title.x = ggplot2::element_blank(),
+    axis.title.y = ggplot2::element_text(angle = -90),
+    legend.title = ggplot2::element_blank()
+  ) +
+  ggplot2::labs(y = "Tanimoto similarity")

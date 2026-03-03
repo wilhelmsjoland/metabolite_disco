@@ -25,7 +25,6 @@ end_log()
 # this is likely because the peak is wide as hell???
 # Mabye fix the model they use OR
 # use beta_snr OR beta_cor as cutoff - either one has to be GOOD?
-# Add so the pipeline doesn't just save over the last log all the time
 # Another thing to scale down the biotransformations is finding
 # a good way to classify what peaks are good ->
 # mabye use the beta_snr and beta_cor more intelligently
