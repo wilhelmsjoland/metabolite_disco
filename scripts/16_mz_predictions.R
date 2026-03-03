@@ -164,7 +164,8 @@ glycoside_pairs <- unique(
 # ==============================================================================
 # m/z predictions all ----------------------------------------------------------
 # ==============================================================================
-cli::cli_bullets(
+if (opt$all_vs_all) {
+  cli::cli_bullets(
   c(
     "i" = "Predicting all potential biotransformations based on: ",
     "i" = "\tdatabase: {.val {opt$biotransf_file}}", # + the other kegg stuff
@@ -215,23 +216,32 @@ matched_diffs <- matched_diffs %>%
   ) %>%
   dplyr::filter(feat1 != feat2)
 
-cli::cli_alert_success(
-  paste0(
-    "Filtered full m/z predictions"
+  cli::cli_alert_success(
+    paste0(
+      "Filtered full m/z predictions"
+    )
   )
-)
 
-# TODO This needs filtering first
-# cli::cli_alert_info("Writing predictions to table")
-# match_diffs_table_path <- file.path(
-#   opt$output,
-#   "tables",
-#   "matched_diffs.csv"
-# )
-# readr::write_csv(x = matched_diffs, file = match_diffs_table_path)
-# cli::cli_alert_success(
-#   paste0(
-#     "Wrote predictions to: ",
-#     "{.val {match_diffs_table_path}}"
-#   )
-# )
+  # TODO This needs filtering first
+  # cli::cli_alert_info("Writing predictions to table")
+  # match_diffs_table_path <- file.path(
+  #   opt$output,
+  #   "tables",
+  #   "matched_diffs.csv"
+  # )
+  # readr::write_csv(x = matched_diffs, file = match_diffs_table_path)
+  # cli::cli_alert_success(
+  #   paste0(
+  #     "Wrote predictions to: ",
+  #     "{.val {match_diffs_table_path}}"
+  #   )
+  # )
+} else {
+  cli::cli_alert_info(
+    paste0(
+      "all_vs_all is {.val {opt$all_vs_all}}",
+      ", skipping all-vs-all biotransformation predictions"
+    )
+  )
+}
+

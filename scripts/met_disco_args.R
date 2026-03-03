@@ -47,7 +47,7 @@ option_list <- list(
   optparse::make_option(
     c("-o", "--output"),
     type = "character",
-    default = "output/apiin_bu_5_ppm",
+    default = "output/apiin_bu_25_ppm",
     help = "Results folder [default: %default]"
   ),
   optparse::make_option(
@@ -97,6 +97,15 @@ option_list <- list(
     type = "double",
     default = 5, # 10
     help = "ppm tolerance for matching [default: %default]"
+  ),
+  optparse::make_option(
+    c("--all_vs_all"),
+    type = "logical",
+    default = FALSE,
+    help = paste0(
+      "Whether to run an all-vs-all biotransformation",
+      " search [default: %default]"
+    )
   ),
   optparse::make_option(
     c("--span"),
