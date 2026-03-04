@@ -1243,6 +1243,11 @@ end_log <- function() {
     sink(type = "output")
     close(con)
   }
+
+  options(
+    cli.width = 220,
+    width = 220
+  )
 }
 
 start_pipeline_msg <- function() {
