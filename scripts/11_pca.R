@@ -1,4 +1,29 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# PCA - PC1 & PC2 - before and after technical normalization -------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(ggplot2)
+    library(dplyr)
+    library(patchwork)
+  })
+)
+
+limma_data <- readRDS(snakemake@input[["limma"]])
+setup <- readRDS(snakemake@input[["setup"]])
+
+intensities_mat <- limma_data$intensities_mat
+meta <- setup$meta
+group_colors <- setup$group_colors
+
 # ==============================================================================
 # PCA - PC1 & PC2 - before and after technical normalization -------------------
 # ==============================================================================
@@ -40,7 +65,7 @@ norm_filled_12_pca_p <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
 
 norm_filled_12_pca_p_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "pca",
   "norm_filled_pca_1_2.pdf"
@@ -87,7 +112,7 @@ norm_filled_34_pca_p  <- pca_raw / pca_adj +
   patchwork::plot_layout(guides = "collect")
 
 norm_filled_34_pca_p_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "pca",
   "norm_filled_pca_3_4.pdf"
@@ -108,3 +133,13 @@ cli::cli_alert_success(
     "{.path {norm_filled_34_pca_p_path}}"
   )
 )
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(),
+  file = snakemake@output[[1]]
+)
+
+end_log()

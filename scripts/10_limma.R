@@ -1,7 +1,37 @@
-cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
 # For each tibble create 1. untransformed, 2. log2, 3. log2 & scaled -----------
 # ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(xcms)
+    library(SummarizedExperiment)
+    library(purrr)
+    library(dplyr)
+    library(tibble)
+    library(limma)
+    library(readr)
+  })
+)
+
+scaling <- readRDS(snakemake@input[["scaling"]])
+setup <- readRDS(snakemake@input[["setup"]])
+
+res <- scaling$res
+meta <- setup$meta
+assay_names <- SummarizedExperiment::assayNames(res)
+
+# ==============================================================================
+# For each tibble create 1. untransformed, 2. log2, 3. log2 & scaled -----------
+# ==============================================================================
+
 all_names <- setNames(assay_names, assay_names)
 intensities_mat <- purrr::map(
   .x = all_names,
@@ -139,7 +169,7 @@ intensities <- purrr::modify_depth(
 # ==============================================================================
 # Map all feature definitions to limma tibbles -----------------------------
 # ==============================================================================
-full_limmas <- map2(
+full_limmas <- purrr::map2(
   .x = full_limmas,
   .y = names(full_limmas),
   .f = ~ {
@@ -157,8 +187,15 @@ full_limmas <- map2(
 # ==============================================================================
 for (i in names(intensities)) {
   for (j in names(intensities[[i]])) {
-    tmp_file_path <- paste0(opt$output, "/tables/", i, "_", j, ".csv")
-    if (file.exists(tmp_file_path)) {
+    tmp_file_path <- paste0(
+      snakemake@params$output,
+      "/tables/",
+      i,
+      "_",
+      j,
+      ".csv"
+    )
+    if (interactive() && file.exists(tmp_file_path)) {
       cli::cli_alert_danger(
         paste0(
           "{.path {tmp_file_path} already exists. Not overwriting.}"
@@ -186,7 +223,7 @@ cli::cli_alert_success(
   paste0( # just took a random one for 'intensities_mat$norm' (shouldn't matter)
     "Dataframes of {.val {names(intensities_mat$norm)}} for: ",
     "{.val {names(intensities_mat)}} saved in ",
-    "{.path {file.path(opt$output, 'tables')}}"
+    "{.path {file.path(snakemake@params$output, 'tables')}}"
   )
 )
 
@@ -194,8 +231,8 @@ cli::cli_alert_success(
 # Saving linear model information to .csv tables -------------------------------
 # ==============================================================================
 for (i in names(full_limmas)) {
-  tmp_file_path <- paste0(opt$output, "/tables/limma_", i, ".csv")
-  if (file.exists(tmp_file_path)) {
+  tmp_file_path <- paste0(snakemake@params$output, "/tables/limma_", i, ".csv")
+  if (interactive() && file.exists(tmp_file_path)) {
     cli::cli_alert_danger(
       paste0(
         "{.path {tmp_file_path} already exists. Not overwriting.}"
@@ -204,7 +241,7 @@ for (i in names(full_limmas)) {
   } else {
     readr::write_csv(
       x = full_limmas[[i]],
-      file = paste0(opt$output, "/tables/limma_", i, ".csv"),
+      file = paste0(snakemake@params$output, "/tables/limma_", i, ".csv"),
       na = "NA",
       col_names = TRUE,
       append = FALSE
@@ -222,7 +259,7 @@ for (i in names(full_limmas)) {
 cli::cli_alert_success(
   paste0(
     "Dataframes of {.val {names(full_limmas)}} saved in: ",
-    "{.path {file.path(opt$output, 'tables')}}"
+    "{.path {file.path(snakemake@params$output, 'tables')}}"
   )
 )
 
@@ -230,5 +267,20 @@ cli::cli_alert_success(
 # Define full_limma ------------------------------------------------------------
 # ==============================================================================
 
-# From optparse
-full_limma <- full_limmas[[opt$gap_filling]]
+full_limma <- full_limmas[[snakemake@params$gap_filling]]
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(
+    full_limma = full_limma,
+    full_limmas = full_limmas,
+    intensities = intensities,
+    intensities_mat = intensities_mat,
+    comparisons = comparisons
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()

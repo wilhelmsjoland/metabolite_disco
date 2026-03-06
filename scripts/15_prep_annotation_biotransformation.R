@@ -1,4 +1,35 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Preparing to search for potential biotransformations -------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(xcms)
+    library(tibble)
+    library(tidyr)
+    library(dplyr)
+    library(MetaboCoreUtils)
+    library(readr)
+    library(stringr)
+    library(Rdisop)
+    library(tidyselect)
+  })
+)
+
+filter_data <- readRDS(snakemake@input[["filter_features"]])
+limma_data <- readRDS(snakemake@input[["limma"]])
+
+xchr9 <- filter_data$xchr9
+xchr9_filt <- filter_data$xchr9_filt
+full_limma <- limma_data$full_limma
+
 # ==============================================================================
 # Preparing to search for potential biotransformations -------------------------
 # ==============================================================================
@@ -17,7 +48,7 @@ names(xchr9_mzs) <- xchr9_defs$feature
 
 possible_adducts <- MetaboCoreUtils::mz2mass(
   xchr9_mzs,
-  adduct = adducts(polarity = opt$polarity)
+  adduct = adducts(polarity = snakemake@params$polarity)
 ) %>%
   tibble::as_tibble(., rownames = "feature") %>%
   tidyr::pivot_longer(
@@ -39,20 +70,26 @@ if (nrow(xchr9_defs) * 17 == nrow(possible_adducts)) {
 
 cli::cli_progress_step("Import biotransformation file")
 bio_transf <- import_biotransform_meta(
-  file = paste0(opt$data_path, "/", opt$biotransf_file)
+  file = paste0(
+    snakemake@params$data_path,
+    "/",
+    snakemake@params$biotransf_file
+  )
 )
 cli::cli_progress_done()
 
-if (file.exists(opt$rpairs_path)) {
+if (interactive() && file.exists(snakemake@params$rpairs_path)) {
   if (!exists("biotransf_append")) {
     cli::cli_alert_info(
       paste0(
         "'biotransf_append' doesn't exist, generating"
       )
     )
-    cli::cli_progress_step("Parsing {.path {basename(opt$rpairs_path)}}")
+    cli::cli_progress_step(
+      "Parsing {.path {basename(snakemake@params$rpairs_path)}}"
+    )
     data <- readr::read_tsv(
-      file = opt$rpairs_path,
+      file = snakemake@params$rpairs_path,
       show_col_types = FALSE,
       progress = FALSE
     ) %>%
@@ -134,15 +171,15 @@ if (file.exists(opt$rpairs_path)) {
 } else {
   cli::cli_alert_warning(
     paste0(
-      "{.val {opt$rpairs_path} doesn't exist, skipping}"
+      "{.val {snakemake@params$rpairs_path} doesn't exist, skipping}"
     )
   )
   bio_transf2 <- bio_transf
 }
 
 all_sig_diff <- full_limma %>%
-  dplyr::filter(adj.P.Val < opt$qvalue) %>%
-  pull(feature) %>%
+  dplyr::filter(adj.P.Val < snakemake@params$qvalue) %>%
+  dplyr::pull(feature) %>%
   unique() %>%
   sort()
 
@@ -152,3 +189,19 @@ possible_adducts_signif <- possible_adducts %>%
 filt_sig_diff <- xchr9_filt$feature[xchr9_filt$feature %in% all_sig_diff]
 possible_adducts_filt <- possible_adducts %>%
   dplyr::filter(feature %in% filt_sig_diff)
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(
+    possible_adducts = possible_adducts,
+    possible_adducts_signif = possible_adducts_signif,
+    possible_adducts_filt = possible_adducts_filt,
+    bio_transf2 = bio_transf2,
+    all_sig_diff = all_sig_diff
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()

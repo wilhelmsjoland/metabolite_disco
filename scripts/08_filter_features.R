@@ -1,4 +1,27 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Filtering features and input to SummarizedExperiment -------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(xcms)
+    library(MsExperiment)
+    library(QFeatures)
+    library(dplyr)
+  })
+)
+
+gap_filling <- readRDS(snakemake@input[["gap_filling"]])
+xchr8 <- gap_filling$xchr8
+
+
 # ==============================================================================
 # Filtering features and input to SummarizedExperiment -------------------------
 # ==============================================================================
@@ -6,11 +29,11 @@ cli::cli_h3("Filtering features based on missingness")
 group_factor <- as.factor(MsExperiment::sampleData(xchr8)$group)
 
 xchr9_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "xchr9.rds"
 )
-if (file.exists(xchr9_path)) {
+if (interactive() && file.exists(xchr9_path)) {
   xchr9 <- readRDS(file = xchr9_path)
   cli::cli_alert_success(
     paste0(
@@ -20,12 +43,12 @@ if (file.exists(xchr9_path)) {
   )
 } else {
   cli::cli_alert_info(
-    "Filtering based on missingness of: {.val {opt$missingness}}"
+    "Filtering based on missingness of: {.val {snakemake@params$missingness}}"
   )
   xchr9 <- QFeatures::filterFeatures(
     xchr8,
     xcms::PercentMissingFilter(
-      threshold = opt$missingness,
+      threshold = snakemake@params$missingness,
       f = group_factor
     )
   )
@@ -44,11 +67,11 @@ if (file.exists(xchr9_path)) {
 cli::cli_h3("Filtering features based on thresholds")
 
 xchr9_filt_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "xchr9_filt.rds"
 )
-if (file.exists(xchr9_filt_path)) {
+if (interactive() && file.exists(xchr9_filt_path)) {
   xchr9_filt <- readRDS(xchr9_filt_path)
   cli::cli_alert_success(
     paste0(
@@ -60,16 +83,16 @@ if (file.exists(xchr9_filt_path)) {
   cli::cli_bullets(
     c(
       "i" = "Filtering features with:",
-      "*" = "sn: {.val {opt$sn_threshold}}",
-      "*" = "beta_cor: {.val {opt$beta_cor_threshold}}",
-      "*" = "beta_snr: {.val {opt$beta_snr_threshold}}"
+      "*" = "sn: {.val {snakemake@params$sn_threshold}}",
+      "*" = "beta_cor: {.val {snakemake@params$beta_cor_threshold}}",
+      "*" = "beta_snr: {.val {snakemake@params$beta_snr_threshold}}"
     )
   )
   xchr9_filt <- filt_features(
     object = xchr9,
-    sn_threshold = opt$sn_threshold,
-    beta_cor_threshold = opt$beta_cor_threshold,
-    beta_snr_threshold = opt$beta_snr_threshold
+    sn_threshold = snakemake@params$sn_threshold,
+    beta_cor_threshold = snakemake@params$beta_cor_threshold,
+    beta_snr_threshold = snakemake@params$beta_snr_threshold
   )
   saveRDS(
     object = xchr9_filt,
@@ -82,3 +105,13 @@ if (file.exists(xchr9_filt_path)) {
     )
   )
 }
+
+# ==============================================================================
+# Snakesave -------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(xchr9 = xchr9, xchr9_filt = xchr9_filt),
+  file = snakemake@output[[1]]
+)
+
+end_log()

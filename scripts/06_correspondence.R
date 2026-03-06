@@ -1,4 +1,28 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Generating chromatograms for simulated bandwiths -----------------------------
+# before correspondence for internal standard ----------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(xcms)
+    library(MsExperiment)
+  })
+)
+
+alignment <- readRDS(snakemake@input[["alignment"]])
+is_data <- readRDS(snakemake@input[["internal_std"]])
+
+xchr6 <- alignment$xchr6
+ranges <- is_data$ranges
+
 # ==============================================================================
 # Generating chromatograms for simulated bandwiths -----------------------------
 # before correspondence for internal standard ----------------------------------
@@ -7,11 +31,11 @@ cli::cli_alert_info(
   "Producing simulated bandwidth plots for internal standard"
 )
 bw_chr_1_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "bw_chr_1.rds"
 )
-if (file.exists(bw_chr_1_path)) {
+if (interactive() && file.exists(bw_chr_1_path)) {
   bw_chr_1 <- readRDS(file = bw_chr_1_path)
   cli::cli_alert_success(
     paste0(
@@ -43,7 +67,7 @@ if (file.exists(bw_chr_1_path)) {
 # Plotting simulated bandwiths before correspondence for internal standard -----
 # ==============================================================================
 is_simul_first_grouping_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "internal_standard",
   "is_simul_first_grouping.pdf"
@@ -53,20 +77,20 @@ xcms::plotChromPeakDensity(
   object = bw_chr_1,
   param = xcms::PeakDensityParam(
     sampleGroups = MsExperiment::sampleData(xchr6)$group,
-    bw = opt$bw_first_grouping
+    bw = snakemake@params$bw_first_grouping
   )
 )
 invisible(dev.off())
 cli::cli_alert_success(
   paste0(
     "Saved simulated bandwidth plot for first grouping ",
-    "(bw_first_grouping: {.val {opt$bw_first_grouping}}) to: ",
+    "(bw_first_grouping: {.val {snakemake@params$bw_first_grouping}}) to: ",
     "{.path {is_simul_first_grouping_path}}"
   )
 )
 
 is_simul_second_grouping_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "internal_standard",
   "is_simul_second_grouping.pdf"
@@ -76,14 +100,14 @@ xcms::plotChromPeakDensity(
   object = bw_chr_1,
   param = xcms::PeakDensityParam(
     sampleGroups = MsExperiment::sampleData(xchr6)$group,
-    bw = opt$bw_second_grouping
+    bw = snakemake@params$bw_second_grouping
   )
 )
 invisible(dev.off())
 cli::cli_alert_success(
   paste0(
     "Saved simulated bandwidth plot for second grouping ",
-    "(bw_second_grouping: {.val {opt$bw_second_grouping}}) to: ",
+    "(bw_second_grouping: {.val {snakemake@params$bw_second_grouping}}) to: ",
     "{.path {is_simul_second_grouping_path}}"
   )
 )
@@ -94,11 +118,11 @@ cli::cli_alert_success(
 cli::cli_h3("Performing correspondence")
 
 xchr7_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "xchr7.rds"
 )
-if (file.exists(xchr7_path)) {
+if (interactive() && file.exists(xchr7_path)) {
   xchr7 <- readRDS(file = xchr7_path)
   cli::cli_alert_success(
     paste0(
@@ -112,11 +136,11 @@ if (file.exists(xchr7_path)) {
     object = xchr6,
     param = xcms::PeakDensityParam(
       sampleGroups = MsExperiment::sampleData(xchr6)$group,
-      bw = opt$bw_second_grouping, # 0.5
+      bw = snakemake@params$bw_second_grouping, # 0.5
       minFraction = 0.5, # 0.7
       binSize = 0.01,
       maxFeatures = 1000, # 200
-      ppm = opt$ppm_global,
+      ppm = snakemake@params$ppm_global,
       minSamples = 2 # 1
     )
   )
@@ -140,11 +164,11 @@ cli::cli_alert_info(
   )
 )
 bw_chr_2_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "bw_chr_2.rds"
 )
-if (file.exists(bw_chr_2_path)) {
+if (interactive() && file.exists(bw_chr_2_path)) {
   bw_chr_2 <- readRDS(file = bw_chr_2_path)
   cli::cli_alert_success(
     paste0(
@@ -175,7 +199,7 @@ if (file.exists(bw_chr_2_path)) {
 # Bandwith plotting after correspondence ---------------------------------------
 # ==============================================================================
 is_non_simul_second_group_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "internal_standard",
   "is_non_simul_second_grouping.pdf"
@@ -193,3 +217,14 @@ cli::cli_alert_success(
     "{.path {is_non_simul_second_group_path}}"
   )
 )
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+
+saveRDS(
+  object = list(xchr7 = xchr7),
+  file = snakemake@output[[1]]
+)
+
+end_log()

@@ -1,4 +1,28 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Generating upset plots -------------------------------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(dplyr)
+    library(tidyr)
+    library(tibble)
+    library(ComplexHeatmap)
+  })
+)
+
+limma_data <- readRDS(snakemake@input[["limma"]])
+full_limma <- limma_data$full_limma
+comparisons <- limma_data$comparisons
+
+
 # ==============================================================================
 # Generating upset plots -------------------------------------------------------
 # ==============================================================================
@@ -14,7 +38,7 @@ upset_tib <- full_limma %>%
     dplyr::across(
       .cols = 2:ncol(.),
       .fns = ~ dplyr::if_else(
-        . < opt$qvalue,
+        . < snakemake@params$qvalue,
         1, # TRUE
         0 # FALSE
       )
@@ -35,12 +59,12 @@ upset_intersect <- upset_tib %>%
   ComplexHeatmap::make_comb_mat(mode = "intersect")
 
 upset_intersect_p_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "upset",
   "upset_intersection.pdf"
 )
-if (file.exists(upset_intersect_p_path)) {
+if (interactive() && file.exists(upset_intersect_p_path)) {
   cli::cli_alert_info(
     paste0(
       "{.path {upset_intersect_p_path} already exists. Not overwriting.}"
@@ -50,12 +74,13 @@ if (file.exists(upset_intersect_p_path)) {
   pdf(file = upset_intersect_p_path, width = 12, height = 8)
   produce_complex_upset(
     input = upset_intersect,
-    comps = comparisons
+    comps = comparisons,
+    qvalue = snakemake@params$qvalue
   )
   invisible(dev.off())
   cli::cli_alert_success(
     paste0(
-      "Intersection upset plot for {.val {opt$gap_filling}} saved to: ",
+      "Intersection upset plot for {.val {snakemake@params$gap_filling}} saved to: ",
       "{.path {upset_intersect_p_path}}"
     )
   )
@@ -75,12 +100,12 @@ upset_distinct <- upset_tib %>%
   ComplexHeatmap::make_comb_mat(mode = "distinct")
 
 upset_distinct_p_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "upset",
   "upset_distinct.pdf"
 )
-if (file.exists(upset_distinct_p_path)) {
+if (interactive() && file.exists(upset_distinct_p_path)) {
   cli::cli_alert_info(
     paste0(
       "{.path {upset_distinct_p_path} already exists. Not overwriting.}"
@@ -90,13 +115,27 @@ if (file.exists(upset_distinct_p_path)) {
   pdf(file = upset_distinct_p_path, width = 12, height = 8)
   produce_complex_upset(
     input = upset_distinct,
-    comps = comparisons
+    comps = comparisons,
+    qvalue = snakemake@params$qvalue
   )
   invisible(dev.off())
   cli::cli_alert_success(
     paste0(
-      "Distinct upset plot for {.val {opt$gap_filling}} saved to: ",
+      "Distinct upset plot for {.val {snakemake@params$gap_filling}} saved to: ",
       "{.path {upset_distinct_p_path}}"
     )
   )
 }
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(
+    upset_distinct = upset_distinct,
+    upset_intersect = upset_intersect
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()

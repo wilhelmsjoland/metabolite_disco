@@ -1,10 +1,36 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Biotransformer.jar -----------------------------------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(dplyr)
+    library(tibble)
+    library(tidyr)
+    library(readr)
+    library(MetaboCoreUtils)
+    library(MsCoreUtils)
+    library(xcms)
+  })
+)
+
+filter_data <- readRDS(snakemake@input[["filter_features"]])
+xchr9 <- filter_data$xchr9
+xchr9_filt <- filter_data$xchr9_filt
+
 # ==============================================================================
 # Biotransformer.jar -----------------------------------------------------------
 # ==============================================================================
 cli::cli_h3("Predicting biotransformations from SMILES")
-prediction_path <- file.path(opt$output, "tables", "prediction.csv")
-if (file.exists(prediction_path)) {
+prediction_path <- file.path(snakemake@params$output, "tables", "prediction.csv")
+if (interactive() && file.exists(prediction_path)) {
   biot_pred <- readr::read_csv(
     file = prediction_path,
     show_col_types = FALSE,
@@ -12,20 +38,20 @@ if (file.exists(prediction_path)) {
   )
   cli::cli_alert_success(
     paste0(
-      "Imported predictions for {.val {opt$smiles}} from: ",
+      "Imported predictions for {.val {snakemake@params$smiles}} from: ",
       "{.path {prediction_path}}"
     )
   )
 } else {
   cli::cli_alert_info(
     paste0(
-      "Predicting biotransformations from {.val {opt$smiles}} ",
+      "Predicting biotransformations from {.val {snakemake@params$smiles}} ",
       "with biotransformer.jar"
     )
   )
   run_biotransformer(
-    bt_dir = opt$biot_dir,
-    smiles = opt$smiles,
+    bt_dir = snakemake@params$biot_dir,
+    smiles = snakemake@params$smiles,
     b_type = "superbio",
     k_task = "pred",
     output_file = "prediction"
@@ -47,11 +73,11 @@ if (file.exists(prediction_path)) {
 
 cli::cli_alert_success("Merging predicted features with feature definitions")
 predicted_feats_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "tables",
   "predicted_annotated_feats.csv"
 )
-if (file.exists(predicted_feats_path)) {
+if (interactive() && file.exists(predicted_feats_path)) {
   predicted_feats <- readr::read_csv(
     file = predicted_feats_path,
     show_col_types = FALSE,
@@ -85,7 +111,7 @@ if (file.exists(predicted_feats_path)) {
 
   biot_final <- MetaboCoreUtils::mass2mz(
     x = biot_mets,
-    adduct = MetaboCoreUtils::adducts(polarity = opt$polarity)
+    adduct = MetaboCoreUtils::adducts(polarity = snakemake@params$polarity)
   ) %>%
     tibble::as_tibble(., rownames = "InChIKey") %>%
     tidyr::pivot_longer(
@@ -102,7 +128,7 @@ if (file.exists(predicted_feats_path)) {
     )
 
   biot_mass_len <- length(biot_mass$InChIKey) *
-    nrow(MetaboCoreUtils::adducts(polarity = opt$polarity))
+    nrow(MetaboCoreUtils::adducts(polarity = snakemake@params$polarity))
 
   if (biot_mass_len != nrow(biot_final)) {
     cli::cli_alert_danger(
@@ -117,7 +143,7 @@ if (file.exists(predicted_feats_path)) {
       x = .,
       y = def_tib %>%
         dplyr::mutate(
-          tol = MsCoreUtils::ppm(mzmed, opt$ppm_match),
+          tol = MsCoreUtils::ppm(mzmed, snakemake@params$ppm_match),
           mz_lo = mzmed - tol,
           mz_hi = mzmed + tol
         ) %>%
@@ -141,11 +167,11 @@ if (file.exists(predicted_feats_path)) {
 pred_peak_ids <- sort(unique(predicted_feats$feature))
 
 pred_chrs_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "pred_chrs.rds"
 )
-if (file.exists(pred_chrs_path)) {
+if (interactive() && file.exists(pred_chrs_path)) {
   pred_chrs <- readRDS(pred_chrs_path)
   cli::cli_alert_success(
     paste0(
@@ -181,3 +207,17 @@ if (file.exists(pred_chrs_path)) {
     )
   )
 }
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(
+    predicted_feats = predicted_feats,
+    pred_chrs = pred_chrs,
+    pred_peak_ids = pred_peak_ids
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()

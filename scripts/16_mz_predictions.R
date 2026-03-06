@@ -1,4 +1,36 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Fetching potential glycoside/aglycone features -------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(dplyr)
+    library(tibble)
+    library(tidyr)
+    library(purrr)
+    library(readr)
+    library(MetaboCoreUtils)
+    library(MsCoreUtils)
+    library(future)
+    library(future.apply)
+  })
+)
+
+limma_data <- readRDS(snakemake@input[["limma"]])
+prep_data <- readRDS(snakemake@input[["prep_biot"]])
+
+intensities <- limma_data$intensities
+all_sig_diff <- prep_data$all_sig_diff
+possible_adducts_signif <- prep_data$possible_adducts_signif
+bio_transf2 <- prep_data$bio_transf2
+
 # ==============================================================================
 # Fetching potential glycoside/aglycone features -------------------------------
 # ==============================================================================
@@ -11,8 +43,8 @@ cli::cli_h3(
 
 # Checking specifically for the glycoside anad aglycone m/zs
 glycoside <- MetaboCoreUtils::mass2mz(
-  x = MetaboCoreUtils::calculateMass(opt$glycoside)[[1]],
-  adduct = MetaboCoreUtils::adducts(polarity = opt$polarity)
+  x = MetaboCoreUtils::calculateMass(snakemake@params$glycoside)[[1]],
+  adduct = MetaboCoreUtils::adducts(polarity = snakemake@params$polarity)
 ) %>%
   t() %>%
   as.data.frame() %>%
@@ -24,8 +56,8 @@ glycoside <- MetaboCoreUtils::mass2mz(
   dplyr::rename("glycoside" = V1)
 
 aglycone <- MetaboCoreUtils::mass2mz(
-  x = MetaboCoreUtils::calculateMass(opt$aglycone)[[1]],
-  adduct = MetaboCoreUtils::adducts(polarity = opt$polarity)
+  x = MetaboCoreUtils::calculateMass(snakemake@params$aglycone)[[1]],
+  adduct = MetaboCoreUtils::adducts(polarity = snakemake@params$polarity)
 ) %>%
   t() %>%
   as.data.frame() %>%
@@ -74,12 +106,12 @@ for (i in seq_along(gly_agly_adducts)) {
 }
 
 gly_agly_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "tables",
   "gly_agly.csv"
 )
 
-if (file.exists(gly_agly_path)) {
+if (interactive() && file.exists(gly_agly_path)) {
   cli::cli_alert_info("Glycone/aglycone table already exists, skipping")
 } else {
   readr::write_csv(gly_agly, gly_agly_path)
@@ -104,18 +136,18 @@ cli::cli_alert_info(
 cli::cli_bullets(
   c(
     "i" = "Predicting subset of potential biotransformations based on: ",
-    "i" = "\tdatabase: {.val {opt$biotransf_file}}", # + the other kegg stuff
-    "i" = "\tppm: {.val {opt$ppm_match}}"
+    "i" = "\tdatabase: {.val {snakemake@params$biotransf_file}}", # + the other kegg stuff
+    "i" = "\tppm: {.val {snakemake@params$ppm_match}}"
   )
 )
 
 subset_matched_diffs_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "subset_matched_diffs.rds"
 )
 
-if (file.exists(subset_matched_diffs_path)) {
+if (interactive() && file.exists(subset_matched_diffs_path)) {
   subset_matched_diffs <- readRDS(subset_matched_diffs_path)
   cli::cli_alert_success(
     paste0(
@@ -128,7 +160,7 @@ if (file.exists(subset_matched_diffs_path)) {
   subset_matched_diffs <- pred_biot(
     data = possible_adducts_signif,
     biotransf_data = bio_transf2,
-    tolerance_ppm = opt$ppm_match,
+    tolerance_ppm = snakemake@params$ppm_match,
     features_of_interest = pot_glycosides,
     parallel = TRUE
   ) %>%
@@ -142,7 +174,7 @@ if (file.exists(subset_matched_diffs_path)) {
       ppm_diff = num_to_ppm(mz = delta_mass, diff = obs_diff),
       ppm_mz = num_to_ppm(mz = pmax(mz1, mz2), diff = obs_diff)
     )
-    
+
   cli::cli_progress_done()
   saveRDS(subset_matched_diffs, subset_matched_diffs_path)
 
@@ -164,22 +196,22 @@ glycoside_pairs <- unique(
 # ==============================================================================
 # m/z predictions all ----------------------------------------------------------
 # ==============================================================================
-if (opt$all_vs_all) {
+if (snakemake@params$all_vs_all) {
   cli::cli_bullets(
   c(
     "i" = "Predicting all potential biotransformations based on: ",
-    "i" = "\tdatabase: {.val {opt$biotransf_file}}", # + the other kegg stuff
-    "i" = "\tppm: {.val {opt$ppm_match}}"
+    "i" = "\tdatabase: {.val {snakemake@params$biotransf_file}}", # + the other kegg stuff
+    "i" = "\tppm: {.val {snakemake@params$ppm_match}}"
   )
 )
 # Turn this around
 matched_diffs_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "matched_diffs.rds"
 )
 
-if (file.exists(matched_diffs_path)) {
+if (interactive() && file.exists(matched_diffs_path)) {
   matched_diffs <- readRDS(file = matched_diffs_path)
   cli::cli_alert_success(
     paste0(
@@ -192,12 +224,12 @@ if (file.exists(matched_diffs_path)) {
   matched_diffs <- pred_biot(
     data = possible_adducts_signif,
     biotransf_data = bio_transf2,
-    tolerance_ppm = opt$ppm_match,
+    tolerance_ppm = snakemake@params$ppm_match,
     parallel = TRUE
   )
   saveRDS(
     object = matched_diffs,
-    file = paste0(opt$output, "/objects/matched_diffs.rds")
+    file = paste0(snakemake@params$output, "/objects/matched_diffs.rds")
   )
   cli::cli_alert_success(
     paste0(
@@ -225,7 +257,7 @@ matched_diffs <- matched_diffs %>%
   # TODO This needs filtering first
   # cli::cli_alert_info("Writing predictions to table")
   # match_diffs_table_path <- file.path(
-  #   opt$output,
+  #   snakemake@params$output,
   #   "tables",
   #   "matched_diffs.csv"
   # )
@@ -239,9 +271,23 @@ matched_diffs <- matched_diffs %>%
 } else {
   cli::cli_alert_info(
     paste0(
-      "all_vs_all is {.val {opt$all_vs_all}}",
+      "all_vs_all is {.val {snakemake@params$all_vs_all}}",
       ", skipping all-vs-all biotransformation predictions"
     )
   )
 }
 
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(
+    subset_matched_diffs = subset_matched_diffs,
+    glycoside_pairs = glycoside_pairs,
+    matched_diffs = if (exists("matched_diffs")) matched_diffs else NULL,
+    gly_agly = gly_agly
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()

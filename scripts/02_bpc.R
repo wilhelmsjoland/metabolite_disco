@@ -1,9 +1,37 @@
-cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
 # Create and plot base peak chromatograms --------------------------------------
 # ==============================================================================
-bpc_path <- file.path(opt$output, "objects", "bpcs.rds")
-if (file.exists(bpc_path)) {
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages(
+    {
+      library(cli)
+      library(BiocParallel)
+      library(xcms)
+      library(MsExperiment)
+      library(Biobase)
+      library(pheatmap)
+      library(ggplot2)
+      library(ProtGenerics)
+    }
+  )
+)
+
+# Load previous step
+setup <- readRDS(snakemake@input[[1]])
+ms_exp <- setup$ms_exp
+group_colors <- setup$group_colors
+
+# ==============================================================================
+# Create and plot base peak chromatograms --------------------------------------
+# ==============================================================================
+bpc_path <- file.path(snakemake@params$output, "objects", "bpcs.rds")
+if (interactive() && file.exists(bpc_path)) {
   bpcs <- readRDS(file = bpc_path)
   cli::cli_alert_success(
     paste0(
@@ -23,7 +51,12 @@ if (file.exists(bpc_path)) {
   )
 }
 
-raw_bpc_p_path <- file.path(opt$output, "graphs", "bpc", "raw_bpc.pdf")
+raw_bpc_p_path <- file.path(
+  snakemake@params$output,
+  "graphs",
+  "bpc",
+  "raw_bpc.pdf"
+)
 pdf(raw_bpc_p_path)
 par(mar = c(4, 4, 3, 2))
 plot(
@@ -66,7 +99,12 @@ raw_bpc_hmp <- pheatmap::pheatmap(
   silent = TRUE
 )
 
-raw_bpc_hmp_path <- file.path(opt$output, "graphs", "bpc", "raw_bpc_hmp.pdf")
+raw_bpc_hmp_path <- file.path(
+  snakemake@params$output,
+  "graphs",
+  "bpc",
+  "raw_bpc_hmp.pdf"
+)
 ggplot2::ggsave(
   filename = raw_bpc_hmp_path,
   plot = raw_bpc_hmp,
@@ -81,3 +119,10 @@ cli::cli_alert_success(
     "{.path {raw_bpc_hmp_path}}"
   )
 )
+
+saveRDS(
+  object = list(bpcs = bpcs),
+  file = snakemake@output[[1]]
+)
+
+end_log()

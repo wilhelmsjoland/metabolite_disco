@@ -1,4 +1,24 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Median scaling ---------------------------------------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(xcms)
+    library(SummarizedExperiment)
+  })
+)
+
+filter_features <- readRDS(snakemake@input[["filter_features"]])
+xchr9 <- filter_features$xchr9
+
 # ==============================================================================
 # Median scaling ---------------------------------------------------------------
 # ==============================================================================
@@ -60,3 +80,13 @@ cli::cli_bullets(
     )
   )
 )
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(res = res),
+  file = snakemake@output[[1]]
+)
+
+end_log()

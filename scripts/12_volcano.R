@@ -1,5 +1,29 @@
+# ==============================================================================
+# Generating volcano plots -----------------------------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
 
-cli::cli_h1(basename(this.path::this.path()))
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(dplyr)
+    library(tidyr)
+    library(ggplot2)
+    library(ggrepel)
+    library(forcats)
+  })
+)
+
+limma_data <- readRDS(snakemake@input[["limma"]])
+
+full_limma <- limma_data$full_limma
+comparisons <- limma_data$comparisons
+
 # ==============================================================================
 # Generating volcano plots -----------------------------------------------------
 # ==============================================================================
@@ -7,9 +31,14 @@ cli::cli_h3("Generating volcano plots")
 
 volc_plot_list <- list()
 for (i in comparisons) {
-  tmp_volc_p_path <- paste0(opt$output, "/graphs/volcano/", i, ".pdf")
+  tmp_volc_p_path <- paste0(
+    snakemake@params$output,
+    "/graphs/volcano/",
+    i,
+    ".pdf"
+  )
 
-  if (file.exists(tmp_volc_p_path)) {
+  if (interactive() && file.exists(tmp_volc_p_path)) {
     cli::cli_alert_danger(
       paste0(
         "{.path {tmp_volc_p_path} already exists. Not overwriting.}"
@@ -22,16 +51,16 @@ for (i in comparisons) {
     tmp_tib <- tmp %>%
       dplyr::mutate(
         label.p = dplyr::if_else(
-          adj.P.Val < opt$qvalue &
+          adj.P.Val < snakemake@params$qvalue &
             # na.rm = TRUE removes all features with NAs -> use imputed
             abs(logFC) > quantile(abs(logFC), 0.99, na.rm = TRUE),
           mzmed,
           NA
         ),
         direction = dplyr::case_when(
-          logFC >= 0 & adj.P.Val < opt$qvalue ~ "Up",
-          logFC < 0 & adj.P.Val < opt$qvalue ~ "Down",
-          adj.P.Val >= opt$qvalue ~ "ns",
+          logFC >= 0 & adj.P.Val < snakemake@params$qvalue ~ "Up",
+          logFC < 0 & adj.P.Val < snakemake@params$qvalue ~ "Down",
+          adj.P.Val >= snakemake@params$qvalue ~ "ns",
           TRUE ~ as.character("check")
         )
       ) %>%
@@ -79,7 +108,7 @@ for (i in comparisons) {
         title = i,
         subtitle = paste0(
           "Rounded mass-to-charge ratios with adj.p < ",
-          opt$qvalue,
+          snakemake@params$qvalue,
           " are labelled"
         ),
         x = "Log2 fold change",
@@ -107,7 +136,17 @@ for (i in comparisons) {
 
 cli::cli_alert_success(
   paste0(
-    "Volcano plots for {.val {opt$gap_filling}} saved in: ",
-    "{.path {file.path(opt$output, 'graphs', 'volcano')}}"
+    "Volcano plots for {.val {snakemake@params$gap_filling}} saved in: ",
+    "{.path {file.path(snakemake@params$output, 'graphs', 'volcano')}}"
   )
 )
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(),
+  file = snakemake@output[[1]]
+)
+
+end_log()

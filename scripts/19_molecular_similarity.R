@@ -1,14 +1,41 @@
-cli::cli_h1(basename(this.path::this.path()))
 # ==============================================================================
 # Molecular similarity m/z matching --------------------------------------------
 # ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
 
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(dplyr)
+    library(tibble)
+    library(readr)
+    library(purrr)
+    library(rcdk)
+    library(fingerprint)
+    library(rJava)
+  })
+)
+
+anno_data <- readRDS(snakemake@input[["annotation"]])
+biot_data <- readRDS(snakemake@input[["biotransformer"]])
+
+anno <- anno_data$anno
+predicted_feats <- biot_data$predicted_feats
+
+# ==============================================================================
+# Molecular similarity m/z matching --------------------------------------------
+# ==============================================================================
 anno_sims_final_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "tables",
   "anno_similarities.csv"
 )
-if (file.exists(anno_sims_final_path)) {
+if (interactive() && file.exists(anno_sims_final_path)) {
   anno_sims_final <- readr::read_csv(
     file = anno_sims_final_path,
     show_col_types = FALSE,
@@ -24,7 +51,7 @@ if (file.exists(anno_sims_final_path)) {
   cli::cli_progress_step(
     paste0(
       "Calculate molecular similarity of databased annotated features to: ",
-      "{.val {opt$smiles}} " # using similarity cutoff 0.1" # NOT
+      "{.val {snakemake@params$smiles}} " # using similarity cutoff 0.1" # NOT
     )
   )
   anno_filt <- anno %>%
@@ -35,7 +62,7 @@ if (file.exists(anno_sims_final_path)) {
   names(anno_smiles) <- anno_filt$feature
 
   anno_sims <- mol_similarity(
-    query_smiles = opt$smiles,
+    query_smiles = snakemake@params$smiles,
     target_smiles = anno_smiles,
     kekulise = TRUE, # parsing incorrect smiles with electrons
     omit_nulls = TRUE,
@@ -47,10 +74,7 @@ if (file.exists(anno_sims_final_path)) {
       x = .,
       y = anno,
       by = "feature"
-    ) # %>%
-    # Arbitrary for now
-    # dplyr::filter(sim > 0.1)
-
+    )
   cli::cli_progress_done()
 
   # Get names for individual inchikey
@@ -112,12 +136,12 @@ if (file.exists(anno_sims_final_path)) {
 # Molecular similarity biotransformer ------------------------------------------
 # ==============================================================================
 chem_pred_feats_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "tables",
   "biotransformer_similarities.csv"
 )
 
-if (file.exists(chem_pred_feats_path)) {
+if (interactive() && file.exists(chem_pred_feats_path)) {
   chem_pred_feats <- readr::read_csv(
     file = chem_pred_feats_path,
     show_col_types = FALSE,
@@ -146,11 +170,11 @@ if (file.exists(chem_pred_feats_path)) {
   cli::cli_progress_step(
     paste0(
       "Calculate molecular similarity of biotransformer predicted ",
-      "features to: {.val {opt$smiles}}"
+      "features to: {.val {snakemake@params$smiles}}"
     )
   )
   pred_sims <- mol_similarity(
-    query_smiles = opt$smiles,
+    query_smiles = snakemake@params$smiles,
     target_smiles = pred_smiles,
     kekulise = TRUE,
     omit_nulls = TRUE,
@@ -180,3 +204,16 @@ if (file.exists(chem_pred_feats_path)) {
     )
   )
 }
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(
+    anno_sims_final = anno_sims_final,
+    chem_pred_feats = chem_pred_feats
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()

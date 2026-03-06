@@ -1,16 +1,39 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Gap filling ------------------------------------------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(xcms)
+    library(tibble)
+    library(dplyr)
+    library(tidyr)
+  })
+)
+
+correspondence <- readRDS(snakemake@input[["correspondence"]])
+xchr7 <- correspondence$xchr7
+
+
 # ==============================================================================
 # Gap filling ------------------------------------------------------------------
 # ==============================================================================
 cli::cli_h3("Filling gaps")
 
 xchr8_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "xchr8.rds"
 )
 
-if (file.exists(xchr8_path)) {
+if (interactive() && file.exists(xchr8_path)) {
   xchr8 <- readRDS(file = xchr8_path)
   cli::cli_alert_success(
     paste0(
@@ -112,12 +135,12 @@ chrs_na_feat[, "rtmax"] <- chrs_na_feat[, "rtmax"] + 1
 
 # For later plotting of non-filled peaks
 chrs_na_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "chrs_na.rds"
 )
 cli::cli_alert_info("Generating chromatograms for all NAs")
-if (file.exists(chrs_na_path)) {
+if (interactive() && file.exists(chrs_na_path)) {
   chrs_na <- readRDS(file = chrs_na_path)
   cli::cli_alert_success(
     paste0(
@@ -141,3 +164,13 @@ if (file.exists(chrs_na_path)) {
     )
   )
 }
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(xchr8 = xchr8),
+  file = snakemake@output[[1]]
+)
+
+end_log()

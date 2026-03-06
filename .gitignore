@@ -13,3 +13,4 @@
 *.pdf
 *.svg
 *.bat
+.snakemake/

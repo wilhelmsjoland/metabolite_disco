@@ -6,7 +6,7 @@ cli::cli_progress_step("Writing feature chromatograms to plots...")
 # Features
 plot_twenty_feats(
   chromatogram = feature_chrs,
-  save_loc = "/graphs/features/"
+  save_loc = file.path(opt$output, "graphs", "features")
 )
 cli::cli_progress_done()
 

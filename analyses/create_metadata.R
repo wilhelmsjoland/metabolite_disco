@@ -1,4 +1,5 @@
 library(janitor)
+library(yaml)
 
 exp_path <- "V:/aglycone_release_100um_24h"
 
@@ -98,4 +99,5 @@ experiments <- purrr::map2(
   }
 ) %>%
   dplyr::bind_rows(.id = "experiment") %>%
+  dplyr::mutate(experiment = as.numeric(experiment)) %>%
   dplyr::arrange(experiment, strain)

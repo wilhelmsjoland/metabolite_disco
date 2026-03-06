@@ -1,11 +1,40 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Grouping of peak groups
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(xcms)
+    library(MsExperiment)
+    library(Spectra)
+    library(dplyr)
+  })
+)
+
+peak_calling <- readRDS(snakemake@input[["peak_calling"]])
+bpc_data <- readRDS(snakemake@input[["bpc"]])
+is_data <- readRDS(snakemake@input[["internal_std"]])
+setup <- readRDS(snakemake@input[["setup"]])
+
+xchr <- peak_calling$xchr
+bpcs <- bpc_data$bpcs
+ranges <- is_data$ranges
+group_colors <- setup$group_colors
+
 # ==============================================================================
 # Grouping of peak groups
 # ==============================================================================
 cli::cli_h3("Performing first peak grouping")
 
-xchr5_path <- file.path(opt$output, "objects", "xchr5.rds")
-if (file.exists(xchr5_path)) {
+xchr5_path <- file.path(snakemake@params$output, "objects", "xchr5.rds")
+if (interactive() && file.exists(xchr5_path)) {
   xchr5 <- readRDS(xchr5_path)
   cli::cli_alert_success(
     paste0(
@@ -19,11 +48,11 @@ if (file.exists(xchr5_path)) {
     object = xchr, # xchr4
     param = xcms::PeakDensityParam(
       sampleGroups = MsExperiment::sampleData(xchr)$group,
-      bw = opt$bw_first_grouping,
+      bw = snakemake@params$bw_first_grouping,
       minFraction = 0.5, # 0.7
       binSize = 0.01,
       maxFeatures = 1000, # 200
-      ppm = opt$ppm_global,
+      ppm = snakemake@params$ppm_global,
       minSamples = 2 # 1
     )
   )
@@ -55,7 +84,7 @@ pgm <- xcms::adjustRtimePeakGroups(
   xcms::PeakGroupsParam(minFraction = 0.9)
 )
 anc_peak_dist_before_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "rtime",
   "anchor_peak_dist_before.pdf"
@@ -74,14 +103,14 @@ pgm_apply <- apply(
   X = pgm,
   MARGIN = 1,
   FUN = function(x) {
-    sd(x, na.rm = TRUE) < opt$peak_anchor_sd
+    sd(x, na.rm = TRUE) < snakemake@params$peak_anchor_sd
   }
 )
 pgm_filt <- pgm[pgm_apply, ]
 
 cli::cli_alert_info("Plotting anchor peak distribution after filtering")
 anc_peak_dist_after_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "rtime",
   "anchor_peak_dist_after.pdf"
@@ -104,8 +133,8 @@ cli::cli_alert_success(
 # ==============================================================================
 cli::cli_h3("Aligning retention times")
 
-xchr6_path <- file.path(opt$output, "objects", "xchr6.rds")
-if (file.exists(xchr6_path)) {
+xchr6_path <- file.path(snakemake@params$output, "objects", "xchr6.rds")
+if (interactive() && file.exists(xchr6_path)) {
   xchr6 <- readRDS(file = xchr6_path)
   cli::cli_alert_success(
     paste0(
@@ -118,18 +147,18 @@ if (file.exists(xchr6_path)) {
   xchr6 <- xcms::adjustRtime(
     object = xchr5,
     param = xcms::PeakGroupsParam(
-      minFraction = opt$min_fraction_align, # 0.8
-      extraPeaks = opt$extra_peaks, # 0 
+      minFraction = snakemake@params$min_fraction_align, # 0.8
+      extraPeaks = snakemake@params$extra_peaks, # 0 
       smooth = "loess",
       peakGroupsMatrix = pgm_filt,
-      span = opt$span, # 0.6 # 0.8
+      span = snakemake@params$span, # 0.6 # 0.8
       family = "gaussian",
       # peakGroupsMatrix = matrix(nrow = 0, ncol = 0),
       subset = integer(),
       subsetAdjust = c("average", "previous")
     )
   )
-  saveRDS(object = xchr6, file = paste0(opt$output, "/objects/xchr6.rds"))
+  saveRDS(object = xchr6, file = paste0(snakemake@params$output, "/objects/xchr6.rds"))
   cli::cli_alert_success(
     paste0(
       "Saved grouped peaks object to: ",
@@ -141,9 +170,9 @@ if (file.exists(xchr6_path)) {
 # ==============================================================================
 # Generating alignment base peak chromatograms ---------------------------------
 # ==============================================================================
-bpc_after_path <- file.path(opt$output, "objects", "bpc_after.rds")
+bpc_after_path <- file.path(snakemake@params$output, "objects", "bpc_after.rds")
 # Extract base peak chromatograms
-if (file.exists(bpc_after_path)) {
+if (interactive() && file.exists(bpc_after_path)) {
   bpc_after <- readRDS(file = bpc_after_path)
   cli::cli_alert_success(
     paste0(
@@ -177,7 +206,7 @@ if (file.exists(bpc_after_path)) {
 # Plotting retention time drift ------------------------------------------------
 # ==============================================================================
 before_after_alignment_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "rtime",
   "before_after_alignment.pdf"
@@ -206,12 +235,12 @@ cli::cli_alert_success(
 # Generating alignment base peak chromatograms for internal standards ----------
 # ==============================================================================
 is_drift_check_before_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "is_drift_check_before.rds"
 )
 
-if (file.exists(is_drift_check_before_path)) {
+if (interactive() && file.exists(is_drift_check_before_path)) {
   is_drift_check_before <- readRDS(file = is_drift_check_before_path)
   cli::cli_alert_success(
     paste0(
@@ -248,12 +277,12 @@ if (file.exists(is_drift_check_before_path)) {
 }
 
 is_drift_check_after_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "is_drift_check_after.rds"
 )
 
-if (file.exists(is_drift_check_after_path)) {
+if (interactive() && file.exists(is_drift_check_after_path)) {
   is_drift_check_after <- readRDS(file = is_drift_check_after_path)
   cli::cli_alert_success(
     paste0(
@@ -293,7 +322,7 @@ if (file.exists(is_drift_check_after_path)) {
 # Plotting retention time drift in internal standards --------------------------
 # ==============================================================================
 is_before_after_alignment_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "rtime",
   "is_before_after_alignment.pdf"
@@ -326,7 +355,7 @@ cli::cli_alert_success(
 # ==============================================================================
 # Before
 anchor_peaks_before_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "rtime",
   "anchor_peaks_before.pdf"
@@ -337,7 +366,7 @@ invisible(dev.off())
 
 # After
 anchor_peaks_after_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "rtime",
   "anchor_peaks_after.pdf"
@@ -345,3 +374,16 @@ anchor_peaks_after_path <- file.path(
 pdf(anchor_peaks_after_path)
 plotAdjustedRtime(xchr6, adjusted = TRUE)
 invisible(dev.off())
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(
+    xchr5 = xchr5,
+    xchr6 = xchr6
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()

@@ -1,4 +1,34 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Matching m/z's against databases -------------------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages({
+    library(cli)
+    library(BiocParallel)
+    library(dplyr)
+    library(tibble)
+    library(tidyr)
+    library(purrr)
+    library(readr)
+    library(AnnotationHub)
+    library(MetaboAnnotation)
+    library(MetaboCoreUtils)
+    library(ProtGenerics)
+  })
+)
+
+limma_data <- readRDS(snakemake@input[["limma"]])
+prep_data <- readRDS(snakemake@input[["prep_biot"]])
+
+intensities <- limma_data$intensities
+all_sig_diff <- prep_data$all_sig_diff
+
+
 # ==============================================================================
 # Matching m/z's against databases -------------------------------------------
 # ==============================================================================
@@ -18,11 +48,11 @@ peaks_used <- intensities$norm_fill_imp$untransformed %>%
 peaks_used$peak_id <- rownames(peaks_used) # keep XCMS peak IDs
 
 anno_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "tables",
   "mz_annotations.csv"
 )
-if (file.exists(anno_path)) {
+if (interactive() && file.exists(anno_path)) {
   anno <- readr::read_csv(
     file = anno_path,
     show_col_types = FALSE,
@@ -74,15 +104,17 @@ if (file.exists(anno_path)) {
 
   # parameters to match by
   mz_match_param <- MetaboAnnotation::Mass2MzParam(
-    adducts = c(MetaboCoreUtils::adductNames(polarity = opt$polarity)),
-    ppm = opt$ppm_match
+    adducts = c(
+      MetaboCoreUtils::adductNames(polarity = snakemake@params$polarity)
+    ),
+    ppm = snakemake@params$ppm_match
   )
 
   cli::cli_bullets(
     c(
       "i" = "Matching features to database with: ",
-      "i" = "polarity: {.val {opt$polarity}}",
-      "i" = "ppm: {.val {opt$ppm_match}}"
+      "i" = "polarity: {.val {snakemake@params$polarity}}",
+      "i" = "ppm: {.val {snakemake@params$ppm_match}}"
     )
   )
 
@@ -105,3 +137,15 @@ if (file.exists(anno_path)) {
     )
   )
 }
+
+# ==============================================================================
+# Snakesave --------------------------------------------------------------------
+# ==============================================================================
+saveRDS(
+  object = list(
+    anno = anno
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()

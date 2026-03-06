@@ -1,24 +1,3 @@
-source("scripts/01_setup.R")
-source("scripts/02_bpc.R")
-source("scripts/03_internal_standard.R")
-source("scripts/04_peak_calling.R")
-source("scripts/05_alignment.R")
-source("scripts/06_correspondence.R")
-source("scripts/07_gap_filling.R")
-source("scripts/08_filter_features.R")
-source("scripts/09_scaling.R")
-source("scripts/10_limma.R")
-source("scripts/11_pca.R")
-source("scripts/12_volcano.R")
-source("scripts/13_upset.R")
-source("scripts/14_intersecting_features.R")
-source("scripts/15_prep_annotation_biotransformation.R")
-source("scripts/16_mz_predictions.R")
-source("scripts/17_annotation.R")
-source("scripts/18_biotransformer.R")
-source("scripts/19_molecular_similarity.R")
-end_log()
-
 # TODO
 # FILTERING XCHR9 too hard, losing apigenin!!!!!!!!!
 # beta_cor isnt everything, mabye make ppm smaller?

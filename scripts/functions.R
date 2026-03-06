@@ -272,7 +272,6 @@ get_rt_mz_range <- function(
   return(ranges)
 }
 
-
 inspect_peak <- function(
   chrom_obj = NULL,
   peak = TRUE,
@@ -302,7 +301,7 @@ inspect_peak <- function(
   # Different ways of doing the same thing
   # basename(fileNames(xchr)[peak_row$sample])
   # rownames(meta)[peak_row$sample]
-  samp_name <- rownames(MsExperiment::sampleData(xchr)[peak_row$sample, ])
+  samp_name <- rownames(MsExperiment::sampleData(chrom_obj)[peak_row$sample, ])
   samp_group <- meta$group[rownames(meta) == samp_name]
   samp_color <- group_colors[names(group_colors) == samp_group]
 
@@ -398,7 +397,7 @@ plot_experiment_intensities <- function(
       )
     )
 
-  # lower number of detected peaks = the smaller width of the boxes
+  # lower number of detected peaks = smaller width of the boxes
   xchr_data_p <- xchr_data_comb %>%
     dplyr::mutate(comb = paste0(sample, "_", sample_id)) %>%
     dplyr::mutate(comb = forcats::fct_reorder(
@@ -414,7 +413,7 @@ plot_experiment_intensities <- function(
     ) +
     ggplot2::geom_boxplot(varwidth = TRUE) +
     ggplot2::scale_fill_manual(values = group_colors) +
-    ggplot2::guides(x = guide_axis(angle = -45)) +
+    ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
     ggplot2::theme_bw() +
     ggplot2::theme(
       axis.title.x = ggplot2::element_blank(),
@@ -446,7 +445,7 @@ plot_experiment_intensities <- function(
 
 plot_twenty_feats <- function(
   chromatogram = NULL,
-  save_loc = "/graphs/features/"
+  save_loc = "output/apiin_bu_25_ppm/graphs/features/"
 ) {
   chrom_feats <- xcms::featureDefinitions(chromatogram) %>%
     tibble::as_tibble(
@@ -465,8 +464,8 @@ plot_twenty_feats <- function(
     min_mz <- min(idx_feats$mzmed, na.rm = TRUE)
     max_mz <- max(idx_feats$mzmed, na.rm = TRUE)
     file_name <- paste0(round(min_mz, 3), "-", round(max_mz, 3))
-    plot_name <- paste0(opt$output, save_loc, file_name, ".pdf")
-    if (file.exists(plot_name)) {
+    plot_name <- paste0(save_loc, file_name, ".pdf")
+    if (interactive() && file.exists(plot_name)) {
       cli::cli_alert_info(
         "{.path {plot_name}} already exists, skipping"
       )
@@ -514,9 +513,9 @@ plot_feat_chrom_int <- function(
   overwrite = FALSE
 ) {
 
-  file_nm <- paste0(opt$output, save_loc, feature, ".", device)
+  file_nm <- paste0(save_loc, feature, ".", device)
   if (
-    file.exists(file_nm) &&
+    interactive() && file.exists(file_nm) &&
       !overwrite &&
       !is.null(save_loc)
   ) {
@@ -735,11 +734,11 @@ plot_feature_pairs <- function(
 
   ft_pair <- filt_match_row[["pair"]][[1]]
   file_nm <- paste0(
-    opt$output, save_pairs_loc,
+    save_pairs_loc,
     ft_pair[1], "_", ft_pair[2], ".", device
   )
 
-  if (file.exists(file_nm) && !overwrite) {
+  if (interactive() && file.exists(file_nm) && !overwrite) {
     cli::cli_alert_info(
       "{.path {file_nm}} already exists, skipping"
     )
@@ -816,21 +815,19 @@ feat_to_idx <- function(feature_idx = NULL) {
   return(clean_idx)
 }
 
-check_saved <- function(filename = NULL) {
-  object_bool <- file.exists(file.path(opt$output, "objects", filename))
-  return(object_bool)
-}
-
 register_parallel <- function(workers = NULL) {
+  if (is.null(workers) || workers < 0) {
+    workers <- parallel::detectCores() - 1
+  }
   sys <- Sys.info()["sysname"]
   if (sys == "Windows") {
     bp <<- BiocParallel::SnowParam(
-      workers = opt$cores,
+      workers = workers,
       type = "SOCK"
     )
   } else if (sys %in% c("Linux", "Darwin")) {
     bp <<- BiocParallel::MulticoreParam(
-      workers = opt$cores
+      workers = workers
     )
   }
 
@@ -955,7 +952,7 @@ plot_pca <- function(
 
   pca_p <- scores %>%
     ggplot2::ggplot(
-      aes(
+      ggplot2::aes(
         x = {{ x }},
         y = {{ y }}
       )
@@ -987,7 +984,7 @@ pred_biot <- function(
   tolerance = NULL,
   features_of_interest = NULL,
   parallel = TRUE,
-  n_workers = opt$cores
+  n_workers = parallel::detectCores() - 3
 ) {
   if (is.null(tolerance) & is.null(tolerance_ppm)) {
     stop("Both tolerance and tolerance_ppm are NULL")
@@ -1038,7 +1035,7 @@ pred_biot <- function(
     oplan <- future::plan(future::multisession, workers = n_workers)
     on.exit(future::plan(oplan), add = TRUE)
 
-    all_matches <- future_lapply(1:n_trans, function(k) {
+    all_matches <- future.apply::future_lapply(1:n_trans, function(k) {
       delta <- biotransf_data$delta_mass[k]
       this_name <- biotransf_data$name[k]
       this_formula <- biotransf_data$delta_formula[k]
@@ -1203,7 +1200,7 @@ filt_features <- function(
 
 }
 
-start_log <- function() {
+start_log <- function(output_folder = NULL) {
   Sys.setlocale("LC_CTYPE", ".utf8")
   options(
     cli.ansi = FALSE,
@@ -1215,28 +1212,35 @@ start_log <- function() {
   )
 
   if (!interactive()) {
-    con <<- file(
-      file.path(
-        opt$output,
-        paste0(
-          basename(opt$output),
-          "_",
-          format(Sys.time(), "%Y%m%d_%H%M%S"),
-          ".log"
-        )
-      ),
-      open = "wt",
-      encoding = "UTF-8"
+    log_file <- file.path(
+      output_folder,
+      "logs",
+      paste0(
+        basename(output_folder),
+        "_pipeline",
+        ".log"
+      )
     )
-    sink(con, type = "output")
+    con <<- file(log_file, open = "at", encoding = "UTF-8")
+    sink(con, type = "output", append = TRUE)
     sink(con, type = "message", append = TRUE)
   }
 }
 
-end_log <- function() {
-  cli::cli_alert_success(
-    "Pipeline finished on {.time {format(Sys.time())}}"
+script_header <- function() {
+  rule_name <- gsub(
+    "\\d+_|\\.rds$", "",
+    basename(snakemake@output[[1]])
   )
+  timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  cli::cli_h1("{rule_name} {.emph {timestamp}}")
+}
+
+
+end_log <- function() {
+  # cli::cli_alert_success(
+  #   "Pipeline finished on {.time {format(Sys.time())}}"
+  # )
 
   if (!interactive()) {
     sink(type = "message")
@@ -1364,13 +1368,14 @@ median_scale_base <- function(
 
 produce_complex_upset <- function(
   input = upset_intersect,
-  comps = comparisons
+  comps = comparisons,
+  qvalue = snakemake@params$qvalue
 ) {
   tmp_p <- ComplexHeatmap::UpSet(
     input,
     set_order = comps,
     comb_order = order(comb_size(input), decreasing = TRUE),
-    column_title = paste0("Features with p adjusted < ", opt$qvalue),
+    column_title = paste0("Features with p adjusted < ", qvalue),
     row_names_max_width = ComplexHeatmap::max_text_width(
       ComplexHeatmap::set_name(
         input
@@ -1407,8 +1412,128 @@ extract_upset_comps <- function(
   upset = NULL
 ) {
   combs <- ComplexHeatmap::comb_name(upset, readable = FALSE)
-  map(
+  purrr::map(
     .x = magrittr::set_names(combs, combs),
     .f = ~ ComplexHeatmap::extract_comb(upset, .x)
+  )
+}
+
+mol_similarity <- function(
+  query_smiles = NULL,
+  target_smiles = NULL,
+  kekulise = TRUE,
+  omit_nulls = TRUE,
+  fingerprint = "circular",
+  circular_type = "ECFP6",
+  method = "tanimoto"
+) {
+
+  query_mol <- rcdk::parse.smiles(
+    smiles = query_smiles,
+    kekulise = kekulise,
+    omit.nulls = omit_nulls
+  )[[1]]
+
+  target_mols <- rcdk::parse.smiles(
+    smiles = target_smiles,
+    kekulise = kekulise,
+    omit.nulls = omit_nulls
+  )
+
+  query_fp <- rcdk::get.fingerprint(
+    molecule = query_mol,
+    type = fingerprint,
+    circular.type = circular_type
+  )
+
+  target_fps <- lapply(
+    X = target_mols,
+    FUN = function(x) {
+      rcdk::get.fingerprint(
+        molecule = x,
+        type = fingerprint,
+        circular.type = circular_type
+      )
+    }
+  )
+
+  sims <- target_fps %>%
+    purrr::map2(
+      .x = .,
+      .y = names(.),
+      .f = ~ tibble::tibble(
+        feature = .y,
+        sim = fingerprint::distance(
+          fp1 = .x,
+          fp2 = query_fp,
+          method = "tanimoto"
+        )
+      )
+    ) %>%
+    purrr::list_rbind() %>%
+    dplyr::arrange(dplyr::desc(sim))
+
+  return(sims)
+}
+
+# TODO
+# check later -> hclust of similarity
+# fps <- lapply(mols, get.fingerprint, type='circular')
+# fp.sim <- fingerprint::fp.sim.matrix(fps, method='tanimoto')
+# fp.dist <- 1 - fp.sim
+# cls <- hclust(as.dist(fp.dist))
+# plot(cls, labels=FALSE)
+
+run_biotransformer <- function(
+  bt_dir = "biotransformer3.0jar",
+  smiles = NULL,
+  b_type = "superbio",
+  k_task = "pred", # pred for prediction, or cid for compound identification
+  output_file = "prediction",
+  results_path = snakemake@params$output
+) {
+  old_wd <- getwd()
+  new_wd <- file.path(old_wd, bt_dir)
+  biot_output_loc <- file.path(old_wd, results_path, "tables")
+  clean_nm <- gsub("\\..*$", "", output_file)
+
+  # cmd <- paste(
+  #   "java -jar BioTransformer3.0_20230525.jar",
+  #   "-k", k_task,
+  #   "-b", b_type,
+  #   # "-isdf", biot_output_loc,
+  #   "-ismi", smiles,
+  #   "-ocsv", paste0(biot_output_loc, "/", clean_nm, ".csv"),
+  #   "-a"
+  # )
+
+  # setwd(new_wd)
+  # biot_output <- system(paste(cmd, "2>&1"), intern = TRUE)
+  # cat(biot_output, sep = "\n")
+  # setwd(old_wd)
+
+  setwd(new_wd)
+  biot_output <- system2(
+    command = "java",
+    args = c(
+      "-jar", "BioTransformer3.0_20230525.jar",
+      "-k", k_task,
+      "-b", b_type,
+      "-ismi", smiles,
+      "-ocsv", paste0(biot_output_loc, "/", clean_nm, ".csv"),
+      "-a"
+    ),
+    stdout = TRUE,
+    stderr = TRUE
+  )
+  cat(biot_output, sep = "\n")
+  setwd(old_wd)
+}
+
+script_header <- function() {
+  rule_name <- sub("^[^.]*\\.", "", snakemake@rule)
+  timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  cli::cli_h1(
+    "{.file {rule_name}} {.emph {timestamp}}"
   )
 }

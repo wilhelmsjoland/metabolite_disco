@@ -1,17 +1,46 @@
-cli::cli_h1(basename(this.path::this.path()))
+# ==============================================================================
+# Inspect internal standard prior to peak-calling ------------------------------
+# Define the rt and m/z range of the peak area ---------------------------------
+# ==============================================================================
+source("scripts/functions.R")
+start_log(snakemake@params$output)
+script_header()
+
+set.seed(snakemake@params$seed)
+register_parallel(snakemake@params$cores)
+suppressWarnings(
+  suppressPackageStartupMessages(
+    {
+      library(cli)
+      library(BiocParallel)
+      library(xcms)
+      library(MsExperiment)
+      library(dplyr)
+      library(tibble)
+    }
+  )
+)
+
+setup <- readRDS(snakemake@input[["setup"]])
+bpc_data <- readRDS(snakemake@input[["bpc"]])
+ms_exp <- setup$ms_exp
+group_colors <- setup$group_colors
+meta <- setup$meta
+bpcs <- bpc_data$bpcs
+
 # ==============================================================================
 # Inspect internal standard prior to peak-calling ------------------------------
 # Define the rt and m/z range of the peak area ---------------------------------
 # ==============================================================================
 cli::cli_alert_info("Inspecting internal standard peaks prior to peak-calling")
 mz_theory <- get_theory_mz(
-  chem_form = opt$internal_standard,
-  adduct = opt$is_adduct
+  chem_form = snakemake@params$internal_standard,
+  adduct = snakemake@params$is_adduct
 )
 mz_range <- get_short_mz_range(mz_theory, mz_window = 0.02)
 
-is_chr_path <- file.path(opt$output, "objects", "is_chr.rds")
-if (file.exists(is_chr_path)) {
+is_chr_path <- file.path(snakemake@params$output, "objects", "is_chr.rds")
+if (interactive() && file.exists(is_chr_path)) {
   is_chr <- readRDS(file = is_chr_path)
   cli::cli_alert_success(
     paste0(
@@ -41,7 +70,7 @@ ranges <- get_rt_mz_range(chromatogram = is_chr, rt_window = 0.02)
 # Plotting full IS chromatogram ------------------------------------------------
 # ==============================================================================
 all_is_full_p_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "internal_standard",
   "all_is_full.pdf"
@@ -60,8 +89,8 @@ cli::cli_alert_success(
 # ==============================================================================
 # Getting a narrow internal standard XIC ---------------------------------------
 # ==============================================================================
-is_eic_path <- file.path(opt$output, "objects", "is_eic.rds")
-if (file.exists(is_eic_path)) {
+is_eic_path <- file.path(snakemake@params$output, "objects", "is_eic.rds")
+if (interactive() && file.exists(is_eic_path)) {
   is_eic <- readRDS(file = is_eic_path)
   cli::cli_alert_success(
     paste0(
@@ -81,7 +110,7 @@ if (file.exists(is_eic_path)) {
   cli::cli_alert_success(
     paste0(
       "Saved a narrow internal standard XIC to: ",
-      "{.path {ms_exp_path}}"
+      "{.path {is_eic_path}}"
     )
   )
 }
@@ -90,7 +119,7 @@ if (file.exists(is_eic_path)) {
 # Plot all the internal standard XICs together ---------------------------------
 # ==============================================================================
 all_is_p_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "graphs",
   "internal_standard",
   "all_is.pdf"
@@ -112,7 +141,7 @@ cli::cli_alert_success(
 # ==============================================================================
 for (i in seq_along(is_eic)) {
   tmp_is_eic_p_path <- file.path(
-    opt$output,
+    snakemake@params$output,
     "graphs",
     "internal_standard",
     paste0(
@@ -157,8 +186,8 @@ cli::cli_alert_info(
   )
 )
 
-is_chr_wide_path <- file.path(opt$output, "objects", "is_chr_wide.rds")
-if (file.exists(is_chr_wide_path)) {
+is_chr_wide_path <- file.path(snakemake@params$output, "objects", "is_chr_wide.rds")
+if (interactive() && file.exists(is_chr_wide_path)) {
   is_chr_wide <- readRDS(file = is_chr_wide_path)
   cli::cli_alert_success(
     paste0(
@@ -187,11 +216,11 @@ if (file.exists(is_chr_wide_path)) {
 # Run peak detection on the IS EIC ---------------------------------------------
 # ==============================================================================
 is_chr_wide_peaks_path <- file.path(
-  opt$output,
+  snakemake@params$output,
   "objects",
   "is_chr_wide_peaks.rds"
 )
-if (file.exists(is_chr_wide_peaks_path)) {
+if (interactive() && file.exists(is_chr_wide_peaks_path)) {
   is_chr_wide_peaks <- readRDS(file = is_chr_wide_peaks_path)
   cli::cli_alert_success(
     paste0(
@@ -204,10 +233,10 @@ if (file.exists(is_chr_wide_peaks_path)) {
   is_chr_wide_peaks <- xcms::findChromPeaks(
     object = is_chr_wide,
     param = xcms::CentWaveParam(
-      ppm = opt$ppm_global,
+      ppm = snakemake@params$ppm_global,
       peakwidth = c(2, 20),
       prefilter = c(1, 1),
-      snthresh = opt$sn_threshold, # 10
+      snthresh = snakemake@params$sn_threshold, # 10
       mzCenterFun = "wMean",
       mzdiff = 0.001,
       integrate = 2,
@@ -244,8 +273,19 @@ is_max_peak_width <- max(is_peaks$delta_rt, na.rm = TRUE)
 min_peak_width <- unname(quantile(is_peaks$delta_rt, 0.05, na.rm = TRUE) * 0.3)
 max_peak_width <- unname(quantile(is_peaks$delta_rt, 0.95, na.rm = TRUE) * 4)
 
-cli::cli_ul("Internal standard: {opt$internal_standard}")
-cli::cli_ul("Internal standard adduct: {opt$is_adduct}")
+cli::cli_ul("Internal standard: {snakemake@params$internal_standard}")
+cli::cli_ul("Internal standard adduct: {snakemake@params$is_adduct}")
 cli::cli_ul("Theoretical m/z: {round(mz_theory, 2)}")
 cli::cli_ul("Min IS peak width: {round(is_min_peak_width, 2)}")
 cli::cli_ul("Max IS peak width: {round(is_max_peak_width, 2)}")
+
+saveRDS(
+  object = list(
+    ranges = ranges,
+    min_peak_width = min_peak_width,
+    max_peak_width = max_peak_width
+  ),
+  file = snakemake@output[[1]]
+)
+
+end_log()
