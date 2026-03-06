@@ -1,5 +1,5 @@
 # ==============================================================================
-# Gap filling ------------------------------------------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -154,7 +154,7 @@ if (interactive() && file.exists(chrs_na_path)) {
     xchr8,
     mz = chrs_na_feat[, c("mzmin", "mzmax")],
     # mabye increase this a little?
-    rt = chrs_na_feat[, c("rtmin", "rtmax")] 
+    rt = chrs_na_feat[, c("rtmin", "rtmax")]
   )
   saveRDS(object = chrs_na, file = chrs_na_path)
   cli::cli_alert_success(
@@ -172,5 +172,4 @@ saveRDS(
   object = list(xchr8 = xchr8),
   file = snakemake@output[[1]]
 )
-
 end_log()

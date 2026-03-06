@@ -1,5 +1,5 @@
 # ==============================================================================
-# Biotransformer.jar -----------------------------------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -29,7 +29,11 @@ xchr9_filt <- filter_data$xchr9_filt
 # Biotransformer.jar -----------------------------------------------------------
 # ==============================================================================
 cli::cli_h3("Predicting biotransformations from SMILES")
-prediction_path <- file.path(snakemake@params$output, "tables", "prediction.csv")
+prediction_path <- file.path(
+  snakemake@params$output,
+  "tables",
+  "prediction.csv"
+)
 if (interactive() && file.exists(prediction_path)) {
   biot_pred <- readr::read_csv(
     file = prediction_path,

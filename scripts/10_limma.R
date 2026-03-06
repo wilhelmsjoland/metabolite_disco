@@ -1,5 +1,5 @@
 # ==============================================================================
-# For each tibble create 1. untransformed, 2. log2, 3. log2 & scaled -----------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -282,5 +282,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()

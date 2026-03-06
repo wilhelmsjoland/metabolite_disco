@@ -1,5 +1,5 @@
 # ==============================================================================
-# Generating upset plots -------------------------------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -80,8 +80,8 @@ if (interactive() && file.exists(upset_intersect_p_path)) {
   invisible(dev.off())
   cli::cli_alert_success(
     paste0(
-      "Intersection upset plot for {.val {snakemake@params$gap_filling}} saved to: ",
-      "{.path {upset_intersect_p_path}}"
+      "Intersection upset plot for {.val {snakemake@params$gap_filling}}",
+      " saved to: {.path {upset_intersect_p_path}}"
     )
   )
 }
@@ -121,8 +121,8 @@ if (interactive() && file.exists(upset_distinct_p_path)) {
   invisible(dev.off())
   cli::cli_alert_success(
     paste0(
-      "Distinct upset plot for {.val {snakemake@params$gap_filling}} saved to: ",
-      "{.path {upset_distinct_p_path}}"
+      "Distinct upset plot for {.val {snakemake@params$gap_filling}}",
+      " saved to: {.path {upset_distinct_p_path}}"
     )
   )
 }
@@ -137,5 +137,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()

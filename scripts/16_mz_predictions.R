@@ -1,5 +1,5 @@
 # ==============================================================================
-# Fetching potential glycoside/aglycone features -------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -136,7 +136,8 @@ cli::cli_alert_info(
 cli::cli_bullets(
   c(
     "i" = "Predicting subset of potential biotransformations based on: ",
-    "i" = "\tdatabase: {.val {snakemake@params$biotransf_file}}", # + the other kegg stuff
+    # below: + the other kegg stuff
+    "i" = "\tdatabase: {.val {snakemake@params$biotransf_file}}",
     "i" = "\tppm: {.val {snakemake@params$ppm_match}}"
   )
 )
@@ -198,55 +199,56 @@ glycoside_pairs <- unique(
 # ==============================================================================
 if (snakemake@params$all_vs_all) {
   cli::cli_bullets(
-  c(
-    "i" = "Predicting all potential biotransformations based on: ",
-    "i" = "\tdatabase: {.val {snakemake@params$biotransf_file}}", # + the other kegg stuff
-    "i" = "\tppm: {.val {snakemake@params$ppm_match}}"
+    c(
+      "i" = "Predicting all potential biotransformations based on: ",
+      # + the other kegg stuff
+      "i" = "\tdatabase: {.val {snakemake@params$biotransf_file}}",
+      "i" = "\tppm: {.val {snakemake@params$ppm_match}}"
+    )
   )
-)
-# Turn this around
-matched_diffs_path <- file.path(
-  snakemake@params$output,
-  "objects",
-  "matched_diffs.rds"
-)
+  # Turn this around
+  matched_diffs_path <- file.path(
+    snakemake@params$output,
+    "objects",
+    "matched_diffs.rds"
+  )
 
-if (interactive() && file.exists(matched_diffs_path)) {
-  matched_diffs <- readRDS(file = matched_diffs_path)
-  cli::cli_alert_success(
-    paste0(
-      "Imported m/z predictions object from: ",
-      "{.path {matched_diffs_path}}"
+  if (interactive() && file.exists(matched_diffs_path)) {
+    matched_diffs <- readRDS(file = matched_diffs_path)
+    cli::cli_alert_success(
+      paste0(
+        "Imported m/z predictions object from: ",
+        "{.path {matched_diffs_path}}"
+      )
     )
-  )
-} else {
-  cli::cli_alert_info("Predicting m/zs")
-  matched_diffs <- pred_biot(
-    data = possible_adducts_signif,
-    biotransf_data = bio_transf2,
-    tolerance_ppm = snakemake@params$ppm_match,
-    parallel = TRUE
-  )
-  saveRDS(
-    object = matched_diffs,
-    file = paste0(snakemake@params$output, "/objects/matched_diffs.rds")
-  )
-  cli::cli_alert_success(
-    paste0(
-      "Saved subsetted m/z predictions to: ",
-      "{.path {matched_diffs_path}}"
+  } else {
+    cli::cli_alert_info("Predicting m/zs")
+    matched_diffs <- pred_biot(
+      data = possible_adducts_signif,
+      biotransf_data = bio_transf2,
+      tolerance_ppm = snakemake@params$ppm_match,
+      parallel = TRUE
     )
-  )
-}
+    saveRDS(
+      object = matched_diffs,
+      file = paste0(snakemake@params$output, "/objects/matched_diffs.rds")
+    )
+    cli::cli_alert_success(
+      paste0(
+        "Saved subsetted m/z predictions to: ",
+        "{.path {matched_diffs_path}}"
+      )
+    )
+  }
 
-matched_diffs <- matched_diffs %>%
-  dplyr::filter(
-    dplyr::if_all(
-      .cols = dplyr::all_of(c("mass1", "mass2")),
-      .fns = ~ . > 0
-    )
-  ) %>%
-  dplyr::filter(feat1 != feat2)
+  matched_diffs <- matched_diffs %>%
+    dplyr::filter(
+      dplyr::if_all(
+        .cols = dplyr::all_of(c("mass1", "mass2")),
+        .fns = ~ . > 0
+      )
+    ) %>%
+    dplyr::filter(feat1 != feat2)
 
   cli::cli_alert_success(
     paste0(
@@ -289,5 +291,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()

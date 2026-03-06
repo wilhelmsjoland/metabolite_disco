@@ -1,6 +1,5 @@
 # ==============================================================================
-# Generating chromatograms for simulated bandwiths -----------------------------
-# before correspondence for internal standard ----------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -226,5 +225,4 @@ saveRDS(
   object = list(xchr7 = xchr7),
   file = snakemake@output[[1]]
 )
-
 end_log()

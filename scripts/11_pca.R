@@ -1,5 +1,5 @@
 # ==============================================================================
-# PCA - PC1 & PC2 - before and after technical normalization -------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -141,5 +141,4 @@ saveRDS(
   object = list(),
   file = snakemake@output[[1]]
 )
-
 end_log()

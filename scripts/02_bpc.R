@@ -1,5 +1,5 @@
 # ==============================================================================
-# Create and plot base peak chromatograms --------------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -124,5 +124,4 @@ saveRDS(
   object = list(bpcs = bpcs),
   file = snakemake@output[[1]]
 )
-
 end_log()

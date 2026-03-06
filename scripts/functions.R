@@ -404,7 +404,7 @@ plot_experiment_intensities <- function(
       .f = comb,
       .x = sample
     )) %>%
-    ggplot2::ggplot(.,
+    ggplot2::ggplot(
       ggplot2::aes(
         x = comb,
         y = {{ value }},

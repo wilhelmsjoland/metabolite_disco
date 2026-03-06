@@ -1,5 +1,5 @@
 # ==============================================================================
-# Molecular similarity m/z matching --------------------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)

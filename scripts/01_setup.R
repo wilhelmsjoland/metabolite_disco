@@ -39,37 +39,6 @@ suppressWarnings(
     library(MsExperiment)
     library(RColorBrewer)
     library(tibble)
-    # library(tidyverse)
-    # library(MSnbase)
-    # library(xcms)
-    # library(MsExperiment)
-    # library(RforMassSpectrometry)
-    # library(Spectra)
-    # library(Chromatograms)
-    # library(RColorBrewer)
-    # library(pheatmap)
-    # library(QFeatures)
-    # library(Rdisop)
-    # library(limma)
-    # library(BiocParallel)
-    # library(ggrepel)
-    # library(ComplexUpset)
-    # library(MetaboAnnotation)
-    # library(CompoundDb)
-    # library(MetaboCoreUtils)
-    # library(curl)
-    # library(gt)
-    # library(patchwork)
-    # library(AnnotationHub)
-    # library(optparse)
-    # library(future.apply)
-
-    # for examine_biotransformations_hits.R
-    # library(ComplexHeatmap)
-    # library(circlize)
-    # library(rcdk)
-    # library(rJava)
-    # library(fingerprint)
   })
 )
 
@@ -112,18 +81,13 @@ cli::cli_progress_done()
 # Import metadata --------------------------------------------------------------
 # ==============================================================================
 meta <- import_mzml(snakemake@params$data_path, snakemake@params$meta_file)
-
-# TODO
-# Fix so that the metadata is saved and said that it is saved here
 meta_path <- file.path(
   snakemake@params$output,
   "tables",
   "metadata.csv"
 )
 readr::write_csv(meta, meta_path)
-
-#############
-
+cli::cli_alert_success("Saved metadata to {.path {meta_path}}")
 
 ms_exp_path <- file.path(snakemake@params$output, "objects", "ms_exp.rds")
 if (interactive() && file.exists(ms_exp_path)) {
@@ -170,5 +134,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()

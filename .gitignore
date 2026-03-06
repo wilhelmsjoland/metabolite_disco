@@ -1,6 +1,7 @@
 /01_sent_to_me
 /02_manually_produced
 /99_arkiv
+/analyses
 /annotation_databases
 /apiin_bu
 /biorender
@@ -14,4 +15,3 @@
 *.svg
 *.bat
 .snakemake/
-/analyses

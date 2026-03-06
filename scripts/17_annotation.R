@@ -1,5 +1,5 @@
 # ==============================================================================
-# Matching m/z's against databases -------------------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -28,9 +28,8 @@ prep_data <- readRDS(snakemake@input[["prep_biot"]])
 intensities <- limma_data$intensities
 all_sig_diff <- prep_data$all_sig_diff
 
-
 # ==============================================================================
-# Matching m/z's against databases -------------------------------------------
+# Match m/z's against databases ------------------------------------------------
 # ==============================================================================
 cli::cli_h3(
   paste0(

@@ -1,5 +1,5 @@
 # ==============================================================================
-# Finding intersecting features ------------------------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -81,5 +81,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()

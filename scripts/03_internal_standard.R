@@ -1,6 +1,5 @@
 # ==============================================================================
-# Inspect internal standard prior to peak-calling ------------------------------
-# Define the rt and m/z range of the peak area ---------------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -186,7 +185,11 @@ cli::cli_alert_info(
   )
 )
 
-is_chr_wide_path <- file.path(snakemake@params$output, "objects", "is_chr_wide.rds")
+is_chr_wide_path <- file.path(
+  snakemake@params$output,
+  "objects",
+  "is_chr_wide.rds"
+)
 if (interactive() && file.exists(is_chr_wide_path)) {
   is_chr_wide <- readRDS(file = is_chr_wide_path)
   cli::cli_alert_success(
@@ -287,5 +290,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()

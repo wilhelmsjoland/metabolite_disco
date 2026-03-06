@@ -1,5 +1,5 @@
 # ==============================================================================
-# Grouping of peak groups
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -148,7 +148,7 @@ if (interactive() && file.exists(xchr6_path)) {
     object = xchr5,
     param = xcms::PeakGroupsParam(
       minFraction = snakemake@params$min_fraction_align, # 0.8
-      extraPeaks = snakemake@params$extra_peaks, # 0 
+      extraPeaks = snakemake@params$extra_peaks, # 0
       smooth = "loess",
       peakGroupsMatrix = pgm_filt,
       span = snakemake@params$span, # 0.6 # 0.8
@@ -158,7 +158,10 @@ if (interactive() && file.exists(xchr6_path)) {
       subsetAdjust = c("average", "previous")
     )
   )
-  saveRDS(object = xchr6, file = paste0(snakemake@params$output, "/objects/xchr6.rds"))
+  saveRDS(
+    object = xchr6,
+    file = paste0(snakemake@params$output, "/objects/xchr6.rds")
+  )
   cli::cli_alert_success(
     paste0(
       "Saved grouped peaks object to: ",
@@ -385,5 +388,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()

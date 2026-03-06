@@ -1,5 +1,5 @@
 # ==============================================================================
-# Filtering features and input to SummarizedExperiment -------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -113,5 +113,4 @@ saveRDS(
   object = list(xchr9 = xchr9, xchr9_filt = xchr9_filt),
   file = snakemake@output[[1]]
 )
-
 end_log()

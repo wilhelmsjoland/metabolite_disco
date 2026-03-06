@@ -23,7 +23,7 @@ for (i in pred_peak_ids) {
 # FT08376
 
 # REALLY INTERESTING!
-to.look.at <- c(
+to_look_at <- c(
   "FT03581", # 1
   "FT02413", # 2
   "FT08376",
@@ -34,7 +34,7 @@ to.look.at <- c(
 
 # FIX the filtering first
 test <- predicted_feats %>%
-  dplyr::filter(feature %in% to.look.at) %>%
+  dplyr::filter(feature %in% to_look_at) %>%
   dplyr::arrange(InChIKey) %>%
   dplyr::mutate(name = paste(feature, InChIKey)) %>%
   # only for now

@@ -1,5 +1,5 @@
 # ==============================================================================
-# Call peaks on whole dataset with parameters
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -142,5 +142,4 @@ saveRDS(
   object = list(xchr = xchr),
   file = snakemake@output[[1]]
 )
-
 end_log()

@@ -1,5 +1,5 @@
 # ==============================================================================
-# Preparing to search for potential biotransformations -------------------------
+# Source functions and minimal startup parameters ------------------------------
 # ==============================================================================
 source("scripts/functions.R")
 start_log(snakemake@params$output)
@@ -38,7 +38,7 @@ cli::cli_alert_info("Expanding possible adducts")
 
 xchr9_defs <- xcms::featureDefinitions(xchr9) %>%
   tibble::as_tibble(
-    x =.,
+    x = .,
     rownames = "feature",
     .name_repair = "universal"
   )
@@ -159,7 +159,8 @@ if (interactive() && file.exists(snakemake@params$rpairs_path)) {
       # since the delta formulas probably only had 1n or 1c or similar and were
       # subtracted
       tidyr::drop_na(delta_mass)
-      cli::cli_progress_done()
+
+    cli::cli_progress_done()
   } else {
     cli::cli_alert_info("'biotransf_append' already exists, using it")
   }
@@ -203,5 +204,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()
