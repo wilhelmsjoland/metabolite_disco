@@ -1,7 +1,5 @@
 import os, shutil, glob
 
-configfile: "config.yaml"
-
 onstart:
     os.makedirs(f"{config['output']}/logs", exist_ok=True)
 

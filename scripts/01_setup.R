@@ -51,17 +51,17 @@ folders <- c(
   "internal_standard",
   "volcano",
   "upset",
-  "feature_boxplot",
+  # "feature_boxplot",
   "quality_control",
   "rtime",
-  "filled_peaks",
+  # "filled_peaks",
   "pca",
-  "feature_chromatogram_intensity",
-  "per_sample_peaks",
-  "features",
-  "feature_pairs",
-  "glycoside",
-  "glycoside_feature_pairs"
+  # "feature_chromatogram_intensity",
+  # "per_sample_peaks",
+  # "features",
+  # "feature_pairs",
+  # "glycoside",
+  # "glycoside_feature_pairs"
 )
 dir.create(file.path(snakemake@params$output, "objects"), FALSE, TRUE)
 dir.create(file.path(snakemake@params$output, "snakemake_objects"), FALSE, TRUE)
@@ -75,7 +75,7 @@ for (folder in folders) {
     recursive = TRUE
   )
 }
-dir.create(file.path("annotation_databases"), FALSE, TRUE)
+# dir.create(file.path("annotation_databases"), FALSE, TRUE)
 cli::cli_progress_done()
 # ==============================================================================
 # Import metadata --------------------------------------------------------------

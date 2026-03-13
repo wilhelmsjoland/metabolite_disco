@@ -223,5 +223,4 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
-
 end_log()
