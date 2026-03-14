@@ -55,7 +55,7 @@ folders <- c(
   "quality_control",
   "rtime",
   # "filled_peaks",
-  "pca",
+  "pca"
   # "feature_chromatogram_intensity",
   # "per_sample_peaks",
   # "features",
