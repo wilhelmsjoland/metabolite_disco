@@ -1493,8 +1493,11 @@ run_biotransformer <- function(
   results_path = snakemake@params$output
 ) {
   old_wd <- getwd()
-  new_wd <- file.path(old_wd, bt_dir)
-  biot_output_loc <- normalizePath(file.path(results_path, "tables"), mustWork = FALSE)
+  new_wd <- normalizePath(bt_dir, mustWork = FALSE)
+  biot_output_loc <- normalizePath(
+    file.path(results_path, "tables"),
+    mustWork = FALSE
+  )
   clean_nm <- gsub("\\..*$", "", output_file)
 
   # cmd <- paste(
