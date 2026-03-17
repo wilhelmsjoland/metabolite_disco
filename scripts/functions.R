@@ -46,11 +46,12 @@ import_mzml <- function(
       )
     )
   }
-  non_used_files <- mzml_files[!mzml_files %in% meta_matched$path]
-  if (length(non_used_files) > 0) {
-    cli::cli_alert_warning("Files in path not in metadata:")
-    cli::cli_ul(non_used_files)
-  }
+
+  # non_used_files <- mzml_files[!mzml_files %in% meta_matched$path]
+  # if (length(non_used_files) > 0) {
+  #   cli::cli_alert_warning("Files in path not in metadata:")
+  #   cli::cli_ul(non_used_files)
+  # }
 
   meta_matched_filt <- meta_matched %>%
     dplyr::filter(!sample %in% samp_lacking_file) %>%

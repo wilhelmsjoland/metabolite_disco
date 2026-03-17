@@ -201,7 +201,9 @@ if (interactive() && file.exists(is_chr_wide_path)) {
 } else {
   cli::cli_alert_info("Creating wide internal standard chromatogram")
   is_chr_wide <- xcms::chromatogram(
-    ms_exp,
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1L,
+    object = ms_exp,
     mz = mz_range + c(-0.05, 0.05),
     rt = ranges$rt_range + c(-16, 16),
     aggregationFun = "sum"
@@ -234,6 +236,8 @@ if (interactive() && file.exists(is_chr_wide_peaks_path)) {
 } else {
   cli::cli_alert_info("Calling peaks on wide internal standard chromatograms")
   is_chr_wide_peaks <- xcms::findChromPeaks(
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1,
     object = is_chr_wide,
     param = xcms::CentWaveParam(
       ppm = snakemake@params$ppm_global,

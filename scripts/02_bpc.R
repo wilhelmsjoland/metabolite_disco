@@ -41,7 +41,12 @@ if (interactive() && file.exists(bpc_path)) {
   )
 } else {
   cli::cli_alert_info("Creating base peak chromatograms")
-  bpcs <- xcms::chromatogram(ms_exp, aggregationFun = "max")
+  bpcs <- xcms::chromatogram(
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1L,
+    object = ms_exp,
+    aggregationFun = "max"
+  )
   saveRDS(object = bpcs, file = bpc_path)
   cli::cli_alert_success(
     paste0(

@@ -146,6 +146,8 @@ if (interactive() && file.exists(xchr6_path)) {
   cli::cli_alert_info("Grouping peaks")
   xchr6 <- xcms::adjustRtime(
     object = xchr5,
+    chunkSize = 1L,
+    BPPARAM = BiocParallel::SerialParam(),
     param = xcms::PeakGroupsParam(
       minFraction = snakemake@params$min_fraction_align, # 0.8
       extraPeaks = snakemake@params$extra_peaks, # 0
@@ -189,7 +191,9 @@ if (interactive() && file.exists(bpc_after_path)) {
     "Generating retention time adjusted base peak chromatogram"
   )
   bpc_after <- xcms::chromatogram(
-    xchr6,
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1,
+    object = xchr6,
     aggregationFun = "max",
     chromPeaks = "none"
   )
@@ -263,6 +267,8 @@ if (interactive() && file.exists(is_drift_check_before_path)) {
     Spectra::filterRt(ranges$rt_range) %>%
     Spectra::filterMzRange(ranges$mz_range) %>%
     xcms::chromatogram(
+      BPPARAM = BiocParallel::SerialParam(),
+      chunkSize = 1,
       aggregationFun = "max",
       chromPeaks = "none"
     )
@@ -305,6 +311,8 @@ if (interactive() && file.exists(is_drift_check_after_path)) {
     Spectra::filterRt(ranges$rt_range) %>%
     Spectra::filterMzRange(ranges$mz_range) %>%
     xcms::chromatogram(
+      BPPARAM = BiocParallel::SerialParam(),
+      chunkSize = 1,
       aggregationFun = "max",
       chromPeaks = "none"
     )

@@ -191,6 +191,8 @@ if (interactive() && file.exists(pred_chrs_path)) {
     )
   )
   pred_chrs <- xcms::featureChromatograms(
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1L,
     object = xchr9,
     expandRt = 0,
     expandMz = 0,

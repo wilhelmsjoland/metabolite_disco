@@ -48,6 +48,8 @@ if (interactive() && file.exists(bw_chr_1_path)) {
     "Generating chromatogram for internal standard for bandwidth simulation"
   )
   bw_chr_1 <- xcms::chromatogram(
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1,
     object = xchr6,
     mz = ranges$mz_range,
     rt = ranges$rt_range + c(-16, 16)

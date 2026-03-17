@@ -46,8 +46,8 @@ if (interactive() && file.exists(xchr_path)) {
   xchr <- xcms::findChromPeaks(
     object = ms_exp,
     BPPARAM = BiocParallel::bpparam(),
-    return.type = "XCMSnExp",
-    ms_level = 1L,
+    chunkSize = snakemake@params$cores,
+    mslevel = 1L,
     param = xcms::CentWaveParam(
       ppm = snakemake@params$ppm_global,
       peakwidth = c(min_peak_width, max_peak_width),
@@ -56,9 +56,9 @@ if (interactive() && file.exists(xchr_path)) {
       mzCenterFun = "wMean",
       integrate = 2,
       mzdiff = snakemake@params$mzdiff, # 0.001
-      fitgauss = TRUE,
+      fitgauss = FALSE, # TRUE
       noise = 1000,
-      verboseColumns = TRUE,
+      verboseColumns = FALSE,
       roiList = list(),
       firstBaselineCheck = TRUE,
       roiScales = numeric(),
