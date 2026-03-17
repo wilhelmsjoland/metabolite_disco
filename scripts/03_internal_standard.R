@@ -50,6 +50,8 @@ if (interactive() && file.exists(is_chr_path)) {
 } else {
   cli::cli_alert_info("Creating full internal standard chromatogram")
   is_chr <- xcms::chromatogram(
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1L,
     object = ms_exp,
     mz = mz_range,
     aggregationFun = "sum"
@@ -100,6 +102,8 @@ if (interactive() && file.exists(is_eic_path)) {
 } else {
   cli::cli_alert_info("Creating a narrow internal standard XIC")
   is_eic <- xcms::chromatogram(
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1L,
     object = ms_exp,
     mz = ranges$mz_range,
     rt = ranges$rt_range,
