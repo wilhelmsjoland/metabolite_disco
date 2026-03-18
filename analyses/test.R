@@ -150,7 +150,7 @@ xcms::findChromPeaks(
 
 xcms::findChromPeaks(
     object = ms_exp,
-    BPPARAM = BiocParallel::bpparam(),
+    BPPARAM = BiocParallel::SerialParam(),
     chunkSize = snakemake@params$cores,
     mslevel = 1L,
     param = xcms::CentWaveParam(
@@ -220,3 +220,105 @@ test2 <- readr::read_csv(
 # 356 rows in allHuman - time 105475 with 3 iterations
 
 # - time 284886
+
+
+
+test <- xcms::chromPeaks(xchr) %>% 
+  tibble::as_tibble(., rownames = "peaks")
+
+test %>%
+  dplyr::mutate(peaks2 = as.numeric(gsub("[A-Za-z]", "", peaks))) %>%
+  dplyr::mutate(
+    param_filter = dplyr::if_else(
+      sn > 1000,
+      "low",
+      "high"
+    )
+  ) %>%
+  ggplot(
+    aes(
+      x = sn,
+      fill = param_filter
+    )
+  ) +
+  geom_histogram() +
+  scale_x_continuous(transform = "log10", labels = scales::comma)
+
+test %>%
+  ggplot(
+    aes(
+      x = maxo,
+    )
+  ) +
+  geom_histogram() +
+  scale_x_continuous(transform = "log10", labels = scales::comma)
+
+
+test2 <- xcms::featureDefinitions(xchr9) %>%
+  tibble::as_tibble(., rownames = "feature") %>%
+  dplyr::filter(feature %in% all_sig_diff) %>%
+  unnest(cols = "peakidx")
+
+
+test %>%
+  dplyr::mutate(peaks2 = as.numeric(gsub("[A-Za-z]", "", peaks))) %>%
+  dplyr::filter(peaks2 %in% test2$peakidx) %>%
+  ggplot(
+    aes(
+      x = sn
+    )
+  ) +
+  geom_histogram() +
+  scale_x_continuous(transform = "log10", labels = scales::comma)
+
+test3 <- xcms::findChromPeaks(
+    object = ms_exp[1],
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1L,
+    mslevel = 1L,
+    param = xcms::CentWaveParam(
+      ppm = 25,
+      peakwidth = c(min_peak_width, max_peak_width),
+      snthresh = 10,
+      prefilter = c(3, 1000), # k pks (left) over intens (right) # c(4, 1000)
+      mzCenterFun = "wMean",
+      integrate = 2,
+      mzdiff = 0.01, # 0.001
+      fitgauss = FALSE, # TRUE
+      noise = 1000,
+      verboseColumns = FALSE,
+      roiList = list(),
+      firstBaselineCheck = TRUE,
+      roiScales = numeric(),
+      extendLengthMSW = FALSE,
+      verboseBetaColumns = TRUE # TRUE
+    )
+  )
+
+pks <- as.data.frame(chromPeaks(xchr))
+
+library(MetaboCoreUtils)
+
+xchr_spectra <- xcms::chromPeakSpectra(
+  object = xchr,
+  return.type = "Spectra"
+)
+
+deisotopeSpectra(
+  x,
+  substDefinition = isotopicSubstitutionMatrix("HMDB_NEUTRAL"),
+  tolerance = 0,
+  ppm = 20,
+  charge = 1
+)
+
+
+iso_groups <- isotopologues(
+  x = xchr_spectra,
+  ppm = 25
+)
+
+test %>%
+  dplyr::arrange(maxo) %>%
+  dplyr::arrange(sn)
+  dplyr::filter(maxo > 1000)
