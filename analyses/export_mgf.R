@@ -33,13 +33,13 @@ feat_export <- selectSpectraVariables(
 
 spectraVariableMapping(MsBackendMgf())
 
-# map <- c(feature_id = "TITLE", spectraVariableMapping(MsBackendMgf()))
+map <- c(feature_id = "TITLE", spectraVariableMapping(MsBackendMgf()))
 # map
 
 # Export
 Spectra::export(
   feat_export,
   backend = MsBackendMgf(),
-  # mapping = "map",
+  mapping = "map",
   file = file.path("output", "features.mgf")
 )
