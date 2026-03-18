@@ -265,6 +265,7 @@ rule annotation:
     input:
         limma = rules.limma.output[0],
         prep_biot = rules.prep_annotation_biotransformation.output[0]
+        filter_features = rules.filter_features.output[0]
     output:
         f"{config['output']}/snakemake_objects/17_annotation.rds"
     params:
