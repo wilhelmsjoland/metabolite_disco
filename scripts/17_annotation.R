@@ -161,7 +161,7 @@ if (interactive() && file.exists(anno_chrs_path)) {
       "database-matched features"
     )
   )
-anno_chrs <- xcms::featureChromatograms(
+  anno_chrs <- xcms::featureChromatograms(
     BPPARAM = BiocParallel::SerialParam(),
     chunkSize = 1L,
     object = xchr9,

@@ -297,7 +297,11 @@ inspect_peak <- function(
         peak_row$rtmax
       )
     ) %>%
-    xcms::chromatogram(aggregationFun = "sum")
+    xcms::chromatogram(
+      BPPARAM = BiocParallel::SerialParam(),
+      chunkSize = 1L,
+      aggregationFun = "sum"
+    )
 
   # Different ways of doing the same thing
   # basename(fileNames(xchr)[peak_row$sample])
