@@ -23,7 +23,6 @@ suppressWarnings(
 
 filter_data <- readRDS(snakemake@input[["filter_features"]])
 xchr9 <- filter_data$xchr9
-xchr9_filt <- filter_data$xchr9_filt
 
 # ==============================================================================
 # Biotransformer.jar -----------------------------------------------------------
@@ -140,7 +139,8 @@ if (interactive() && file.exists(predicted_feats_path)) {
     )
   }
 
-  def_tib <- xchr9_filt
+  def_tib <- xcms::featureDefinitions(xchr9) %>%
+    tibble::as_tibble(., rownames = "feature")
   # biot_final = mass to mzs - > match the m/zs to the m/zs in the data
   predicted_feats <- biot_final %>%
     dplyr::inner_join(
