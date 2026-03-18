@@ -111,63 +111,63 @@ cli::cli_alert_info(
 # ==============================================================================
 # Extract the m/z - rt regions for these features
 # Extract features with nas for peak filling
-feat_with_na_after <- xcms::featureValues(
-  object = xchr8,
-  method = "sum",
-  value = "into",
-  intensity = "into",
-  filled = TRUE,
-  missing = NA,
-  msLevel = 1
-) %>%
-  tibble::as_tibble(., rownames = "feature") %>%
-  tidyr::pivot_longer(cols = contains(".mzML")) %>%
-  dplyr::filter(is.na(value)) %>%
-  dplyr::pull(feature) %>%
-  unique(.)
+# feat_with_na_after <- xcms::featureValues(
+#   object = xchr8,
+#   method = "sum",
+#   value = "into",
+#   intensity = "into",
+#   filled = TRUE,
+#   missing = NA,
+#   msLevel = 1
+# ) %>%
+#   tibble::as_tibble(., rownames = "feature") %>%
+#   tidyr::pivot_longer(cols = contains(".mzML")) %>%
+#   dplyr::filter(is.na(value)) %>%
+#   dplyr::pull(feature) %>%
+#   unique(.)
 
-chrs_na_feat <- xcms::featureArea(
-  object = xchr8,
-  features = feat_with_na_after
-)
+# chrs_na_feat <- xcms::featureArea(
+#   object = xchr8,
+#   features = feat_with_na_after
+# )
 
-# Expand the retention time by 1 second on both sides
-chrs_na_feat[, "rtmin"] <- chrs_na_feat[, "rtmin"] - 1
-chrs_na_feat[, "rtmax"] <- chrs_na_feat[, "rtmax"] + 1
+# # Expand the retention time by 1 second on both sides
+# chrs_na_feat[, "rtmin"] <- chrs_na_feat[, "rtmin"] - 1
+# chrs_na_feat[, "rtmax"] <- chrs_na_feat[, "rtmax"] + 1
 
-# For later plotting of non-filled peaks
-chrs_na_path <- file.path(
-  snakemake@params$output,
-  "objects",
-  "chrs_na.rds"
-)
+# # For later plotting of non-filled peaks
+# chrs_na_path <- file.path(
+#   snakemake@params$output,
+#   "objects",
+#   "chrs_na.rds"
+# )
 
-if (interactive() && file.exists(chrs_na_path)) {
-  chrs_na <- readRDS(file = chrs_na_path)
-  cli::cli_alert_success(
-    paste0(
-      "Imported saved chromatograms for NAs from: ",
-      "{.path {chrs_na_path}}"
-    )
-  )
-} else {
-  cli::cli_alert_info("Generating chromatograms for NAs")
-  chrs_na <- xcms::chromatogram(
-    BPPARAM = BiocParallel::bpparam(),
-    chunkSize = snakemake@params$cores,
-    object = xchr8,
-    mz = chrs_na_feat[, c("mzmin", "mzmax")],
-    # mabye increase this a little?
-    rt = chrs_na_feat[, c("rtmin", "rtmax")]
-  )
-  saveRDS(object = chrs_na, file = chrs_na_path)
-  cli::cli_alert_success(
-    paste0(
-      "Saved chromatograms for NAs to: ",
-      "{.path {chrs_na_path}}"
-    )
-  )
-}
+# if (interactive() && file.exists(chrs_na_path)) {
+#   chrs_na <- readRDS(file = chrs_na_path)
+#   cli::cli_alert_success(
+#     paste0(
+#       "Imported saved chromatograms for NAs from: ",
+#       "{.path {chrs_na_path}}"
+#     )
+#   )
+# } else {
+#   cli::cli_alert_info("Generating chromatograms for NAs")
+#   chrs_na <- xcms::chromatogram(
+#     BPPARAM = BiocParallel::bpparam(),
+#     chunkSize = snakemake@params$cores,
+#     object = xchr8,
+#     mz = chrs_na_feat[, c("mzmin", "mzmax")],
+#     # mabye increase this a little?
+#     rt = chrs_na_feat[, c("rtmin", "rtmax")]
+#   )
+#   saveRDS(object = chrs_na, file = chrs_na_path)
+#   cli::cli_alert_success(
+#     paste0(
+#       "Saved chromatograms for NAs to: ",
+#       "{.path {chrs_na_path}}"
+#     )
+#   )
+# }
 
 # ==============================================================================
 # Snakesave --------------------------------------------------------------------

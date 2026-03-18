@@ -117,11 +117,13 @@ if (interactive() && file.exists(anno_path)) {
     )
   )
 
+  cli::cli_progress_step("Matching features")
   matches <- MetaboAnnotation::matchValues(
     query = peaks_used,
     target = target_df,
     param = mz_match_param
   )
+  cli::cli_progress_done()
 
   anno <- MetaboAnnotation::matchedData(matches) %>%
     tibble::as_tibble(x = ., rownames = "feature") %>%
