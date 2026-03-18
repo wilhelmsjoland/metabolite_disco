@@ -42,7 +42,7 @@ if (interactive() && file.exists(upset_distinct_comps_path)) {
   saveRDS(upset_distinct_comps, upset_distinct_comps_path)
   cli::cli_alert_success(
     paste0(
-      "Saved distinc upset comparisons to: ",
+      "Saved distinct upset comparisons to: ",
       "{.path {upset_distinct_comps_path}}"
     )
   )

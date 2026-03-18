@@ -1501,21 +1501,6 @@ run_biotransformer <- function(
   )
   clean_nm <- gsub("\\..*$", "", output_file)
 
-  # cmd <- paste(
-  #   "java -jar BioTransformer3.0_20230525.jar",
-  #   "-k", k_task,
-  #   "-b", b_type,
-  #   # "-isdf", biot_output_loc,
-  #   "-ismi", smiles,
-  #   "-ocsv", paste0(biot_output_loc, "/", clean_nm, ".csv"),
-  #   "-a"
-  # )
-
-  # setwd(new_wd)
-  # biot_output <- system(paste(cmd, "2>&1"), intern = TRUE)
-  # cat(biot_output, sep = "\n")
-  # setwd(old_wd)
-
   setwd(new_wd)
   biot_output <- system2(
     command = "java",

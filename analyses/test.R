@@ -174,8 +174,8 @@ xcms::findChromPeaks(
 
 xcms::findChromPeaks(
     object = ms_exp,
-    BPPARAM = BiocParallel::SerialParam(),
-    chunkSize = 1L,
+    BPPARAM = BiocParallel::bpparam(),
+    chunkSize = 10L,
     mslevel = 1L,
     param = xcms::CentWaveParam(
       ppm = 25,
@@ -195,3 +195,28 @@ xcms::findChromPeaks(
       verboseBetaColumns = TRUE
   )
 )
+
+
+test <- rcdk::parse.smiles(glycone_pairs_metadata$aglycone_SMILES)
+
+test
+
+# TODO
+# FIX SO EACH SCRIPT CHOOSES ITS OWN PARAMETERS
+
+test <- run_biotransformer(
+  bt_dir = snakemake@config$biot_dir,
+  smiles = snakemake@config$smiles,
+  b_type = "superbio", #superbio
+  k_task = "pred",
+  output_file = "prediction",
+  results_path = "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/03_psm/output/test/"
+)
+
+test2 <- readr::read_csv(
+  prediction_path
+)
+
+# 356 rows in allHuman - time 105475 with 3 iterations
+
+# - time 284886

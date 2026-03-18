@@ -45,6 +45,7 @@ if (interactive() && file.exists(xchr8_path)) {
   cli::cli_alert_info("Filling gaps")
   xchr8 <- xcms::fillChromPeaks(
     object = xchr7,
+    BPPARAM = BiocParallel::bpparam(),
     chunkSize = snakemake@params$cores,
     param = xcms::ChromPeakAreaParam()
   )
@@ -140,7 +141,7 @@ chrs_na_path <- file.path(
   "objects",
   "chrs_na.rds"
 )
-cli::cli_alert_info("Generating chromatograms for all NAs")
+
 if (interactive() && file.exists(chrs_na_path)) {
   chrs_na <- readRDS(file = chrs_na_path)
   cli::cli_alert_success(
@@ -152,8 +153,8 @@ if (interactive() && file.exists(chrs_na_path)) {
 } else {
   cli::cli_alert_info("Generating chromatograms for NAs")
   chrs_na <- xcms::chromatogram(
-    BPPARAM = BiocParallel::SerialParam(),
-    chunkSize = 1,
+    BPPARAM = BiocParallel::bpparam(),
+    chunkSize = snakemake@params$cores,
     object = xchr8,
     mz = chrs_na_feat[, c("mzmin", "mzmax")],
     # mabye increase this a little?
