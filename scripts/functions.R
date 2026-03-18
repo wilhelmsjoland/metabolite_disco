@@ -989,7 +989,7 @@ pred_biot <- function(
   tolerance = NULL,
   features_of_interest = NULL,
   parallel = TRUE,
-  n_workers = parallel::detectCores() - 3
+  n_workers = snakemake@config$cores
 ) {
   if (is.null(tolerance) & is.null(tolerance_ppm)) {
     stop("Both tolerance and tolerance_ppm are NULL")
