@@ -17,6 +17,7 @@ suppressWarnings(
     library(readr)
     library(AnnotationHub)
     library(MetaboAnnotation)
+    library(xcms)
     library(MetaboCoreUtils)
     library(ProtGenerics)
   })
@@ -24,9 +25,11 @@ suppressWarnings(
 
 limma_data <- readRDS(snakemake@input[["limma"]])
 prep_data <- readRDS(snakemake@input[["prep_biot"]])
+filter_data <- readRDS(snakemake@input[["filter_features"]])
 
 intensities <- limma_data$intensities
 all_sig_diff <- prep_data$all_sig_diff
+xchr9 <- filter_data$xchr9
 
 # ==============================================================================
 # Match m/z's against databases ------------------------------------------------
