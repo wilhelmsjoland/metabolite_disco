@@ -139,12 +139,60 @@ if (interactive() && file.exists(anno_path)) {
   )
 }
 
+anno_peak_ids <- sort(unique(anno$peak_id))
+
+anno_chrs_path <- file.path(
+  snakemake@params$output,
+  "objects",
+  "anno_chrs.rds"
+)
+if (interactive() && file.exists(anno_chrs_path)) {
+  anno_chrs <- readRDS(anno_chrs_path)
+  cli::cli_alert_success(
+    paste0(
+      "Imported database-matched feature chromatograms from: ",
+      "{.path {anno_chrs_path}}"
+    )
+  )
+} else {
+  cli::cli_alert_info(
+    paste0(
+      "Generating chromatograms for annotated ",
+      "database-matched features"
+    )
+  )
+anno_chrs <- xcms::featureChromatograms(
+    BPPARAM = BiocParallel::SerialParam(),
+    chunkSize = 1L,
+    object = xchr9,
+    expandRt = 0,
+    expandMz = 0,
+    aggregationFun = "sum",
+    filled = TRUE,
+    features = anno_peak_ids,
+    missing = 0,
+    return.type = "XChromatograms"
+  )
+  saveRDS(
+    object = anno_chrs,
+    file = anno_chrs_path
+  )
+  cli::cli_alert_success(
+    paste0(
+      "Saved annotated database-matched feature chromatograms: ",
+      "{.path {anno_chrs_path}}"
+    )
+  )
+}
+
 # ==============================================================================
 # Snakesave --------------------------------------------------------------------
 # ==============================================================================
 saveRDS(
   object = list(
-    anno = anno
+    anno = anno,
+    anno_chrs = anno_chrs,
+    anno_peak_ids = anno_peak_ids
   ),
   file = snakemake@output[[1]]
 )
