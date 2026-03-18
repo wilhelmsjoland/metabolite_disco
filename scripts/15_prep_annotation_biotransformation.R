@@ -74,7 +74,7 @@ bio_transf <- import_biotransform_meta(
 )
 cli::cli_progress_done()
 
-if (interactive() && file.exists(snakemake@params$rpairs_path)) {
+if (file.exists(snakemake@params$rpairs_path)) {
   if (!exists("biotransf_append")) {
     cli::cli_alert_info(
       paste0(
