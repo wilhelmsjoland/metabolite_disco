@@ -322,3 +322,10 @@ test %>%
   dplyr::arrange(maxo) %>%
   dplyr::arrange(sn)
   dplyr::filter(maxo > 1000)
+
+
+predicted_feats_path <- file.path(
+  snakemake@config$output,
+  "tables",
+  "predicted_annotated_feats.csv"
+)

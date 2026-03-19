@@ -165,8 +165,10 @@ if (interactive() && file.exists(anno_chrs_path)) {
     )
   )
   anno_chrs <- xcms::featureChromatograms(
-    BPPARAM = BiocParallel::SerialParam(),
-    chunkSize = 1L,
+    # BPPARAM = BiocParallel::SerialParam(),
+    # chunkSize = 1L,
+    BPPARAM = BiocParallel::bpparam(),
+    chunkSize = snakemake@params$cores,
     object = xchr9,
     expandRt = 0,
     expandMz = 0,
