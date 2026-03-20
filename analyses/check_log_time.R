@@ -37,18 +37,21 @@ log_times <- purrr::map(
   }
 )
 
+length(log_times)
 print(log_times)
 
-dplyr::bind_rows(log_times, .id = "log_file") %>%
-  dplyr::filter(grepl("annotation", script)) %>%
-  dplyr::arrange(desc(duration))
+# view combined times
+# dplyr::bind_rows(log_times, .id = "log_file") %>%
+#   dplyr::filter(grepl("total", script)) %>%
+#   dplyr::arrange(desc(duration)) %>%
+#   view()
 
 # Annotation chromatogram times
-for (i in pipeline_logs) {
-  lines <- readLines(i)
-  start <- grep("Generating chromatograms for annotated database", lines)
-  end <- grep("'mz_predictions'", lines)
-  range <- lines[start:end]
-  anno_time <- grep("(\\d+)/\\1 \\(100%\\)", range, perl = TRUE, value = TRUE)
-  print(anno_time)
-}
+# for (i in pipeline_logs) {
+#   lines <- readLines(i)
+#   start <- grep("Generating chromatograms for annotated database", lines)
+#   end <- grep("'mz_predictions'", lines)
+#   range <- lines[start:end]
+#   anno_time <- grep("(\\d+)/\\1 \\(100%\\)", range, perl = TRUE, value = TRUE)
+#   print(anno_time)
+# }
