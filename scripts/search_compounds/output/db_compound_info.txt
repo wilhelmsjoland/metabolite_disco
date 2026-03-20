@@ -1,0 +1,16 @@
+compound         KEGG Compound Database
+cpd              Release 117.0+/02-17, Feb 26
+                 Kanehisa Laboratories
+                 19,571 entries
+
+linked db        pathway
+                 brite
+                 module
+                 genome
+                 glycan
+                 reaction
+                 enzyme
+                 network
+                 drug
+                 pubchem
+                 chebi

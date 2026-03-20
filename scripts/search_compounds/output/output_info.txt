@@ -1,0 +1,18 @@
+Call: C:\Program Files\R\R-4.5.2\bin\x64\Rterm.exe --no-echo --no-restore --file=search_compounds.R --args -i search_terms.txt -o output -a br:br08001,br:br08002,br:br08003,br:br08021
+search_compounds.sh run on: 2026-02-16 20:44:48 EST
+output/db_compound.info.txt: information on compound database used
+output/db_reaction.info.txt: information on reaction database used
+output/db_rclass.info.txt: information on reaction class database used
+output/db_brite.info.txt: information on brite database used
+output/rpairs.tsv: dataframe with reaction pairs matched to search terms
+Search terms used from search_terms.txt: 
+	glycoside
+	aglycone
+	apiin
+	apigenin
+	sugar
+	flavo
+	phenol
+	seroto
+	dopam
+	conjug

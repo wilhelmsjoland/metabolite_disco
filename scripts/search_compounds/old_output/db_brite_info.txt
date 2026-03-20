@@ -1,0 +1,14 @@
+brite            KEGG Brite Database
+br               Release 117.0+/01-30, Jan 26
+                 Kanehisa Laboratories
+                 449,551 entries
+
+linked db        module
+                 ko
+                 <org>
+                 genome
+                 compound
+                 glycan
+                 reaction
+                 disease
+                 drug
