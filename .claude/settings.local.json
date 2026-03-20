@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep -r \"register_parallel\\\\|start_log\\\\|end_log\\\\|script_header\" scripts/*.R)",
-      "Bash(grep -n \"BPPARAM\\\\|SerialParam\\\\|MulticoreParam\\\\|SnowParam\" scripts/*.R)"
-    ]
-  }
-}
