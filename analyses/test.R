@@ -329,3 +329,12 @@ predicted_feats_path <- file.path(
   "tables",
   "predicted_annotated_feats.csv"
 )
+
+
+test <- paste0(
+  "/Users/wilhelm/Documents/from_ssd/aglycone_release_100um_24h/output",
+  "/afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon",
+  "snakemake_objects", "19_molecular_similarity.rds"
+)
+
+test

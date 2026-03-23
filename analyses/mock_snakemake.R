@@ -14,11 +14,13 @@ for (script in pipeline_scripts) {
   rule <- gsub("[0-9]+_", "", basename(script))
   rule <- tools::file_path_sans_ext(rule)
   snakemake <- mock_snakemake(
-    rule = rule, 
+    rule = rule,
     config_file = paste0(
       # "V:/aglycone_release_100um_24h/configs/",
       # "avicularin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon.yaml"
-      "example_config.yaml"
+      "/Users/wilhelm/Documents/from_ssd/aglycone_release_100um_24h/configs/",
+      "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon.yaml"
+      # "example_config.yaml"
     )
   )
   source(script)
