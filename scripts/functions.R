@@ -544,7 +544,7 @@ plot_feat_chrom_int <- function(
   # Only take the ones with peaks or the coloring in the base plot is wrong
   keep_peaks <- xcms::hasChromPeaks(lone_feat)
   lone_feat_peaks <- xcms::hasChromPeaks(lone_feat)[, keep_peaks]
-  base_group_colors <- meta$group[match(names(lone_feat_peaks), rownames(meta))]
+  base_group_colors <- meta$group[match(names(lone_feat_peaks), meta$sample)]
 
   if (isTRUE(feat_pairs)) {
     p1 <- function() {
@@ -614,9 +614,11 @@ plot_feat_chrom_int <- function(
     tidyr::pivot_longer(cols = contains(".mzML")) %>%
     dplyr::left_join(
       x = .,
-      y = tibble::as_tibble(x = meta, rownames = "file") %>%
-        dplyr::select(file, group),
-      by = c("name" = "file")
+      y = dplyr::select(meta, sample, group),
+      by = c("name" = "sample"),
+      # y = tibble::as_tibble(x = meta, rownames = "file") %>%
+      # dplyr::select(file, group),
+      # by = c("name" = "file")
     )
 
   p2_data_signif <- full_limma %>%

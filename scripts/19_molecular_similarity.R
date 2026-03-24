@@ -194,7 +194,7 @@ if (interactive() && file.exists(chem_pred_feats_path)) {
 
   readr::write_csv(
     x = pred_sims,
-    file = chem_pred_feats_path
+    file = chem_pred_feats_path # pred_sims_path not this
   )
 
   cli::cli_alert_success(
@@ -210,8 +210,10 @@ if (interactive() && file.exists(chem_pred_feats_path)) {
 # ==============================================================================
 saveRDS(
   object = list(
+    # This was chem_pred_feats but
+    # should've been pred_sims
     anno_sims_final = anno_sims_final,
-    chem_pred_feats = chem_pred_feats
+    chem_pred_feats = pred_sims # chem_pred_feats
   ),
   file = snakemake@output[[1]]
 )

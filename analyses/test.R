@@ -333,8 +333,10 @@ predicted_feats_path <- file.path(
 
 test <- paste0(
   "/Users/wilhelm/Documents/from_ssd/aglycone_release_100um_24h/output",
-  "/afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon",
-  "snakemake_objects", "19_molecular_similarity.rds"
+  "/x2_o_b_l_galactopyranosylorientin_p_copri_i_ak263/",
+  "snakemake_objects/", "19_molecular_similarity.rds"
 )
 
-test
+test2 <- readRDS(test)
+
+test2$chem_pred_feats
