@@ -1,6 +1,12 @@
 source("scripts/functions.R")
-library(tidyverse)
-library(ComplexHeatmap)
+suppressPackageStartupMessages(
+  {
+    library(tidyverse)
+    library(ComplexHeatmap)
+    library(patchwork)
+  }
+)
+
 
 ###############################################################################
 # Setup output folder ----------------------------------------------------------
@@ -14,7 +20,7 @@ output_folders <- list.files(
 # TODO
 # Mabye this should be dependent on distribution or different betweem
 # the bio_sims and the anno_sims??
-fold_change_min <- 7
+fold_change_min <- 2
 # It means: the minimum of the substrate group means must be at least
 # fold_change_min times larger than the maximum of the glucose group means.
 # With fold_change_min <- 10: if the highest glucose group mean is 5,000,
@@ -250,13 +256,15 @@ group_colors <- setNames(group_colors, groups_to_use)
 # 3. ascertain that i can extract the interesting ones by looking at chroms
 # 4. plot heatmap somehow
 
+sim_filter <- 0.2
+
 extract_feats_peaks <- all_anno_sims %>%
   dplyr::filter(
     experiment == "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
   ) %>%
   dplyr::group_by(adduct) %>%
   dplyr::distinct(target_inchikey, .keep_all = TRUE) %>%
-  dplyr::filter(sim > 0.3) %>%
+  dplyr::filter(sim > sim_filter) %>%
   dplyr::pull(peak_id)
 
 extract_bio_sims_peaks <- all_bio_sims %>%
@@ -265,7 +273,7 @@ extract_bio_sims_peaks <- all_bio_sims %>%
   ) %>%
   dplyr::group_by(adduct) %>%
   dplyr::distinct(InChIKey, .keep_all = TRUE) %>%
-  dplyr::filter(sim > 0.2) %>%
+  dplyr::filter(sim > sim_filter) %>%
   dplyr::pull(feature)
 
 both_tib_feats <- unique(c(extract_feats_peaks, extract_bio_sims_peaks))
@@ -277,7 +285,7 @@ extract_feats <- all_anno_sims %>%
   ) %>%
   dplyr::group_by(adduct) %>%
   dplyr::distinct(target_inchikey, .keep_all = TRUE) %>%
-  dplyr::filter(sim > 0.3) %>%
+  dplyr::filter(sim > sim_filter) %>%
   dplyr::filter(peak_id %in% both_tib_feats)
 
 extract_bio_sims <- all_bio_sims %>%
@@ -286,6 +294,7 @@ extract_bio_sims <- all_bio_sims %>%
   ) %>%
   dplyr::group_by(adduct) %>%
   dplyr::distinct(InChIKey, .keep_all = TRUE) %>%
+  dplyr::filter(sim > sim_filter) %>%
   dplyr::filter(feature %in% both_tib_feats)
 
 
@@ -380,14 +389,36 @@ p1 <- extract_feats %>%
       fill = sim
     )
   ) +
-  geom_tile() +
+  geom_tile(color = "black") +
   scale_y_discrete(drop = FALSE) +
-  scale_fill_viridis_c(option = "inferno", limits = c(0, 1)) +
+  # scale_fill_viridis_c(option = "turbo", limits = c(0, 1)) +
+  # ggplot2::scale_fill_gradient(
+  #   low = "#e4f1e1",
+  #   high = "#0d585f",
+  #   limits = c(0, 1)
+  # ) +
+  # scale_fill_gradient(
+  #   # low = "#a1d99b", high = "#00441b",
+  #   # low =  "#b4d9cc", high = "#0d585f",
+  #   low = "#e4f1e1", high = "#023c3f",
+  #   limits = c(0.2, 1) # ,
+  #   # oob = scales::squish
+  # ) +
+  scale_fill_gradientn(
+    colours = c("#e4f1e1", "#4a9a8e", "#023c3f"),
+    values = scales::rescale(c(0.2, 0.4, 1)),
+    limits = c(0.2, 1)
+  ) +
+  scale_x_continuous(expand = expansion(c(0, 0))) +
   theme_bw() +
   theme(
     axis.ticks.x = element_blank()
   ) +
-  labs(x = "prediction", y = "feature")
+  labs(
+    x = "n predictions",
+    y = "feature",
+    title = stringr::str_wrap("Massbank annotated features", 20)
+  )
 
 p2 <- extract_feats_int2 %>%
   dplyr::filter(feature %in% extract_feats$peak_id) %>%
@@ -412,6 +443,11 @@ p2 <- extract_feats_int2 %>%
   # ) +
   geom_point(aes(color = group)) +
   scale_y_discrete(drop = FALSE) +
+  scale_x_continuous(
+    # transform = "sqrt"
+    transform = scales::pseudo_log_trans(sigma = 1e5)
+    # transform = scales::transform_boxcox(p = 0.4)
+  ) +
   guides(x = guide_axis(angle = -45)) +
   theme_bw() +
   theme(
@@ -433,14 +469,35 @@ p3 <- extract_bio_sims %>%
       fill = sim
     )
   ) +
-  ggplot2::geom_tile() +
+  ggplot2::geom_tile(color = "black") +
   ggplot2::scale_y_discrete(drop = FALSE) +
-  scale_fill_viridis_c(option = "inferno", limits = c(0, 1)) +
+  # scale_fill_viridis_c(option = "turbo", limits = c(0, 1)) +
+  # ggplot2::scale_fill_gradient(
+  #   low = "#e4f1e1",
+  #   high = "#0d585f",
+  #   limits = c(0, 1)
+  # ) +
+  # scale_fill_gradient(
+  #   #low =  "#b4d9cc", high = "#0d585f",
+  #   low = "#e4f1e1", high = "#023c3f",
+  #   limits = c(0.2, 1)
+  #   # oob = scales::squish
+  # ) +
+  scale_fill_gradientn(
+    colours = c("#e4f1e1", "#4a9a8e", "#023c3f"),
+    values = scales::rescale(c(0.2, 0.4, 1)),
+    limits = c(0.2, 1)
+  ) +
+  scale_x_continuous(expand = expansion(c(0, 0))) +
   ggplot2::theme_bw() +
   ggplot2::theme(
     axis.ticks.x = ggplot2::element_blank()
   ) +
-  ggplot2::labs(x = "prediction", y = "feature")
+  ggplot2::labs(
+    x = "n predictions",
+    y = "feature",
+    title = stringr::str_wrap("Biotransformer 3.0 predictions", 20)
+  )
 
 p4 <- extract_bio_sims_int2 %>%
   dplyr::filter(feature %in% extract_bio_sims$feature) %>%
@@ -452,8 +509,12 @@ p4 <- extract_bio_sims_int2 %>%
     )
   ) +
   ggplot2::geom_point(aes(color = group)) +
-  # geom_violin(aes(color = group)) +
   ggplot2::scale_y_discrete(drop = FALSE) +
+  scale_x_continuous(
+    # transform = "sqrt"
+    transform = scales::pseudo_log_trans(sigma = 1e5)
+    # transform = scales::transform_boxcox(p = 0.4)
+  ) +
   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
   ggplot2::theme_bw() +
   ggplot2::theme(
@@ -461,15 +522,18 @@ p4 <- extract_bio_sims_int2 %>%
     axis.text.y = ggplot2::element_blank(),
     axis.ticks.y = ggplot2::element_blank()
   ) +
-  ggplot2::labs(y = "feature")
+  ggplot2::labs(
+    y = "feature"
+  )
 
 p1 + p2 + p3 + p4 +
   patchwork::plot_layout(
     guides = "collect",
     axes = "collect",
     axis_titles = "collect",
-    widths = c(0.1, 0.4, 0.1, 0.4)
+    widths = c(0.15, 0.35, 0.15, 0.35)
   )
+
 
 # TESTING
 # temp_int <- c(
@@ -499,3 +563,5 @@ p1 + p2 + p3 + p4 +
 #   print(tin$combined)
 #   readline("Enter for next: ")
 # }
+
+"FT16082"
