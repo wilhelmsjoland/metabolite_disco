@@ -1,4 +1,5 @@
 source("scripts/functions.R")
+source("analyses/analyses_functions.R")
 suppressPackageStartupMessages(
   {
     library(tidyverse)
@@ -16,15 +17,12 @@ output_folders <- list.files(
   full.names = TRUE
 )
 
-# TODO
-# TODO
-# Mabye this should be dependent on distribution or different betweem
-# the bio_sims and the anno_sims??
 fold_change_min <- 2
 # It means: the minimum of the substrate group means must be at least
 # fold_change_min times larger than the maximum of the glucose group means.
 # With fold_change_min <- 10: if the highest glucose group mean is 5,000,
 # both substrate group means must be above 50,000 to pass.
+
 ################################################################################
 # Read all bio_sims ------------------------------------------------------------
 ################################################################################
@@ -43,62 +41,10 @@ bio_sims <- purrr::map(
       progress = FALSE,
       show_col_types = FALSE
     )
-
-    exp_dir <- dirname(dirname(.x))
-    upset_int <- readRDS(
-      file.path(exp_dir, "snakemake_objects", "13_upset.rds")
-    )[["upset_intersect"]]
-
-    set_names <- ComplexHeatmap::set_name(upset_int)
-    # Contrasts where a substrate group is compared to a glucose group
-    # Split contrast on "-" and check that exactly one side has ycfa_glucose
-    afz_mask <- purrr::map_lgl(set_names, ~ {
-      sides <- strsplit(.x, "-")[[1]]
-      sum(grepl("ycfa_glucose", sides)) == 1
-    })
-
-    combs <- ComplexHeatmap::comb_name(upset_int, readable = FALSE)
-    keep <- purrr::keep(combs, ~ {
-      bits <- as.integer(strsplit(.x, "")[[1]])
-      all(bits[afz_mask] == 1)
-    })
-    sig_diffs <- purrr::map(keep, ~ {
-      ComplexHeatmap::extract_comb(upset_int, .x)
-    }) %>%
-      unlist(use.names = FALSE) %>%
-      unique()
-
-    # Filter: both substrate groups must have higher peak area than both glucose
-    exp_meta <- readr::read_csv(
-      file.path(exp_dir, "tables", "metadata.csv"),
-      progress = FALSE, show_col_types = FALSE
-    ) %>%
-      dplyr::mutate(sample = basename(path))
-
-    int_tib <- readr::read_csv(
-      file.path(exp_dir, "tables", "norm_fill_imp_untransformed.csv"),
-      progress = FALSE, show_col_types = FALSE
-    ) %>%
-      dplyr::filter(feature %in% sig_diffs) %>%
-      dplyr::select(feature, dplyr::matches("\\.mzML$")) %>%
-      tidyr::pivot_longer(-feature, names_to = "sample", values_to = "intensity") %>%
-      dplyr::left_join(
-        dplyr::select(exp_meta, sample, group),
-        by = "sample"
-      ) %>%
-      dplyr::group_by(feature, group) %>%
-      dplyr::summarise(mean_int = mean(intensity, na.rm = TRUE), .groups = "drop") %>%
-      tidyr::pivot_wider(names_from = group, values_from = mean_int)
-
-    glc_cols <- colnames(int_tib)[grepl("ycfa_glucose", colnames(int_tib))]
-    sub_cols <- setdiff(colnames(int_tib), c("feature", glc_cols))
-
-    sig_higher <- int_tib %>%
-      dplyr::filter(
-        pmin(!!!rlang::syms(sub_cols)) > fold_change_min * pmax(!!!rlang::syms(glc_cols))
-      ) %>%
-      dplyr::pull(feature)
-
+    sig_higher <- extract_sig_higher(
+      dirname(dirname(.x)),
+      fold_change_min
+    )
     bio_sim %>%
       dplyr::filter(feature %in% sig_higher)
   }
@@ -131,62 +77,10 @@ anno_sims <- purrr::map(
       progress = FALSE,
       show_col_types = FALSE
     )
-
-    exp_dir <- dirname(dirname(.x))
-    upset_int <- readRDS(
-      file.path(exp_dir, "snakemake_objects", "13_upset.rds")
-    )[["upset_intersect"]]
-
-    set_names <- ComplexHeatmap::set_name(upset_int)
-    # Contrasts where a substrate group is compared to a glucose group
-    # Split contrast on "-" and check that exactly one side has ycfa_glucose
-    afz_mask <- purrr::map_lgl(set_names, ~ {
-      sides <- strsplit(.x, "-")[[1]]
-      sum(grepl("ycfa_glucose", sides)) == 1
-    })
-
-    combs <- ComplexHeatmap::comb_name(upset_int, readable = FALSE)
-    keep <- purrr::keep(combs, ~ {
-      bits <- as.integer(strsplit(.x, "")[[1]])
-      all(bits[afz_mask] == 1)
-    })
-    sig_diffs <- purrr::map(keep, ~ {
-      ComplexHeatmap::extract_comb(upset_int, .x)
-    }) %>%
-      unlist(use.names = FALSE) %>%
-      unique()
-
-    # Filter: both substrate groups must have higher peak area than both glucose
-    exp_meta <- readr::read_csv(
-      file.path(exp_dir, "tables", "metadata.csv"),
-      progress = FALSE, show_col_types = FALSE
-    ) %>%
-      dplyr::mutate(sample = basename(path))
-
-    int_tib <- readr::read_csv(
-      file.path(exp_dir, "tables", "norm_fill_imp_untransformed.csv"),
-      progress = FALSE, show_col_types = FALSE
-    ) %>%
-      dplyr::filter(feature %in% sig_diffs) %>%
-      dplyr::select(feature, dplyr::matches("\\.mzML$")) %>%
-      tidyr::pivot_longer(-feature, names_to = "sample", values_to = "intensity") %>%
-      dplyr::left_join(
-        dplyr::select(exp_meta, sample, group),
-        by = "sample"
-      ) %>%
-      dplyr::group_by(feature, group) %>%
-      dplyr::summarise(mean_int = mean(intensity, na.rm = TRUE), .groups = "drop") %>%
-      tidyr::pivot_wider(names_from = group, values_from = mean_int)
-
-    glc_cols <- colnames(int_tib)[grepl("ycfa_glucose", colnames(int_tib))]
-    sub_cols <- setdiff(colnames(int_tib), c("feature", glc_cols))
-
-    sig_higher <- int_tib %>%
-      dplyr::filter(
-        pmin(!!!rlang::syms(sub_cols)) > fold_change_min * pmax(!!!rlang::syms(glc_cols))
-      ) %>%
-      dplyr::pull(feature)
-
+    sig_higher <- extract_sig_higher(
+      dirname(dirname(.x)),
+      fold_change_min
+    )
     anno_sim %>%
       dplyr::filter(peak_id %in% sig_higher)
   }
@@ -563,5 +457,3 @@ p1 + p2 + p3 + p4 +
 #   print(tin$combined)
 #   readline("Enter for next: ")
 # }
-
-"FT16082"
