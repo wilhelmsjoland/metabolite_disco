@@ -251,3 +251,95 @@ mock_snakemake <- function(rule = NULL, config_file = NULL) {
     rule   = paste0("mock.", rule, ".R")
   )
 }
+
+#' Extract features significantly higher in substrate
+#' vs glucose groups
+#' @param exp_dir Experiment output directory path
+#' @param fold_change_min Minimum fold change threshold
+#' @return Character vector of feature IDs
+extract_sig_higher <- function(
+  exp_dir,
+  fold_change_min
+) {
+  upset_int <- readRDS(
+    file.path(
+      exp_dir, "snakemake_objects", "13_upset.rds"
+    )
+  )[["upset_intersect"]]
+
+  set_names <- ComplexHeatmap::set_name(upset_int)
+  substrate_vs_glucose <- purrr::map_lgl(
+    set_names,
+    ~ {
+      sides <- strsplit(.x, "-")[[1]]
+      sum(grepl("ycfa_glucose", sides)) == 1
+    }
+  )
+
+  combs <- ComplexHeatmap::comb_name(
+    upset_int, readable = FALSE
+  )
+  keep <- purrr::keep(combs, ~ {
+    bits <- as.integer(strsplit(.x, "")[[1]])
+    all(bits[substrate_vs_glucose] == 1)
+  })
+  sig_diffs <- purrr::map(keep, ~ {
+    ComplexHeatmap::extract_comb(upset_int, .x)
+  }) %>%
+    unlist(use.names = FALSE) %>%
+    unique()
+
+  exp_meta <- readr::read_csv(
+    file.path(exp_dir, "tables", "metadata.csv"),
+    progress = FALSE,
+    show_col_types = FALSE
+  ) %>%
+    dplyr::mutate(sample = basename(path))
+
+  int_tib <- readr::read_csv(
+    file.path(
+      exp_dir,
+      "tables",
+      "norm_fill_imp_untransformed.csv"
+    ),
+    progress = FALSE,
+    show_col_types = FALSE
+  ) %>%
+    dplyr::filter(feature %in% sig_diffs) %>%
+    dplyr::select(
+      feature, dplyr::matches("\\.mzML$")
+    ) %>%
+    tidyr::pivot_longer(
+      -feature,
+      names_to = "sample",
+      values_to = "intensity"
+    ) %>%
+    dplyr::left_join(
+      dplyr::select(exp_meta, sample, group),
+      by = "sample"
+    ) %>%
+    dplyr::group_by(feature, group) %>%
+    dplyr::summarise(
+      mean_int = mean(intensity, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    tidyr::pivot_wider(
+      names_from = group,
+      values_from = mean_int
+    )
+
+  glc_cols <- colnames(int_tib)[
+    grepl("ycfa_glucose", colnames(int_tib))
+  ]
+  sub_cols <- setdiff(
+    colnames(int_tib), c("feature", glc_cols)
+  )
+
+  int_tib %>%
+    dplyr::filter(
+      pmin(!!!rlang::syms(sub_cols)) >
+        fold_change_min *
+          pmax(!!!rlang::syms(glc_cols))
+    ) %>%
+    dplyr::pull(feature)
+}
