@@ -1,7 +1,8 @@
 library(janitor)
 library(yaml)
 
-exp_path <- "V:/aglycone_release_100um_24h"
+# exp_path <- "V:/aglycone_release_100um_24h"
+exp_path <- "/Volumes/bluecub/aglycone_release_100um_24h/"
 
 # ==============================================================================
 # Create experimental metadata from Longs experiments --------------------------
