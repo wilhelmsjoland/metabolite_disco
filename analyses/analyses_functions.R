@@ -259,45 +259,55 @@ mock_snakemake <- function(rule = NULL, config_file = NULL) {
 #' @return Character vector of feature IDs
 extract_sig_higher <- function(
   exp_dir,
-  fold_change_min
+  fold_change_min,
+  top_pct = NULL
 ) {
   upset_int <- readRDS(
     file.path(
-      exp_dir, "snakemake_objects", "13_upset.rds"
+      exp_dir,
+      "snakemake_objects",
+      "13_upset.rds"
     )
   )[["upset_intersect"]]
 
   set_names <- ComplexHeatmap::set_name(upset_int)
   substrate_vs_glucose <- purrr::map_lgl(
-    set_names,
-    ~ {
+    .x = set_names,
+    .f = ~ {
       sides <- strsplit(.x, "-")[[1]]
       sum(grepl("ycfa_glucose", sides)) == 1
     }
   )
 
   combs <- ComplexHeatmap::comb_name(
-    upset_int, readable = FALSE
+    upset_int,
+    readable = FALSE
   )
-  keep <- purrr::keep(combs, ~ {
-    bits <- as.integer(strsplit(.x, "")[[1]])
-    all(bits[substrate_vs_glucose] == 1)
-  })
-  sig_diffs <- purrr::map(keep, ~ {
-    ComplexHeatmap::extract_comb(upset_int, .x)
-  }) %>%
+  keep <- purrr::keep(
+    .x = combs,
+    .p = ~ {
+      bits <- as.integer(strsplit(.x, "")[[1]])
+      all(bits[substrate_vs_glucose] == 1)
+    }
+  )
+  sig_diffs <- purrr::map(
+    .x = keep,
+    .f = ~ {
+      ComplexHeatmap::extract_comb(upset_int, .x)
+    }
+  ) %>%
     unlist(use.names = FALSE) %>%
     unique()
 
   exp_meta <- readr::read_csv(
-    file.path(exp_dir, "tables", "metadata.csv"),
+    file = file.path(exp_dir, "tables", "metadata.csv"),
     progress = FALSE,
     show_col_types = FALSE
   ) %>%
     dplyr::mutate(sample = basename(path))
 
   int_tib <- readr::read_csv(
-    file.path(
+    file = file.path(
       exp_dir,
       "tables",
       "norm_fill_imp_untransformed.csv"
@@ -306,20 +316,19 @@ extract_sig_higher <- function(
     show_col_types = FALSE
   ) %>%
     dplyr::filter(feature %in% sig_diffs) %>%
-    dplyr::select(
-      feature, dplyr::matches("\\.mzML$")
-    ) %>%
+    dplyr::select(feature, dplyr::matches("\\.mzML$")) %>%
     tidyr::pivot_longer(
-      -feature,
+      cols = -feature,
       names_to = "sample",
       values_to = "intensity"
     ) %>%
     dplyr::left_join(
-      dplyr::select(exp_meta, sample, group),
+      x = .,
+      y = dplyr::select(exp_meta, sample, group),
       by = "sample"
     ) %>%
     dplyr::group_by(feature, group) %>%
-    dplyr::summarise(
+    dplyr::summarize(
       mean_int = mean(intensity, na.rm = TRUE),
       .groups = "drop"
     ) %>%
@@ -335,11 +344,19 @@ extract_sig_higher <- function(
     colnames(int_tib), c("feature", glc_cols)
   )
 
-  int_tib %>%
-    dplyr::filter(
-      pmin(!!!rlang::syms(sub_cols)) >
-        fold_change_min *
-          pmax(!!!rlang::syms(glc_cols))
+  int_tib <- int_tib %>%
+    dplyr::mutate(
+      fold_change = pmin(!!!rlang::syms(sub_cols)) /
+        pmax(!!!rlang::syms(glc_cols))
     ) %>%
+    dplyr::filter(fold_change > fold_change_min)
+
+  if (!is.null(top_pct)) {
+    cutoff <- quantile(int_tib$fold_change, 1 - top_pct, na.rm = TRUE)
+    int_tib <- int_tib %>%
+      dplyr::filter(fold_change >= cutoff)
+  }
+
+  int_tib %>%
     dplyr::pull(feature)
 }
