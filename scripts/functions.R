@@ -1532,3 +1532,228 @@ script_header <- function() {
     "{.file {rule_name}} {.emph {timestamp}}"
   )
 }
+
+get_chr_data <- function(chrs, feature_name, meta) {
+  feature_idxs <- match(feature_name, rownames(xcms::featureDefinitions(chrs)))
+  purrr::map_dfr(
+    seq_along(feature_idxs),
+    .f = \(i) {
+      purrr::map_dfr(
+        seq_len(ncol(chrs)),
+        .f = \(j) {
+          chr <- chrs[feature_idxs[i], j]
+          tibble::tibble(
+            rtime = chr@rtime,
+            intensity = chr@intensity,
+            mzmin = chr@mz[1],
+            mzmax = chr@mz[2],
+            sample = colnames(chrs)[j],
+            feature = feature_name[i]
+          )
+        }
+      )
+    }
+  )
+}
+
+plot_feature <- function(
+  feature_chrom,
+  feature,
+  meta,
+  limma_results,
+  method = "sum",
+  value = "into",
+  filled = TRUE,
+  missing = 0,
+  ms_level = 1L,
+  save_loc = NULL,
+  device = "pdf",
+  overwrite = FALSE
+) {
+
+  if (!is.null(save_loc)) {
+    file_nm <- paste0(save_loc, feature, ".", device)
+    if (interactive() && file.exists(file_nm) && !overwrite) {
+      cli::cli_alert_info("{.path {file_nm}} already exists, skipping")
+      return(invisible(NULL))
+    }
+  }
+
+  tmp <- get_chr_data(feature_chrom, feature, meta) %>%
+    dplyr::left_join(
+      x = .,
+      y = dplyr::select(meta, sample, group),
+      by = "sample"
+    ) %>%
+    dplyr::mutate(intensity = tidyr::replace_na(intensity, 0)) %>%
+    dplyr::arrange(group, sample) %>%
+    dplyr::mutate(sample = forcats::fct_inorder(sample))
+
+  p1 <- tmp %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = rtime,
+        y = intensity,
+        group = sample,
+        color = group
+      )
+    ) +
+    ggplot2::geom_line(linewidth = 1.5) +
+    ggplot2::theme_classic() +
+    ggplot2::theme(legend.title = ggplot2::element_blank()) +
+    ggplot2::labs(x = "Retention time (s)")
+
+  p2 <- tmp %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = rtime,
+        y = sample,
+        height = intensity,
+        color = group
+      )
+    ) +
+    ggridges::geom_ridgeline(scale = 3 / max(tmp$intensity), fill = NA) +
+    ggplot2::theme_classic() +
+    ggplot2::theme(
+      axis.text.y = ggplot2::element_blank(),
+      axis.ticks.y = ggplot2::element_blank(),
+      axis.title.y = ggplot2::element_blank(),
+      legend.position = "none"
+    ) +
+    ggplot2::labs(x = "Retention time (s)")
+
+  boxplot_data <- xcms::featureValues(
+    feature_chrom,
+    method = method,
+    value = value,
+    intensity = value,
+    filled = filled,
+    missing = missing,
+    ms_level = ms_level
+  ) %>%
+    tibble::as_tibble(., rownames = "feature") %>%
+    dplyr::filter(feature == {{ feature }}) %>%
+    tidyr::pivot_longer(cols = dplyr::contains(".mzML")) %>%
+    dplyr::left_join(
+      x = .,
+      y = meta,
+      by = c("name" = "sample")
+    )
+
+  signif_data <- limma_results %>%
+    dplyr::filter(feature == !!feature) %>%
+    dplyr::select(feature, adj.P.Val, contrast) %>%
+    dplyr::mutate(
+      group1 = stringr::str_split_i(contrast, "-", 1),
+      group2 = stringr::str_split_i(contrast, "-", 2),
+    ) %>%
+    dplyr::select(-contrast) %>%
+    dplyr::filter(feature %in% unique(boxplot_data$feature)) %>%
+    rstatix::add_significance(p.col = "adj.P.Val") %>%
+    find_y_position(
+      test_df = .,
+      df = boxplot_data,
+      formula = "value ~ group",
+      fun_data = "max"
+    )
+
+  signif_only <- signif_data %>%
+    dplyr::filter(adj.P.Val.signif != "ns")
+
+  p3 <- boxplot_data %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = group,
+        y = value
+      )
+    ) +
+    ggplot2::geom_boxplot(ggplot2::aes(fill = group), show.legend = FALSE) +
+    ggplot2::geom_point(
+      ggplot2::aes(color = group),
+      position = ggplot2::position_jitter(width = 0.3),
+      size = 3,
+      show.legend = FALSE
+    ) +
+    ggplot2::theme_classic() +
+    ggplot2::theme(
+      axis.title.x = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_blank(),
+      axis.ticks.x = ggplot2::element_blank()
+    ) +
+    ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+    ggplot2::scale_y_continuous(
+      expand = ggplot2::expansion(c(0.1, 0.1))
+    ) +
+    ggplot2::labs(
+      y = "Peak area"
+    ) +
+    {
+      if (nrow(signif_only) > 0) {
+        ggpubr::geom_bracket(
+          data = signif_only,
+          ggplot2::aes(
+            xmin = group1,
+            xmax = group2,
+            label = adj.P.Val.signif,
+            y.position = y.pos * 1.1
+          ),
+          step.increase = 0.15,
+          vjust = 0.1
+        )
+      } else {
+        NULL
+      }
+    }
+
+  feat_defs <- xcms::featureDefinitions(chrs) %>%
+    tibble::as_tibble(., rownames = "feature") %>%
+    dplyr::filter(feature == feature)
+
+  combined <- (patchwork::free(p2) | (p1 / p3)) +
+    patchwork::plot_layout(
+      axes = "collect",
+      guides = "collect"
+    ) +
+    patchwork::plot_annotation(
+      title = paste0(
+        feature, ", ",
+        "m/z: ", round(feat_defs$mzmed, 2), ", ",
+        "retention time: ", round(feat_defs$rtmed, 2)
+      )
+    )
+
+  half <- (p1 / p3) +
+    patchwork::plot_layout(
+      axes = "collect",
+      guides = "collect"
+    ) +
+    patchwork::plot_annotation(
+      title = paste0(
+        feature, ", ",
+        "m/z: ", round(feat_defs$mzmed, 2), ", ",
+        "retention time: ", round(feat_defs$rtmed, 2)
+      )
+    )
+
+  if (!is.null(save_loc)) {
+    ggplot2::ggsave(
+      filename = file_nm,
+      plot = p_final,
+      device = device,
+      height = 7,
+      width = 10,
+      units = "in"
+    )
+    cli::cli_alert_success("Saved {.path {file_nm}}")
+  }
+
+  list(
+    full = combined,
+    half = half,
+    overlay = p1,
+    ridgeline = p2,
+    boxplot = p3,
+    boxplot_data = boxplot_data,
+    signif_data = signif_data
+  )
+}
