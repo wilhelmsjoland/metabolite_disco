@@ -2,19 +2,24 @@ option_list <- list(
   optparse::make_option(
     c("--wd"),
     type = "character",
-    default = "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/03_psm",
+    default = past0(
+      "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/03_psm"
+    ),
     help = "Working directory [default: %default]"
   ),
   optparse::make_option(
     c("-d", "--data_path"),
     type = "character",
-    default = "./standards/apiin_stds",
+    default = "standards",
     help = "Input data directory [default: %default]"
   ),
   optparse::make_option(
     c("-m", "--meta_file"),
     type = "character",
-    default = "./standards/apiin_stds/apiin_stds_meta.csv",
+    default = paste0(
+      "/Volumes/bluecub/aglycone_release_100um_24h/standards/",
+      "aglycone_metadata.csv"
+    ),
     help = "Metadata CSV [default: %default]"
   ),
   optparse::make_option(
@@ -26,7 +31,7 @@ option_list <- list(
   optparse::make_option(
     c("-f", "--standard"),
     type = "character",
-    "default" = "C26H28O14",
+    "default" = "C7H8O2",
     help = "Chemical formula of the internal standard [default: %default]"
   ),
   optparse::make_option(
@@ -38,7 +43,7 @@ option_list <- list(
   optparse::make_option(
     c("--ppm_global"),
     type = "double",
-    default = 15,
+    default = 25,
     help = "Global ppm tolerance [default: %default]"
   ),
   optparse::make_option(
@@ -62,7 +67,7 @@ option_list <- list(
   optparse::make_option(
     c("-c", "--cores"),
     type = "integer",
-    default = parallel::detectCores() - 2,
+    default = 4,
     help = "Workers, will default to max available - 2 [default: %default]."
   )
 )

@@ -148,11 +148,12 @@ xchr9_datas <- purrr::map(
         sig_higher <- extract_sig_higher(
           exp_dir = dirname(dirname(.x)),
           fold_change_min = 5, # 70
-          top_pct = 0.1
+          top_pct = 0.05
           # fold_change_min
         )
         intensities %>%
-          dplyr::filter(feature %in% sig_higher)
+          dplyr::filter(feature %in% sig_higher) %>%
+          tidyr::pivot_longer(cols = dplyr::contains(".mzML"))
       },
       error = function(e) {
         cli::cli_alert_warning(
@@ -294,7 +295,6 @@ xchr9_all_ints <- all_xchr9_data %>%
     "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
   )
 ) %>%
-  tidyr::pivot_longer(cols = dplyr::contains(".mzML")) %>%
   dplyr::left_join(
     x = .,
     y = dplyr::select(meta, sample, group, path),
@@ -316,6 +316,23 @@ shared_features <- unique(
     xchr9_all_ints$feature
   )
 )
+
+feat_map <- xcms::featureDefinitions(xchr9) %>%
+  tibble::as_tibble(., rownames = "feature") %>%
+  dplyr::select(feature, mzmed, rtmed) %>%
+  dplyr::arrange(mzmed) %>%
+  dplyr::mutate(
+    title = paste0(
+      feature, "_",
+      round(mzmed, 2), "_",
+      round(rtmed, 2)
+    )
+  ) %>%
+  dplyr::filter(feature %in% shared_features) %>%
+  dplyr::pull(title, name = feature)
+# names = feature IDs, values = display titles, sorted by mzmed
+
+feature_levels <- names(feat_map)
 
 extract_feats_int <- xcms::featureValues(
   object = anno_chrs,
@@ -389,7 +406,7 @@ p1 <- extract_feats %>%
   dplyr::group_by(peak_id) %>%
   dplyr::mutate(hit = dplyr::row_number()) %>%
   dplyr::ungroup() %>%
-  dplyr::mutate(peak_id = factor(peak_id, levels = shared_features)) %>%
+  dplyr::mutate(peak_id = factor(peak_id, levels = feature_levels)) %>%
   ggplot2::ggplot(
     ggplot2::aes(
       x = hit,
@@ -398,7 +415,7 @@ p1 <- extract_feats %>%
     )
   ) +
   ggplot2::geom_tile(color = "black") +
-  ggplot2::scale_y_discrete(drop = FALSE) +
+  ggplot2::scale_y_discrete(drop = FALSE, labels = feat_map) +
   ggplot2::scale_fill_gradientn(
     colours = c("#e4f1e1", "#4a9a8e", "#023c3f"),
     values = scales::rescale(c(0.2, 0.4, 1)),
@@ -410,12 +427,13 @@ p1 <- extract_feats %>%
   ggplot2::labs(
     x = "n predictions",
     y = "feature",
-    title = stringr::str_wrap("Massbank annotated features", 20)
+    # title = stringr::str_wrap("Massbank annotated features", 20),
+    title = "Massbank annotated features"
   )
 
 p2 <- extract_feats_long %>%
   dplyr::filter(feature %in% extract_feats$peak_id) %>%
-  dplyr::mutate(feature = factor(feature, levels = shared_features)) %>%
+  dplyr::mutate(feature = factor(feature, levels = feature_levels)) %>%
   ggplot2::ggplot(
     ggplot2::aes(
       x = value,
@@ -423,7 +441,7 @@ p2 <- extract_feats_long %>%
     )
   ) +
   ggplot2::geom_point(aes(color = group)) +
-  ggplot2::scale_y_discrete(drop = FALSE) +
+  ggplot2::scale_y_discrete(drop = FALSE, labels = feat_map) +
   ggplot2::scale_x_continuous(
     # transform = "sqrt"
     transform = scales::pseudo_log_trans(sigma = 1e5)
@@ -432,9 +450,7 @@ p2 <- extract_feats_long %>%
   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
   ggplot2::theme_bw() +
   ggplot2::theme(
-    axis.title.x = ggplot2::element_blank(),
-    axis.text.y = ggplot2::element_blank(),
-    axis.ticks.y = ggplot2::element_blank()
+    axis.title.x = ggplot2::element_blank()
   ) +
   ggplot2::labs(y = "feature")
 
@@ -442,7 +458,7 @@ p3 <- extract_bio_sims %>%
   dplyr::group_by(feature) %>%
   dplyr::mutate(hit = dplyr::row_number()) %>%
   dplyr::ungroup() %>%
-  dplyr::mutate(feature = factor(feature, levels = shared_features)) %>%
+  dplyr::mutate(feature = factor(feature, levels = feature_levels)) %>%
   ggplot2::ggplot(
     ggplot2::aes(
       x = hit,
@@ -451,7 +467,7 @@ p3 <- extract_bio_sims %>%
     )
   ) +
   ggplot2::geom_tile(color = "black") +
-  ggplot2::scale_y_discrete(drop = FALSE) +
+  ggplot2::scale_y_discrete(drop = FALSE, labels = feat_map) +
   ggplot2::scale_fill_gradientn(
     colours = c("#e4f1e1", "#4a9a8e", "#023c3f"),
     values = scales::rescale(c(0.2, 0.4, 1)),
@@ -465,20 +481,21 @@ p3 <- extract_bio_sims %>%
   ggplot2::labs(
     x = "n predictions",
     y = "feature",
-    title = stringr::str_wrap("Biotransformer 3.0 predictions", 20)
+    # title = stringr::str_wrap("Biotransformer 3.0 predictions", 20),
+    title = "Biotransformer 3.0 predictions"
   )
 
 p4 <- extract_bio_sims_long %>%
   dplyr::filter(feature %in% extract_bio_sims$feature) %>%
-  dplyr::mutate(feature = factor(feature, levels = shared_features)) %>%
+  dplyr::mutate(feature = factor(feature, levels = feature_levels)) %>%
   ggplot2::ggplot(
     ggplot2::aes(
       x = value,
-      y = feature
+      y = feature # feature
     )
   ) +
   ggplot2::geom_point(aes(color = group)) +
-  ggplot2::scale_y_discrete(drop = FALSE) +
+  ggplot2::scale_y_discrete(drop = FALSE, labels = feat_map) +
   ggplot2::scale_x_continuous(
     # transform = "sqrt"
     transform = scales::pseudo_log_trans(sigma = 1e5)
@@ -487,14 +504,12 @@ p4 <- extract_bio_sims_long %>%
   ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
   ggplot2::theme_bw() +
   ggplot2::theme(
-    axis.title.x = ggplot2::element_blank(),
-    axis.text.y = ggplot2::element_blank(),
-    axis.ticks.y = ggplot2::element_blank()
+    axis.title.x = ggplot2::element_blank()
   ) +
   ggplot2::labs(y = "feature")
 
 p5 <- xchr9_all_ints %>%
-  dplyr::mutate(feature = factor(feature, levels = shared_features)) %>%
+  dplyr::mutate(feature = factor(feature, levels = feature_levels)) %>%
   ggplot2::ggplot(
     ggplot2::aes(
       x = value,
@@ -504,22 +519,33 @@ p5 <- xchr9_all_ints %>%
   ) +
   ggplot2::geom_point() +
   ggplot2::theme_bw() +
-  ggplot2::scale_y_discrete(drop = FALSE) +
+  ggplot2::scale_y_discrete(
+    drop = FALSE,
+    labels = feat_map
+  ) +
   ggplot2::scale_x_continuous(
     # transform = "sqrt"
     transform = scales::pseudo_log_trans(sigma = 1e5)
     # transform = scales::transform_boxcox(p = 0.4)
+  ) +
+  ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+  ggplot2::labs(
+    title = "Largest delta peak area"
   )
 
-p1 + p2 + p3 + p4 + p5 +
+final_p <- p1 + p2 + p3 + p4 + p5 +
   patchwork::plot_layout(
     guides = "collect",
     axes = "collect",
     axis_titles = "collect",
     # widths = c(0.15, 0.35, 0.15, 0.35)
-    widths = c(0.1, 0.3, 0.1, 0.3, 0.1)
+    widths = c(0.1, 0.3, 0.1, 0.3, 0.3)
+  ) &
+  ggplot2::theme(
+    axis.title.y = ggplot2::element_blank(),
+    axis.text.y = ggplot2::element_text(size = 7)
   )
-
+final_p
 ################################################################################
 # Extracting chromatograms -----------------------------------------------------
 ################################################################################
@@ -591,4 +617,100 @@ all_bio_sims %>%
 #   )
 # )
 
-# subset_matched_diffs
+################################################################################
+# Counting interesting metabolites ---------------------------------------------
+################################################################################
+
+# How many are interesting
+# This is incorrect because this is done on filtered data for now
+# xchr9_full_ints <- all_xchr9_data %>%
+#   tidyr::pivot_longer(cols = dplyr::contains(".mzML")) %>%
+#   dplyr::left_join(
+#     x = .,
+#     y = dplyr::select(meta, sample, group, path),
+#     by = c("name" = "sample")
+#   ) %>%
+#   dplyr::relocate(group, .after = "feature") %>%
+#   dplyr::mutate(
+#     title = paste0(
+#       feature, " ",
+#       round(mzmed, 2), " ",
+#       round(rtmed, 2)
+#     )
+#   )
+
+
+# # Took the metadata comparisons thing
+# summarized_exps <- experiments %>%
+#   dplyr::ungroup() %>%
+#   dplyr::select(
+#     c(
+#       "experiment_id",
+#       "experiment",
+#       "strain",
+#       "condition",
+#       "unclean_strain",
+#       "unclean_condition"
+#     )
+#   ) %>%
+#   dplyr::distinct(experiment_id, .keep_all = TRUE)
+
+# total_ints <- xchr9_full_ints %>%
+#   dplyr::group_by(experiment) %>%
+#   dplyr::summarize(n_features = dplyr::n_distinct(feature)) %>%
+#   dplyr::arrange(desc(n_features)) %>%
+#   dplyr::left_join(
+#     x = .,
+#     y = summarized_exps,
+#     by = "experiment"
+#   ) %>%
+#   dplyr::left_join(
+#     x = .,
+#     y = glycone_pairs_metadata,
+#     by = c("unclean_condition" = "glycoside")
+#   )
+
+# total_ints %>%
+#   ggplot(
+#     aes(
+#       x = n_features,
+#       y = strain,
+#       color = condition
+#     )
+#   ) +
+#   geom_point() +
+#   scale_x_continuous(transform = "log10")
+
+# total_ints %>%
+#   ggplot(
+#     aes(
+#       x = n_features,
+#       y = strain,
+#       color = aglycone
+#     )
+#   ) +
+#   geom_point() +
+#   scale_x_continuous(transform = "log10")
+
+# total_ints %>%
+#   ggplot(
+#     aes(
+#       x = n_features,
+#       y = condition,
+#       color = strain
+#     )
+#   ) +
+#   geom_point() +
+#   scale_x_continuous(transform = "log10")
+
+# total_ints %>%
+#   ggplot(
+#     aes(
+#       x = n_features,
+#       y = aglycone,
+#       color = strain
+#     )
+#   ) +
+#   geom_point() +
+#   scale_x_continuous(transform = "log10")
+

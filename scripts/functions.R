@@ -1641,7 +1641,7 @@ plot_feature <- function(
     )
 
   signif_data <- limma_results %>%
-    dplyr::filter(feature == !!feature) %>%
+    dplyr::filter(feature == {{ feature }}) %>%
     dplyr::select(feature, adj.P.Val, contrast) %>%
     dplyr::mutate(
       group1 = stringr::str_split_i(contrast, "-", 1),
@@ -1667,12 +1667,18 @@ plot_feature <- function(
         y = value
       )
     ) +
-    ggplot2::geom_boxplot(ggplot2::aes(fill = group), show.legend = FALSE) +
+    ggplot2::geom_boxplot(
+      ggplot2::aes(fill = group),
+      show.legend = FALSE,
+      outliers = FALSE
+    ) +
     ggplot2::geom_point(
-      ggplot2::aes(color = group),
+      ggplot2::aes(fill = group),
       position = ggplot2::position_jitter(width = 0.3),
       size = 3,
-      show.legend = FALSE
+      show.legend = FALSE,
+      color = "black",
+      pch = 21
     ) +
     ggplot2::theme_classic() +
     ggplot2::theme(
@@ -1705,9 +1711,9 @@ plot_feature <- function(
       }
     }
 
-  feat_defs <- xcms::featureDefinitions(chrs) %>%
+  feat_defs <- xcms::featureDefinitions(feature_chrom) %>%
     tibble::as_tibble(., rownames = "feature") %>%
-    dplyr::filter(feature == feature)
+    dplyr::filter(feature == {{ feature }})
 
   combined <- (patchwork::free(p2) | (p1 / p3)) +
     patchwork::plot_layout(

@@ -3,7 +3,6 @@ source("scripts/standard_disco_args.R")
 suppressWarnings(
   suppressPackageStartupMessages({
     library(dplyr)
-    # library(MSnbase)
     library(xcms)
     library(MsExperiment)
     library(optparse)
