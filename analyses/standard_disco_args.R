@@ -2,7 +2,7 @@ option_list <- list(
   optparse::make_option(
     c("--wd"),
     type = "character",
-    default = past0(
+    default = paste0(
       "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/03_psm"
     ),
     help = "Working directory [default: %default]"
@@ -10,7 +10,10 @@ option_list <- list(
   optparse::make_option(
     c("-d", "--data_path"),
     type = "character",
-    default = "standards",
+    default = paste0(
+      "/Volumes/bluecub/aglycone_release_100um_24h/",
+      "data/experiment/mzml"
+    ),
     help = "Input data directory [default: %default]"
   ),
   optparse::make_option(
@@ -25,20 +28,20 @@ option_list <- list(
   optparse::make_option(
     c("-o", "--output"),
     type = "character",
-    default = "./standard_peaks/apiin_standards",
+    default = "/Volumes/bluecub/aglycone_release_100um_24h/standards",
     help = "Results folder [default: %default]"
   ),
   optparse::make_option(
-    c("-f", "--standard"),
+    c("-f", "--is_formula"),
     type = "character",
     "default" = "C7H8O2",
     help = "Chemical formula of the internal standard [default: %default]"
   ),
   optparse::make_option(
-    c("-a", "--adduct"),
+    c("-a", "--is_adduct"),
     type = "character",
     "default" = "[M-H]-",
-    help = "Chemical formula of the internal standard [default: %default]"
+    help = "Major adduct of the internal standard [default: %default]"
   ),
   optparse::make_option(
     c("--ppm_global"),
@@ -74,16 +77,5 @@ option_list <- list(
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
 
-setwd(opt$wd)
-set.seed(opt$seed)
-data_path <- opt$data_path
-meta_file <- opt$meta_file
-stds_output_path <- opt$output
-glycoside_form <- opt$standard
-std_ppm <- opt$ppm_global
-std_adduct <- opt$adduct
-expand_rt <- opt$expand_rt
-expand_mz <- opt$expand_mz
-workers <- opt$cores
-
-register_parallel(workers)
+# setwd(opt$wd)
+# set.seed(opt$seed)

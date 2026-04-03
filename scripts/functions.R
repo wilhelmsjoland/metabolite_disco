@@ -233,23 +233,41 @@ get_rt_mz_range <- function(
   chromatogram = NULL,
   rt_window = 0.02 # percentage increase of window
 ) {
+  ref_peak_intensity <- purrr::map_dbl(
+    .x = seq_len(ncol(chromatogram)),
+    .f = ~ max(intensity(chromatogram[1, .x]), na.rm = TRUE)
+  ) %>% median(na.rm = TRUE)
+
+  ref_peak_rt <- purrr::map_dbl(
+    .x = seq_len(ncol(chromatogram)),
+    .f = ~ {
+      samp_max <- max(intensity(chromatogram[1, .x]), na.rm = TRUE)
+      idx <- which(intensity(chromatogram[1, .x]) == samp_max)
+      Spectra::rtime(chromatogram[1, .x])[[idx]]
+    }
+  ) %>% median(na.rm = TRUE)
+
+  rt_window_min <- (1 - rt_window) * ref_peak_rt
+  rt_window_max <- (1 + rt_window) * ref_peak_rt
+
   ref_tib <- tibble::tibble()
   for (samp_n in 1:length(chromatogram)) {
-    ref_peak_intensity <- max(intensity(chromatogram[1, samp_n]), na.rm = TRUE)
+    #ref_peak_intensity <- max(intensity(chromatogram[1, samp_n]), na.rm = TRUE)
+    samp_peak_intensity <- max(intensity(chromatogram[1, samp_n]), na.rm = TRUE)
     max_intensity_idx <- which(
-      intensity(chromatogram[1, samp_n]) == ref_peak_intensity
+      intensity(chromatogram[1, samp_n]) == samp_peak_intensity
     )
-    ref_peak_rt <- Spectra::rtime(chromatogram[1, samp_n])[[max_intensity_idx]]
+    samp_peak_rt <- Spectra::rtime(chromatogram[1, samp_n])[[max_intensity_idx]]
     mzmin <- min(Spectra::mz(chromatogram[1, samp_n]), na.rm = TRUE)
     mzmax <- max(Spectra::mz(chromatogram[1, samp_n]), na.rm = TRUE)
-    rt_window_min <- c((1 - rt_window) * ref_peak_rt)
-    rt_window_max <- c((1 + rt_window) * ref_peak_rt)
     file <- colnames(chromatogram)[samp_n]
 
     tmp_tib <- tibble::tibble(
       file,
       ref_peak_intensity,
       ref_peak_rt,
+      samp_peak_intensity,
+      samp_peak_rt,
       rt_window_min,
       rt_window_max,
       max_intensity_idx,

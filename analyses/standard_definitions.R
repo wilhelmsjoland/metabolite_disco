@@ -78,7 +78,7 @@ readr::write_csv(
   x = aglycone_metadata,
   file = paste0(
     "/Volumes/bluecub/aglycone_release_100um_24h/standards/",
-    "aglycone_metadata.csv"
+    "aglycone_metadata_automated.csv"
   )
 )
 
