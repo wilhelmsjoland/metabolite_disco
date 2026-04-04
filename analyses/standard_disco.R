@@ -17,8 +17,6 @@ suppressWarnings(
 )
 source("analyses/standard_disco_args.R")
 source("scripts/functions.R")
-bp <- BiocParallel::MulticoreParam(workers = opt$cores, fallback = FALSE)
-BiocParallel::bpstart(bp)
 
 dir.create(file.path(opt$output, "objects"), FALSE, TRUE)
 dir.create(file.path(opt$output, "tables"), FALSE, TRUE)
@@ -66,6 +64,10 @@ if (file.exists(stds_exp_path)) {
   saveRDS(stds_exp, stds_exp_path)
 }
 cli::cli_progress_done()
+
+# Start after loading this into memory
+bp <- BiocParallel::MulticoreParam(workers = opt$cores, fallback = FALSE)
+BiocParallel::bpstart(bp)
 
 # ==============================================================================
 # Create wide internal standard chromatograms ------------------------------–---
