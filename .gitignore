@@ -11,6 +11,7 @@
 /standard_peaks
 /standards
 /scripts/ignore/
+/tmp
 *.pdf
 *.svg
 *.bat

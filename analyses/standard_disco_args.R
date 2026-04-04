@@ -3,7 +3,7 @@ option_list <- list(
     c("--wd"),
     type = "character",
     default = paste0(
-      "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/03_psm"
+      "/Users/wilhelm/MEGA/01_juniper/01_arbete/01_projekt/03_psm"
     ),
     help = "Working directory [default: %default]"
   ),
@@ -20,7 +20,7 @@ option_list <- list(
     c("-m", "--meta_file"),
     type = "character",
     default = paste0(
-      "/Volumes/bluecub/aglycone_release_100um_24h/standards/",
+      "/Volumes/bluecub/aglycone_release_100um_24h/standard_output/",
       "aglycone_metadata.csv"
     ),
     help = "Metadata CSV [default: %default]"
@@ -28,8 +28,16 @@ option_list <- list(
   optparse::make_option(
     c("-o", "--output"),
     type = "character",
-    default = "/Volumes/bluecub/aglycone_release_100um_24h/standards",
+    default = paste0(
+      "/Volumes/bluecub/aglycone_release_100um_24h/standard_output/aglycone"
+    ),
     help = "Results folder [default: %default]"
+  ),
+  optparse::make_option(
+    c("--polarity"),
+    type = "character",
+    default = "negative",
+    help = "Polarity [default: %default]"
   ),
   optparse::make_option(
     c("-f", "--is_formula"),
@@ -50,18 +58,6 @@ option_list <- list(
     help = "Global ppm tolerance [default: %default]"
   ),
   optparse::make_option(
-    c("--expand_rt"),
-    type = "double",
-    default = 8,
-    help = "Expansion of retention time of chromatograms in seconds [default: %default]"
-  ),
-  optparse::make_option(
-    c("--expand_mz"),
-    type = "double",
-    default = 0.05,
-    help = "Expansion of m/z in chromatograms [default: %default]"
-  ),
-  optparse::make_option(
     c("-x", "--seed"),
     type = "integer",
     default = 123,
@@ -77,5 +73,5 @@ option_list <- list(
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
 
-# setwd(opt$wd)
-# set.seed(opt$seed)
+setwd(opt$wd)
+set.seed(opt$seed)

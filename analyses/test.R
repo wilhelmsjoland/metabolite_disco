@@ -340,3 +340,14 @@ test <- paste0(
 test2 <- readRDS(test)
 
 test2$chem_pred_feats
+
+
+system.time({
+  xcms::chromatogram(stds_exp, mz = std_mz_range, 
+                     BPPARAM = SnowParam(4))
+})
+
+system.time({
+  xcms::chromatogram(stds_exp, mz = std_mz_range, 
+                     BPPARAM = MulticoreParam(4))
+})

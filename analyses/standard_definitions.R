@@ -23,12 +23,47 @@ glycoside_stds <- readxl::read_xlsx(
     )
   )
 
-
+# Det ska vara 48 filer totalt
 
 # So many missing files so I can't do this
 # Long needs to send me the files but actually non-empty ones now
 glycosides_stds_files <- list.files(file.path(glycoside_stds_path, "mzml"))
-glycoside_stds
+
+
+glycosides_stds_files_df <- tibble::tibble(
+  actual_file = glycosides_stds_files
+) %>%
+  dplyr::mutate(
+    file_name = stringr::str_remove(actual_file, "-r\\d+(?=\\.mzML$)")
+  )
+
+glycoside_stds_matched <- glycoside_stds %>%
+  dplyr::left_join(y = glycosides_stds_files_df, by = "file_name")
+
+"sample,group,unit,bacteria,formula" 
+
+glycoside_stds_matched %>%
+  dplyr::select(
+    "long_spec_d" = `File name`,
+    "long_spec" = "file_name",
+    "sample" = "actual_file",
+    "group" = `Glycoside group`,
+    "bacteria" = "Strain"
+  )
+
+writexl::write_xlsx(
+  x = glycoside_stds_matched,
+  path = "glycoside_std_metadata.xlsx"
+)
+
+# Seems like the files are still missing but I have enough now at least to
+# find the standard locations
+
+
+glycoside
+
+
+glycoside_stds %>% print(n = 20)
 glycoside_stds[glycoside_stds$file_name %in% glycosides_stds_files,]
 missing_files <- glycoside_stds[!glycoside_stds$file_name %in% glycosides_stds_files,]
 
@@ -85,7 +120,7 @@ readr::write_csv(
 # aglycones are in the experiment path
 
 stds <- import_mzml(
-  data_path =   file.path(
+  data_path = file.path(
     paste0(
       "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/",
       "mzml"
