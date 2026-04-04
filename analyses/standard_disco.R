@@ -26,6 +26,27 @@ dir.create(file.path(opt$output, "peaks", "facet"), FALSE, TRUE)
 dir.create(file.path(opt$output, "peaks", "single"), FALSE, TRUE)
 dir.create(file.path(opt$output, "internal_standard"), FALSE, TRUE)
 
+# ==============================================================================
+# Skip if outputs are up to date -----------------------------------------------
+# ==============================================================================
+args_path <- file.path(opt$output, "objects", "args.rds")
+output_files <- c(
+  file.path(opt$output, "objects", "stds_exp.rds"),
+  file.path(opt$output, "objects", "std_chr.rds"),
+  file.path(opt$output, "tables", "chromatogram_values.csv"),
+  file.path(opt$output, "tables", "full_peak_table.csv"),
+  file.path(opt$output, "tables", "max_standard_adducts.csv"),
+  file.path(opt$output, "tables", "all_standard_adducts.csv"),
+  file.path(opt$output, "tables", "top_standard_summary.csv")
+)
+
+if (file.exists(args_path) && all(file.exists(output_files))) {
+  if (identical(readRDS(args_path), opt)) {
+    cli::cli_alert_success("All outputs up to date, skipping run.")
+    quit(save = "no", status = 0)
+  }
+}
+
 cli::cli_progress_step("Import metadata")
 stds <- import_mzml(data_path = opt$data_path, meta_file = opt$meta_file)
 cli::cli_progress_done()
@@ -424,4 +445,5 @@ readr::write_csv(
 )
 cli::cli_progress_done()
 
+saveRDS(opt, args_path)
 cli::cli_alert_success("Pipeline finished.\n")
