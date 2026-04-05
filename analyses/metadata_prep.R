@@ -2,13 +2,18 @@ library(janitor)
 library(yaml)
 
 # exp_path <- "V:/aglycone_release_100um_24h"
-exp_path <- "/Volumes/bluecub/aglycone_release_100um_24h/"
+exp_path <- "/Volumes/bluecub/aglycone_release_100um_24h"
 
 # ==============================================================================
 # Create experimental metadata from Longs experiments --------------------------
 # ==============================================================================
 exp_inds <- readr::read_csv(
-  file = file.path(exp_path, "data", "fixed_070825_index.csv"),
+  file = file.path(
+    exp_path,
+    "data",
+    "experiment",
+    "fixed_070825_index.csv"
+  ),
   show_col_types = FALSE,
   progress = TRUE,
   name_repair = "universal"
@@ -46,7 +51,8 @@ all_mzml <- list.files(
   path = file.path(
     exp_path,
     "data",
-    "mzml_files"
+    "experiment",
+    "mzml"
   ),
   pattern = ".mzML"
 )
@@ -227,4 +233,3 @@ glycone_pairs_metadata <- glycone_pairs %>%
       "aglycone_SMILES"
     )
   )
-

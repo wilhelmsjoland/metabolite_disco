@@ -1,5 +1,3 @@
-source("scripts/functions.R")
-source("analyses/analyses_functions.R")
 suppressPackageStartupMessages(
   {
     library(tidyverse)
@@ -14,12 +12,13 @@ suppressPackageStartupMessages(
     library(Spectra)
   }
 )
-
+source("scripts/functions.R")
+source("analyses/analyses_functions.R")
 
 ###############################################################################
 # Setup output folder ----------------------------------------------------------
 ################################################################################
-output_path <- "/Volumes/bluecub/aglycone_release_100um_24h/output"
+output_path <- "/Volumes/bluecub/aglycone_release_100um_24h/output/experiment"
 output_folders <- list.files(
   output_path,
   full.names = TRUE
@@ -30,6 +29,8 @@ fold_change_min <- 1
 # fold_change_min times larger than the maximum of the glucose group means.
 # With fold_change_min <- 10: if the highest glucose group mean is 5,000,
 # both substrate group means must be above 50,000 to pass.
+cores <- 4
+BiocParallel::register(BiocParallel::MulticoreParam(workers = cores))
 
 ################################################################################
 # Read all bio_sims ------------------------------------------------------------
@@ -230,7 +231,7 @@ xchr9 <- readRDS(
 sp <- spectra(xchr9)
 sp@backend@spectraData$dataStorage <- gsub(
   r"(V:\aglycone_release_100um_24h\data\mzml_files\)",
-  "/Volumes/bluecub/aglycone_release_100um_24h/data/mzml_files/",
+  "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml/",
   sp@backend@spectraData$dataStorage,
   fixed = TRUE
 )
@@ -246,7 +247,7 @@ sd$path <- meta$path
 rownames(sd) <- meta$sample
 sd$spectraOrigin <- gsub(
   r"(V:\aglycone_release_100um_24h\data\mzml_files\)",
-  "/Volumes/bluecub/aglycone_release_100um_24h/data/mzml_files/",
+  "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml/",
   sd$spectraOrigin,
   fixed = TRUE
 )
@@ -538,7 +539,6 @@ final_p <- p1 + p2 + p3 + p4 + p5 +
     guides = "collect",
     axes = "collect",
     axis_titles = "collect",
-    # widths = c(0.15, 0.35, 0.15, 0.35)
     widths = c(0.1, 0.3, 0.1, 0.3, 0.3)
   ) &
   ggplot2::theme(
@@ -550,6 +550,8 @@ final_p
 # Extracting chromatograms -----------------------------------------------------
 ################################################################################
 xchr9_int_chrs <- xcms::featureChromatograms(
+  BPPARAM = bpparam(),
+  chunkSize = cores,
   object = xchr9,
   expandRt = 0,
   expandMz = 0,
@@ -582,8 +584,23 @@ for (i in unique(xchr9_all_ints$feature)) {
   readline("Enter for next: ")
 }
 
+plot_feature(
+  feature_chrom = xchr9_int_chrs,
+  feature = "FT18047",
+  meta = meta,
+  limma_results = full_limma,
+  method = "sum",
+  value = "into",
+  filled = TRUE,
+  missing = 0,
+  ms_level = 1L,
+  # This should be the same as the folder it came from
+  save_loc = NULL,
+  device = "pdf",
+  overwrite = FALSE
+)$full
+
 # TODO
-# Extract all standards
 # export mgf for sirius
 # Run through all the standards
 # and select the peaks that match the aglycone in the end
@@ -616,101 +633,4 @@ all_bio_sims %>%
 #     "/objects/subset_matched_diffs.rds"
 #   )
 # )
-
-################################################################################
-# Counting interesting metabolites ---------------------------------------------
-################################################################################
-
-# How many are interesting
-# This is incorrect because this is done on filtered data for now
-# xchr9_full_ints <- all_xchr9_data %>%
-#   tidyr::pivot_longer(cols = dplyr::contains(".mzML")) %>%
-#   dplyr::left_join(
-#     x = .,
-#     y = dplyr::select(meta, sample, group, path),
-#     by = c("name" = "sample")
-#   ) %>%
-#   dplyr::relocate(group, .after = "feature") %>%
-#   dplyr::mutate(
-#     title = paste0(
-#       feature, " ",
-#       round(mzmed, 2), " ",
-#       round(rtmed, 2)
-#     )
-#   )
-
-
-# # Took the metadata comparisons thing
-# summarized_exps <- experiments %>%
-#   dplyr::ungroup() %>%
-#   dplyr::select(
-#     c(
-#       "experiment_id",
-#       "experiment",
-#       "strain",
-#       "condition",
-#       "unclean_strain",
-#       "unclean_condition"
-#     )
-#   ) %>%
-#   dplyr::distinct(experiment_id, .keep_all = TRUE)
-
-# total_ints <- xchr9_full_ints %>%
-#   dplyr::group_by(experiment) %>%
-#   dplyr::summarize(n_features = dplyr::n_distinct(feature)) %>%
-#   dplyr::arrange(desc(n_features)) %>%
-#   dplyr::left_join(
-#     x = .,
-#     y = summarized_exps,
-#     by = "experiment"
-#   ) %>%
-#   dplyr::left_join(
-#     x = .,
-#     y = glycone_pairs_metadata,
-#     by = c("unclean_condition" = "glycoside")
-#   )
-
-# total_ints %>%
-#   ggplot(
-#     aes(
-#       x = n_features,
-#       y = strain,
-#       color = condition
-#     )
-#   ) +
-#   geom_point() +
-#   scale_x_continuous(transform = "log10")
-
-# total_ints %>%
-#   ggplot(
-#     aes(
-#       x = n_features,
-#       y = strain,
-#       color = aglycone
-#     )
-#   ) +
-#   geom_point() +
-#   scale_x_continuous(transform = "log10")
-
-# total_ints %>%
-#   ggplot(
-#     aes(
-#       x = n_features,
-#       y = condition,
-#       color = strain
-#     )
-#   ) +
-#   geom_point() +
-#   scale_x_continuous(transform = "log10")
-
-# total_ints %>%
-#   ggplot(
-#     aes(
-#       x = n_features,
-#       y = aglycone,
-#       color = strain
-#     )
-#   ) +
-#   geom_point() +
-#   scale_x_continuous(transform = "log10")
 

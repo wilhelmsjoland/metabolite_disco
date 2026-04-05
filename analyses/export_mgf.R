@@ -1,8 +1,8 @@
 library(Spectra)
 library(MsBackendMgf)
-# library(BiocParallel)
-# register(SerialParam())
+library(BiocParallel)
 
+# import from export_mgf.R
 feature_levels
 
 # # Extract MS1 spectra at feature apexes
@@ -38,8 +38,13 @@ map <- c(feature_id = "TITLE", spectraVariableMapping(MsBackendMgf()))
 # Export
 Spectra::export(
   object = feat_export,
-  BPPARAM = SerialParam(),
+  BPPARAM = BiocParallel::MulticoreParam(),
   backend = MsBackendMgf(),
   mapping = map,
   file = file.path("output", "features.mgf")
+)
+
+file.path(
+  "/Volumes/bluecub/aglycone_release_100um_24h/output/experiment_mgfs",
+  "features.mgf"
 )
