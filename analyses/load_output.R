@@ -271,32 +271,21 @@ meta$path <- gsub(
 sim_filter <- 0.2
 
 extract_feats <- all_anno_sims %>%
-  dplyr::filter(
-    experiment == paste0(
-      exp_to_use
-    )
-  ) %>%
+  dplyr::filter(experiment == paste0(exp_to_use)) %>%
   dplyr::group_by(adduct) %>%
   dplyr::distinct(target_inchikey, .keep_all = TRUE) %>%
   dplyr::ungroup() %>%
   dplyr::filter(sim > sim_filter)
 
 extract_bio_sims <- all_bio_sims %>%
-  dplyr::filter(
-    experiment == paste0(
-      exp_to_use
-    )
-  ) %>%
+  dplyr::filter(experiment == paste0(exp_to_use)) %>%
   dplyr::group_by(adduct) %>%
   dplyr::distinct(InChIKey, .keep_all = TRUE) %>%
   dplyr::ungroup() %>%
   dplyr::filter(sim > sim_filter)
 
 xchr9_all_ints <- all_xchr9_data %>%
-  dplyr::filter(experiment == paste0(
-    exp_to_use
-  )
-) %>%
+  dplyr::filter(experiment == paste0(exp_to_use)) %>%
   dplyr::left_join(
     x = .,
     y = dplyr::select(meta, sample, group, path),
@@ -546,7 +535,7 @@ final_p <- p1 + p2 + p3 + p4 + p5 +
     axis.title.y = ggplot2::element_blank(),
     axis.text.y = ggplot2::element_text(size = 7)
   )
-final_p
+
 ################################################################################
 # Extracting chromatograms -----------------------------------------------------
 ################################################################################
