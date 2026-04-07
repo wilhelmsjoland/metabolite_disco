@@ -19,11 +19,17 @@ source("analyses/analyses_functions.R")
 # Setup output folder ----------------------------------------------------------
 ################################################################################
 output_path <- "/Volumes/bluecub/aglycone_release_100um_24h/output/experiment"
+analysis_output_path <- "/Volumes/bluecub/aglycone_release_100um_24h/output/experiment_analyses"
 exp_to_use <- "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
-output_folders <- list.files(
+output_folders <- list.dirs(
   output_path,
-  full.names = TRUE
+  full.names = TRUE,
+  recursive = FALSE
 )
+output_folders <- output_folders[output_folders != output_path]
+# Legacy single-experiment workflow is kept below for reference and disabled.
+run_all_experiment_analyses <- TRUE
+sim_filter <- 0.2
 
 fold_change_min <- 1
 # It means: the minimum of the substrate group means must be at least
@@ -185,6 +191,7 @@ all_xchr9_data %>%
 ################################################################################
 # Load experiment-specific data ------------------------------------------------
 ################################################################################
+if (FALSE) {
 anno_chrs <- readRDS(
   paste0(
     output_path, "/",
@@ -574,22 +581,6 @@ for (i in unique(xchr9_all_ints$feature)) {
   # readline("Enter for next: ")
 }
 
-plot_feature(
-  feature_chrom = xchr9_int_chrs,
-  feature = "FT18047",
-  meta = meta,
-  limma_results = full_limma,
-  method = "sum",
-  value = "into",
-  filled = TRUE,
-  missing = 0,
-  ms_level = 1L,
-  # This should be the same as the folder it came from
-  save_loc = NULL,
-  device = "pdf",
-  overwrite = FALSE
-)$full
-
 # TODO
 # export mgf for sirius
 # Run through all the standards
@@ -623,4 +614,469 @@ all_bio_sims %>%
 #     "/objects/subset_matched_diffs.rds"
 #   )
 # )
+}
 
+prepare_feature_values_long <- function(feature_values, meta) {
+  if (nrow(feature_values) == 0) {
+    return(
+      tibble::tibble(
+        feature = character(),
+        name = character(),
+        value = numeric(),
+        group = character(),
+        path = character()
+      )
+    )
+  }
+
+  feature_values %>%
+    tibble::column_to_rownames(var = "feature") %>%
+    t() %>%
+    as.data.frame() %>%
+    dplyr::mutate(
+      dplyr::across(
+        .cols = dplyr::everything(),
+        .fns = ~ .x
+      )
+    ) %>%
+    t() %>%
+    as.data.frame() %>%
+    tibble::as_tibble(., rownames = "feature") %>%
+    tidyr::pivot_longer(cols = dplyr::contains(".mzML")) %>%
+    dplyr::left_join(
+      x = .,
+      y = dplyr::select(meta, sample, group, path),
+      by = c("name" = "sample")
+    )
+}
+
+load_experiment_context <- function(exp_dir) {
+  anno_chrs <- readRDS(
+    file.path(exp_dir, "objects", "anno_chrs.rds")
+  )
+
+  pred_chrs <- readRDS(
+    file.path(exp_dir, "objects", "pred_chrs.rds")
+  )
+
+  meta <- readr::read_csv(
+    file.path(exp_dir, "tables", "metadata.csv"),
+    progress = FALSE,
+    show_col_types = FALSE
+  ) %>%
+    dplyr::mutate(sample = basename(path)) %>%
+    dplyr::relocate("sample", .before = "group")
+
+  full_limma <- readr::read_csv(
+    file.path(exp_dir, "tables", "limma_norm_fill_imp.csv"),
+    progress = FALSE,
+    show_col_types = FALSE
+  )
+
+  xchr9 <- readRDS(
+    file.path(exp_dir, "objects", "xchr9.rds")
+  )
+
+  sp <- spectra(xchr9)
+  sp@backend@spectraData$dataStorage <- gsub(
+    r"(V:\aglycone_release_100um_24h\data\mzml_files\)",
+    "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml/",
+    sp@backend@spectraData$dataStorage,
+    fixed = TRUE
+  )
+  xchr9@spectra <- sp
+  xchr9@spectra <- Spectra::setBackend(
+    spectra(xchr9),
+    MsBackendMemory()
+  )
+
+  sd <- MsExperiment::sampleData(xchr9)
+  sd$path <- meta$path
+  rownames(sd) <- meta$sample
+  sd$spectraOrigin <- gsub(
+    r"(V:\aglycone_release_100um_24h\data\mzml_files\)",
+    "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml/",
+    sd$spectraOrigin,
+    fixed = TRUE
+  )
+  MsExperiment::sampleData(xchr9) <- sd
+
+  meta$path <- gsub(
+    "V:/aglycone_release_100um_24h",
+    "/Volumes/bluecub/aglycone_release_100um_24h",
+    meta$path,
+    fixed = TRUE
+  )
+
+  list(
+    anno_chrs = anno_chrs,
+    pred_chrs = pred_chrs,
+    meta = meta,
+    full_limma = full_limma,
+    xchr9 = xchr9
+  )
+}
+
+process_experiment_analysis <- function(
+  exp_dir,
+  analysis_output_path,
+  all_anno_sims,
+  all_bio_sims,
+  all_xchr9_data,
+  sim_filter = 0.2,
+  cores = 4
+) {
+  exp_to_use <- basename(exp_dir)
+  cli::cli_alert_info("Processing {.path {exp_to_use}}")
+
+  exp_analysis_dir <- file.path(analysis_output_path, exp_to_use)
+  exp_graph_dir <- file.path(exp_analysis_dir, "graphs")
+  exp_object_dir <- file.path(exp_analysis_dir, "objects")
+
+  dir.create(exp_graph_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(exp_object_dir, recursive = TRUE, showWarnings = FALSE)
+
+  exp_context <- load_experiment_context(exp_dir)
+  anno_chrs <- exp_context$anno_chrs
+  pred_chrs <- exp_context$pred_chrs
+  meta <- exp_context$meta
+  full_limma <- exp_context$full_limma
+  xchr9 <- exp_context$xchr9
+
+  extract_feats <- all_anno_sims %>%
+    dplyr::filter(experiment == exp_to_use) %>%
+    dplyr::group_by(adduct) %>%
+    dplyr::distinct(target_inchikey, .keep_all = TRUE) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(sim > sim_filter)
+
+  extract_bio_sims <- all_bio_sims %>%
+    dplyr::filter(experiment == exp_to_use) %>%
+    dplyr::group_by(adduct) %>%
+    dplyr::distinct(InChIKey, .keep_all = TRUE) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(sim > sim_filter)
+
+  xchr9_all_ints <- all_xchr9_data %>%
+    dplyr::filter(experiment == exp_to_use) %>%
+    dplyr::left_join(
+      x = .,
+      y = dplyr::select(meta, sample, group, path),
+      by = c("name" = "sample")
+    ) %>%
+    dplyr::relocate(group, .after = "feature") %>%
+    dplyr::mutate(
+      title = paste0(
+        feature, " ",
+        round(mzmed, 2), " ",
+        round(rtmed, 2)
+      )
+    )
+
+  shared_features <- unique(
+    c(
+      extract_feats$peak_id,
+      extract_bio_sims$feature,
+      xchr9_all_ints$feature
+    )
+  )
+  shared_features <- shared_features[!is.na(shared_features)]
+
+  if (length(shared_features) == 0) {
+    cli::cli_alert_warning(
+      "Skipping {.path {exp_to_use}}: no shared features after filtering"
+    )
+    return(invisible(NULL))
+  }
+
+  feat_map <- xcms::featureDefinitions(xchr9) %>%
+    tibble::as_tibble(., rownames = "feature") %>%
+    dplyr::select(feature, mzmed, rtmed) %>%
+    dplyr::arrange(mzmed) %>%
+    dplyr::mutate(
+      title = paste0(
+        feature, "_",
+        round(mzmed, 2), "_",
+        round(rtmed, 2)
+      )
+    ) %>%
+    dplyr::filter(feature %in% shared_features) %>%
+    dplyr::pull(title, name = feature)
+
+  feature_levels <- names(feat_map)
+  if (length(feature_levels) == 0) {
+    cli::cli_alert_warning(
+      "Skipping {.path {exp_to_use}}: no xchr9 features available to plot"
+    )
+    return(invisible(NULL))
+  }
+
+  extract_feats_int <- xcms::featureValues(
+    object = anno_chrs,
+    method = "sum",
+    value = "into",
+    intensity = "into",
+    filled = TRUE,
+    missing = 0
+  ) %>%
+    tibble::as_tibble(., rownames = "feature") %>%
+    dplyr::filter(feature %in% shared_features)
+
+  extract_feats_long <- prepare_feature_values_long(
+    feature_values = extract_feats_int,
+    meta = meta
+  )
+
+  extract_bio_sims_int <- xcms::featureValues(
+    object = pred_chrs,
+    method = "sum",
+    value = "into",
+    intensity = "into",
+    filled = TRUE,
+    missing = 0
+  ) %>%
+    tibble::as_tibble(., rownames = "feature") %>%
+    dplyr::filter(feature %in% shared_features)
+
+  extract_bio_sims_long <- prepare_feature_values_long(
+    feature_values = extract_bio_sims_int,
+    meta = meta
+  )
+
+  p1 <- extract_feats %>%
+    dplyr::group_by(peak_id) %>%
+    dplyr::mutate(hit = dplyr::row_number()) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(peak_id = factor(peak_id, levels = feature_levels)) %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = hit,
+        y = peak_id,
+        fill = sim
+      )
+    ) +
+    ggplot2::geom_tile(color = "black") +
+    ggplot2::scale_y_discrete(drop = FALSE, labels = feat_map) +
+    ggplot2::scale_fill_gradientn(
+      colours = c("#e4f1e1", "#4a9a8e", "#023c3f"),
+      values = scales::rescale(c(0.2, 0.4, 1)),
+      limits = c(0.2, 1)
+    ) +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(c(0, 0))) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.ticks.x = ggplot2::element_blank()) +
+    ggplot2::labs(
+      x = "n predictions",
+      y = "feature",
+      title = "Massbank annotated features"
+    )
+
+  p2 <- extract_feats_long %>%
+    dplyr::filter(feature %in% extract_feats$peak_id) %>%
+    dplyr::mutate(feature = factor(feature, levels = feature_levels)) %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = value,
+        y = feature
+      )
+    ) +
+    ggplot2::geom_point(aes(color = group)) +
+    ggplot2::scale_y_discrete(drop = FALSE, labels = feat_map) +
+    ggplot2::scale_x_continuous(
+      transform = scales::pseudo_log_trans(sigma = 1e5)
+    ) +
+    ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(
+      axis.title.x = ggplot2::element_blank()
+    ) +
+    ggplot2::labs(y = "feature")
+
+  p3 <- extract_bio_sims %>%
+    dplyr::group_by(feature) %>%
+    dplyr::mutate(hit = dplyr::row_number()) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(feature = factor(feature, levels = feature_levels)) %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = hit,
+        y = feature,
+        fill = sim
+      )
+    ) +
+    ggplot2::geom_tile(color = "black") +
+    ggplot2::scale_y_discrete(drop = FALSE, labels = feat_map) +
+    ggplot2::scale_fill_gradientn(
+      colours = c("#e4f1e1", "#4a9a8e", "#023c3f"),
+      values = scales::rescale(c(0.2, 0.4, 1)),
+      limits = c(0.2, 1)
+    ) +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(c(0, 0))) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(
+      axis.ticks.x = ggplot2::element_blank()
+    ) +
+    ggplot2::labs(
+      x = "n predictions",
+      y = "feature",
+      title = "Biotransformer 3.0 predictions"
+    )
+
+  p4 <- extract_bio_sims_long %>%
+    dplyr::filter(feature %in% extract_bio_sims$feature) %>%
+    dplyr::mutate(feature = factor(feature, levels = feature_levels)) %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = value,
+        y = feature
+      )
+    ) +
+    ggplot2::geom_point(aes(color = group)) +
+    ggplot2::scale_y_discrete(drop = FALSE, labels = feat_map) +
+    ggplot2::scale_x_continuous(
+      transform = scales::pseudo_log_trans(sigma = 1e5)
+    ) +
+    ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(
+      axis.title.x = ggplot2::element_blank()
+    ) +
+    ggplot2::labs(y = "feature")
+
+  p5 <- xchr9_all_ints %>%
+    dplyr::mutate(feature = factor(feature, levels = feature_levels)) %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = value,
+        y = feature,
+        color = group
+      )
+    ) +
+    ggplot2::geom_point() +
+    ggplot2::theme_bw() +
+    ggplot2::scale_y_discrete(
+      drop = FALSE,
+      labels = feat_map
+    ) +
+    ggplot2::scale_x_continuous(
+      transform = scales::pseudo_log_trans(sigma = 1e5)
+    ) +
+    ggplot2::guides(x = ggplot2::guide_axis(angle = -45)) +
+    ggplot2::labs(
+      title = "Largest delta peak area"
+    )
+
+  final_p <- p1 + p2 + p3 + p4 + p5 +
+    patchwork::plot_layout(
+      guides = "collect",
+      axes = "collect",
+      axis_titles = "collect",
+      widths = c(0.1, 0.3, 0.1, 0.3, 0.3)
+    ) &
+    ggplot2::theme(
+      axis.title.y = ggplot2::element_blank(),
+      axis.text.y = ggplot2::element_text(size = 7)
+    )
+
+  ggplot2::ggsave(
+    filename = file.path(exp_graph_dir, "final_p.pdf"),
+    plot = final_p,
+    device = "pdf",
+    height = 7,
+    width = 18,
+    units = "in"
+  )
+
+  feature_ids_to_plot <- unique(xchr9_all_ints$feature)
+  feature_ids_to_plot <- feature_ids_to_plot[!is.na(feature_ids_to_plot)]
+
+  if (length(feature_ids_to_plot) == 0) {
+    saveRDS(NULL, file.path(exp_object_dir, "xchr9_int_chrs.rds"))
+    cli::cli_alert_warning(
+      "Saved final_p only for {.path {exp_to_use}}: no xchr9 features to extract"
+    )
+    return(invisible(final_p))
+  }
+
+  xchr9_int_chrs <- xcms::featureChromatograms(
+    BPPARAM = bpparam(),
+    chunkSize = cores,
+    object = xchr9,
+    expandRt = 0,
+    expandMz = 0,
+    aggregationFun = "sum",
+    filled = TRUE,
+    features = feature_ids_to_plot,
+    missing = 0,
+    msLevel = 1L,
+    return.type = "XChromatograms"
+  )
+  colnames(xchr9_int_chrs) <- sub(".*[/\\\\]", "", colnames(xchr9_int_chrs))
+
+  saveRDS(
+    xchr9_int_chrs,
+    file.path(exp_object_dir, "xchr9_int_chrs.rds")
+  )
+
+  for (feature_id in feature_ids_to_plot) {
+    xchr9_int_chr_result <- plot_feature(
+      feature_chrom = xchr9_int_chrs,
+      feature = feature_id,
+      meta = meta,
+      limma_results = full_limma,
+      method = "sum",
+      value = "into",
+      filled = TRUE,
+      missing = 0,
+      ms_level = 1L,
+      save_loc = NULL,
+      device = "pdf",
+      overwrite = FALSE
+    )
+
+    ggplot2::ggsave(
+      filename = file.path(exp_graph_dir, paste0(feature_id, ".pdf")),
+      plot = xchr9_int_chr_result$full,
+      device = "pdf",
+      height = 7,
+      width = 10,
+      units = "in"
+    )
+  }
+
+  cli::cli_alert_success(
+    "Saved outputs in {.path {exp_analysis_dir}}"
+  )
+
+  invisible(
+    list(
+      final_p = final_p,
+      xchr9_int_chrs = xchr9_int_chrs
+    )
+  )
+}
+
+if (run_all_experiment_analyses) {
+  dir.create(analysis_output_path, recursive = TRUE, showWarnings = FALSE)
+
+  for (exp_dir in output_folders) {
+    tryCatch(
+      {
+        process_experiment_analysis(
+          exp_dir = exp_dir,
+          analysis_output_path = analysis_output_path,
+          all_anno_sims = all_anno_sims,
+          all_bio_sims = all_bio_sims,
+          all_xchr9_data = all_xchr9_data,
+          sim_filter = sim_filter,
+          cores = cores
+        )
+      },
+      error = function(e) {
+        cli::cli_alert_warning(
+          "Skipping {.path {basename(exp_dir)}}: {e$message}"
+        )
+      }
+    )
+  }
+}
