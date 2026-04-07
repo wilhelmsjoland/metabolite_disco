@@ -19,6 +19,7 @@ source("analyses/analyses_functions.R")
 # Setup output folder ----------------------------------------------------------
 ################################################################################
 output_path <- "/Volumes/bluecub/aglycone_release_100um_24h/output/experiment"
+exp_to_use <- "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
 output_folders <- list.files(
   output_path,
   full.names = TRUE
@@ -177,7 +178,7 @@ all_xchr9_data <- purrr::map_dfr(
 
 all_xchr9_data %>%
   dplyr::filter(experiment == paste0(
-    "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+    exp_to_use
   )
 )
 
@@ -187,7 +188,7 @@ all_xchr9_data %>%
 anno_chrs <- readRDS(
   paste0(
     output_path, "/",
-    "/afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon",
+    exp_to_use,
     "/objects/anno_chrs.rds"
   )
 )
@@ -195,14 +196,14 @@ anno_chrs <- readRDS(
 pred_chrs <- readRDS(
   paste0(
     output_path, "/",
-    "/afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon",
+    exp_to_use,
     "/objects/pred_chrs.rds"
   )
 )
 meta <- readr::read_csv(
   paste0(
     output_path, "/",
-    "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon",
+    exp_to_use,
     "/tables/metadata.csv"
   ),
   progress = FALSE,
@@ -214,7 +215,7 @@ meta <- readr::read_csv(
 full_limma <- readr::read_csv(
   paste0(
     output_path, "/",
-    "/afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon",
+    exp_to_use,
     "/tables/limma_norm_fill_imp.csv"
   ),
   progress = FALSE,
@@ -224,7 +225,7 @@ full_limma <- readr::read_csv(
 xchr9 <- readRDS(
   paste0(
     output_path, "/",
-    "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon",
+    exp_to_use,
     "/objects/xchr9.rds"
   )
 )
@@ -272,7 +273,7 @@ sim_filter <- 0.2
 extract_feats <- all_anno_sims %>%
   dplyr::filter(
     experiment == paste0(
-      "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+      exp_to_use
     )
   ) %>%
   dplyr::group_by(adduct) %>%
@@ -283,7 +284,7 @@ extract_feats <- all_anno_sims %>%
 extract_bio_sims <- all_bio_sims %>%
   dplyr::filter(
     experiment == paste0(
-      "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+      exp_to_use
     )
   ) %>%
   dplyr::group_by(adduct) %>%
@@ -293,7 +294,7 @@ extract_bio_sims <- all_bio_sims %>%
 
 xchr9_all_ints <- all_xchr9_data %>%
   dplyr::filter(experiment == paste0(
-    "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+    exp_to_use
   )
 ) %>%
   dplyr::left_join(
@@ -581,7 +582,7 @@ for (i in unique(xchr9_all_ints$feature)) {
     overwrite = FALSE
   )
   print(xchr9_int_chr_result$full)
-  readline("Enter for next: ")
+  # readline("Enter for next: ")
 }
 
 plot_feature(
@@ -613,7 +614,7 @@ plot_feature(
 all_anno_sims %>%
   dplyr::filter(
     experiment == paste0(
-      "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+      exp_to_use
     )
   ) %>%
   dplyr::filter(feature %in% unique(xchr9_all_ints$feature))
@@ -621,7 +622,7 @@ all_anno_sims %>%
 all_bio_sims %>%
   dplyr::filter(
     experiment == paste0(
-      "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+      exp_to_use
     )
   ) %>%
   dplyr::filter(feature %in% unique(xchr9_all_ints$feature))
