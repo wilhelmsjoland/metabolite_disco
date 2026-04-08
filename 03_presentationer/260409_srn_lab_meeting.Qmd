@@ -33,7 +33,7 @@ library(plotly)
 # Setup reticulate
 library(reticulate)
 use_virtualenv(
-  "/Users/wilhelm/Library/CloudStorage/ProtonDrive-wilhelm.sjoland@proton.me-folder/01_juniper/01_arbete/01_projekt/03_psm/powerpoint_env",
+  "/Users/wilhelm/Environments/powerpoint_env",
   required = TRUE
 )
 ```
@@ -45,27 +45,42 @@ from pptx import Presentation
 
 prs = Presentation(os.path.join(r.loc, r.pptx_file))
 titles = []
+notes = []
 for slide in prs.slides:
     t = slide.shapes.title
     titles.append(t.text.strip() if t else "")
+    if slide.has_notes_slide:
+        notes.append(slide.notes_slide.notes_text_frame.text.strip())
+    else:
+        notes.append("")
 ```
 
 ```{r}
 #| echo: false
 #| output: asis
 titles <- py$titles
+notes <- py$notes
 slides <- list.files(slide_dir, pattern = "\\.svg$", full.names = FALSE)
 nums <- as.integer(gsub("\\D", "", slides))
 slides <- slides[order(nums)]
 
-for (i in 1:5) {
-  path <- file.path(slide_dir, slides[i])
-  title <- if (i <= length(titles) && nchar(titles[i]) > 0) titles[i] else ""
-  cat(sprintf('\n## %s {background-image="%s" background-size="contain" .hide-title}\n\n', title, path))
+render_slides <- function(slide_indices) {
+  for (i in slide_indices) {
+    path <- file.path(slide_dir, slides[i])
+    title <- if (i <= length(titles) && nchar(titles[i]) > 0) titles[i] else ""
+    note <- if (i <= length(notes) && nchar(notes[i]) > 0) notes[i] else ""
+    cat(sprintf('\n## %s {background-image="%s" background-size="contain" .hide-title}\n\n', title, path))
+    if (nchar(note) > 0) {
+      cat(sprintf('::: {.notes}\n%s\n:::\n\n', note))
+    }
+  }
 }
+
+render_slides(1:5)
 ```
 
 ## {background-image="`r file.path(slide_dir, slides[6])`" background-size="contain" .hide-title}
+`r if (nchar(notes[6]) > 0) paste0("::: {.notes}\n", notes[6], "\n:::\n")`
 ```{r}
 #| echo: false
 
@@ -83,29 +98,10 @@ p <- mtcars %>%
   ggplot2::theme_minimal()
 
 plotly::ggplotly(p = p, tooltip = "text")
-
-p2 <- mtcars %>%
-  ggplot2::ggplot(
-    ggplot2::aes(
-      x = wt,
-      y = mpg,
-      color = factor(cyl),
-      text = paste("Car:", rownames(mtcars))
-    )
-  ) +
-  ggplot2::geom_point() +
-  ggplot2::labs(x = "Weight", y = "MPG", color = "Cylinders") +
-  ggplot2::theme_minimal()
-
-plotly::ggplotly(p = p2, tooltip = "text")
 ```
 
 ```{r}
 #| echo: false
 #| output: asis
-for (i in 7:length(slides)) {
-  path <- file.path(slide_dir, slides[i])
-  title <- if (i <= length(titles) && nchar(titles[i]) > 0) titles[i] else ""
-  cat(sprintf('\n## %s {background-image="%s" background-size="contain" .hide-title}\n\n', title, path))
-}
+render_slides(7:length(slides))
 ```

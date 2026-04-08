@@ -1,140 +1,158 @@
 library(tidyverse)
-library(readxl)
-library(writexl)
 source("scripts/functions.R")
 
-glycoside_stds_path <- paste0(
-  "/Volumes/bluecub/aglycone_release_100um_24h/data/standards/"
-)
+for (i in c("glycoside", "aglycone")) {
+  top_summary_path <- paste0(
+    "/Volumes/bluecub/aglycone_release_100um_24h/output/standard/",
+    i,
+    "/tables/",
+    "top_standard_summary.csv"
+  )
 
-glycoside_stds <- readxl::read_xlsx(
-  path = paste0(
-    glycoside_stds_path,
-    "032626_G&AG_STD_metadata_ws.xlsx"
-  ),
-  sheet = "glycoside_file info"
-) %>%
-  dplyr::mutate(
-    file_name = gsub(
-      ".d",
-      ".mzML",
-      `File name`,
-      fixed = TRUE
+  top_summary <- readr::read_csv(
+    file = top_summary_path,
+    progress = FALSE,
+    show_col_types = FALSE
+  )
+
+  full_peak_table_path <- paste0(
+    "/Volumes/bluecub/aglycone_release_100um_24h/output/standard/",
+    i,
+    "/tables/",
+    "full_peak_table.csv"
+  )
+
+  full_peak_table <- readr::read_csv(
+    file = full_peak_table_path,
+    progress = FALSE,
+    show_col_types = FALSE
+  )
+
+  chr_vals_path <- paste0(
+    "/Volumes/bluecub/aglycone_release_100um_24h/output/standard/",
+    i,
+    "/tables/",
+    "chromatogram_values.csv"
+  )
+
+  chr_vals <- readr::read_csv(
+    file = chr_vals_path,
+    progress = FALSE,
+    show_col_types = FALSE
+  )
+
+  rt_ref <- top_summary %>%
+    dplyr::distinct(group, rt) %>%
+    dplyr::rename(rt_ref = rt)
+
+  # looks good
+  all_summary <- full_peak_table %>%
+    dplyr::filter(maxo > 10000) %>%
+    dplyr::left_join(rt_ref, by = "group") %>%
+    dplyr::filter(abs(rt - rt_ref) <= 0.5) %>%
+    dplyr::select(-rt_ref) %>%
+    dplyr::group_by(group, adduct) %>%
+    dplyr::summarize(
+      median_into = median(into),
+      median_maxo = median(maxo),
+      rt = median(rt),
+      mz = median(mz),
+      rtmin = median(rtmin),
+      rtmax = median(rtmax),
+      mzmin = median(mzmin),
+      mzmax = median(mzmax),
+      .groups = "drop"
+    ) %>%
+    dplyr::arrange(group, desc(median_into))
+
+  chr_vals2 <- chr_vals %>%
+    dplyr::semi_join(all_summary, by = c("group", "adduct")) %>%
+    dplyr::left_join(
+      x = .,
+      y = all_summary %>%
+        dplyr::select(group, adduct, rt_center = rt),
+      by = c("group", "adduct")
+    ) %>%
+    dplyr::filter(abs(rt - rt_center) <= 8) %>%
+    dplyr::select(-rt_center) %>%
+    dplyr::group_by(group, adduct) %>%
+    dplyr::filter(sample == sample[which.max(intensity)]) %>%
+    dplyr::ungroup()
+
+  chr_vals2 %>%
+    dplyr::filter(group == "Apiin") %>%
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = rt,
+        y = intensity,
+        group = interaction(sample, adduct),
+        color = adduct
+      )
+    ) +
+    ggplot2::geom_line() +
+    ggplot2::theme_minimal()
+
+  adduct_colors <- c(
+    "[2M-H]-" = "#aab7d9",
+    "[2M+C2H3O2]-" = "#85c4bc",
+    "[2M+CHO2]-" = "#dec49f",
+    "[3M-H]-" = "#cae3e9",
+    "[M-2H]2-" = "#a6cca7",
+    "[M-H]-" = "#e7b8b7",
+    "[M-H+HCOONa]-" = "#8bd0eb",
+    "[M]-" = "#ddefce",
+    "[M+C2F3O2]-" = "#c2ceab",
+    "[M+C2H3N-H]-" = "#a9e7e4",
+    "[M+CHO2]-" = "#bec0ac",
+    "[M+Cl]-" = "#a6c8ce",
+    "[M+K-2H]-" = "#9db7b1",
+    "[M+Na-2H]-" = "#d8bfe3"
+  )
+
+
+  save_graph_path <- paste0(
+    "/Volumes/bluecub/aglycone_release_100um_24h/output/standard/",
+    i,
+    "/peaks_manual"
+  )
+  dir.create(save_graph_path, FALSE, TRUE)
+  for (j in unique(chr_vals2$group)) {
+    tmp_p <- chr_vals2 %>%
+      dplyr::filter(group == j) %>%
+      dplyr::mutate(
+        adduct = forcats::fct_reorder(adduct, intensity, .fun = max),
+        scaled_int = 30 * intensity / max(intensity)
+      ) %>%
+      ggplot2::ggplot(
+        ggplot2::aes(
+          x = rt,
+          y = adduct,
+          height = scaled_int,
+          group = interaction(adduct, sample),
+          fill = adduct
+        )
+      ) +
+      ggridges::geom_ridgeline(scale = 1, alpha = 0.7) +
+      ggplot2::scale_fill_manual(values = adduct_colors, drop = TRUE) +
+      ggplot2::guides(fill = ggplot2::guide_legend(reverse = TRUE)) +
+      ggplot2::scale_x_continuous(expand = ggplot2::expansion(c(0, 0))) +
+      ggplot2::theme_minimal() +
+      ggplot2::theme(
+        axis.title.y = ggplot2::element_blank()
+      ) +
+      ggplot2::labs(
+        x = "Retention time (s)",
+        fill = "Adduct"
+      )
+
+    ggplot2::ggsave(
+      filename = file.path(save_graph_path, paste0(j, ".svg")),
+      plot = tmp_p,
+      device = "svg",
+      height = 6,
+      width = 8,
+      units = "in"
     )
-  )
+  }
+}
 
-# Det ska vara 48 filer totalt
-
-# So many missing files so I can't do this
-# Long needs to send me the files but actually non-empty ones now
-glycosides_stds_files <- list.files(file.path(glycoside_stds_path, "mzml"))
-
-
-glycosides_stds_files_df <- tibble::tibble(
-  actual_file = glycosides_stds_files
-) %>%
-  dplyr::mutate(
-    file_name = stringr::str_remove(actual_file, "-r\\d+(?=\\.mzML$)")
-  )
-
-glycoside_stds_matched <- glycoside_stds %>%
-  dplyr::left_join(y = glycosides_stds_files_df, by = "file_name")
-
-"sample,group,unit,bacteria,formula" 
-
-glycoside_stds_matched %>%
-  dplyr::select(
-    "long_spec_d" = `File name`,
-    "long_spec" = "file_name",
-    "sample" = "actual_file",
-    "group" = `Glycoside group`,
-    "bacteria" = "Strain"
-  )
-
-writexl::write_xlsx(
-  x = glycoside_stds_matched,
-  path = "glycoside_std_metadata.xlsx"
-)
-
-# Seems like the files are still missing but I have enough now at least to
-# find the standard locations
-
-
-glycoside
-
-
-glycoside_stds %>% print(n = 20)
-glycoside_stds[glycoside_stds$file_name %in% glycosides_stds_files,]
-missing_files <- glycoside_stds[!glycoside_stds$file_name %in% glycosides_stds_files,]
-
-write_xlsx(
-  x = missing_files,
-  path = "missing_files.xlsx"
-)
-
-
-aglycone_stds <- readxl::read_xlsx(
-  path = paste0(
-    "/Volumes/bluecub/aglycone_release_100um_24h/data/standards/",
-    "032626_G&AG_STD_metadata_ws.xlsx"
-  ),
-  sheet = "aglycone_file info"
-) %>%
-  dplyr::mutate(
-    file_name = gsub(
-      ".d",
-      ".mzML",
-      `Data File`,
-      fixed = TRUE
-    )
-  )
-
-aglycone_stds_files <- list.files(
-  file.path(
-    paste0(
-      "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/",
-      "mzml"
-    )
-  )
-)
-
-aglycone_metadata <- aglycone_stds[
-  aglycone_stds$file_name %in% aglycone_stds_files,
-] %>%
-  dplyr::select(
-    "sample" = "file_name",
-    "group" = "Sample",
-    "unit",
-    "bacteria"
-  ) %>%
-  dplyr::filter(unit > 50)
-
-readr::write_csv(
-  x = aglycone_metadata,
-  file = paste0(
-    "/Volumes/bluecub/aglycone_release_100um_24h/standards/",
-    "aglycone_metadata_automated.csv"
-  )
-)
-
-# aglycones are in the experiment path
-
-stds <- import_mzml(
-  data_path = file.path(
-    paste0(
-      "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/",
-      "mzml"
-    )
-  ),
-  meta_file = paste0(
-    "/Volumes/bluecub/aglycone_release_100um_24h/standards/",
-    "aglycone_metadata.csv"
-  )
-)
-
-stds_exp <- MsExperiment::readMsExperiment(
-  spectraFiles = stds$path,
-  sampleData = stds
-)
-
-stds_exp

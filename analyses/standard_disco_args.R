@@ -20,7 +20,8 @@ option_list <- list(
     c("-m", "--meta_file"),
     type = "character",
     default = paste0(
-      "/Volumes/bluecub/aglycone_release_100um_24h/standard_output/",
+      "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/",
+      "input/standard/",
       "aglycone_metadata.csv"
     ),
     help = "Metadata CSV [default: %default]"
@@ -29,7 +30,7 @@ option_list <- list(
     c("-o", "--output"),
     type = "character",
     default = paste0(
-      "/Volumes/bluecub/aglycone_release_100um_24h/standard_output/aglycone"
+      "/Volumes/bluecub/aglycone_release_100um_24h/output/standard/aglycone"
     ),
     help = "Results folder [default: %default]"
   ),
@@ -73,5 +74,7 @@ option_list <- list(
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
 
-setwd(opt$wd)
 set.seed(opt$seed)
+if (!interactive()) {
+  setwd(opt$wd)
+}
