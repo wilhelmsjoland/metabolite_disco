@@ -2,36 +2,6 @@ library(reticulate)
 library(dplyr)
 library(readxl)
 
-draw_out_path <- paste0(
-  "/Users/wilhelm/Library/CloudStorage",
-  "/ProtonDrive-wilhelm.sjoland@proton.me-folder",
-  "/01_juniper/01_arbete/01_projekt/03_psm",
-  "/molekyler/vektorbilder"
-)
-
-glycone_list <- readxl::read_xlsx(
-  path = paste0(
-    "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/",
-    "molekyler/information/glycone_list.xlsx"
-  ),
-  sheet = "molecules",
-  na = c("", "NA")
-)
-
-glycone_list_append <- tibble::tibble(
-  molecule = c("Saligenin", "Flavan"),
-  class = c("AG", "AG"),
-  cayman_id = c(NA, NA),
-  InChI = c(
-    "InChI=1S/C7H8O2/c8-5-6-3-1-2-4-7(6)9/h1-4,8-9H,5H2",
-    "InChI=1S/C15H14O/c1-2-6-12(7-3-1)15-11-10-13-8-4-5-9-14(13)16-15/h1-9,15H,10-11H2"
-  ),
-  note = c(NA, NA)
-)
-
-glycone_list <- glycone_list %>%
-  dplyr::bind_rows(glycone_list_append)
-
 reticulate::use_condaenv("chem_env", required = TRUE)
 Chem <- reticulate::import("rdkit.Chem")
 Draw <- reticulate::import("rdkit.Chem.Draw")
@@ -218,15 +188,4 @@ def draw_from_inchi(inchi_str, name, output_path):
 
 draw_from_inchi <- function(inchi, name, output_path) {
   reticulate::py$draw_from_inchi(inchi, name, output_path)
-}
-
-for (i in seq_len(nrow(glycone_list))) {
-  draw_from_inchi(
-    inchi = glycone_list$InChI[i],
-    name = glycone_list$molecule[i],
-    output_path = file.path(
-      draw_out_path,
-      paste0(glycone_list$molecule[i], ".svg")
-    )
-  )
 }

@@ -987,7 +987,11 @@ process_experiment_analysis <- function(
     units = "in"
   )
 
-  feature_ids_to_plot <- unique(xchr9_all_ints$feature)
+  saveRDS(extract_feats, file.path(exp_object_dir, "extract_feats.rds"))
+  saveRDS(extract_bio_sims, file.path(exp_object_dir, "extract_bio_sims.rds"))
+
+  feature_ids_to_plot <- shared_features
+  # feature_ids_to_plot <- unique(xchr9_all_ints$feature)
   feature_ids_to_plot <- feature_ids_to_plot[!is.na(feature_ids_to_plot)]
 
   if (length(feature_ids_to_plot) == 0) {
@@ -1059,7 +1063,7 @@ process_experiment_analysis <- function(
 if (run_all_experiment_analyses) {
   dir.create(analysis_output_path, recursive = TRUE, showWarnings = FALSE)
 
-  for (exp_dir in output_folders) {
+  for (exp_dir in output_folders) { # output_folders
     tryCatch(
       {
         process_experiment_analysis(
