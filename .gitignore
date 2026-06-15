@@ -15,6 +15,7 @@
 /scripts/ignore/
 /molekyler
 /tmp
+/anteckningar
 *.html
 *.pdf
 *.svg

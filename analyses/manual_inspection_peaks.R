@@ -393,4 +393,4 @@ ht <- Heatmap(
   column_names_rot = 45
 )
 
-draw(ht, heatmap_legend_side = "right", annotation_legend_side = "right"
+draw(ht, heatmap_legend_side = "right", annotation_legend_side = "right")

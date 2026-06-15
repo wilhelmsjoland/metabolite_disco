@@ -12,7 +12,7 @@ dir.create(file.path(opt$output, "graphs", "features"), FALSE, TRUE)
 
 # wrangle snake files
 snake_files <- list.files(
-  file.path(
+  file.path( 
     opt$input,
     "snakemake_objects"
   ),

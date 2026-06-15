@@ -360,3 +360,45 @@ extract_sig_higher <- function(
   int_tib %>%
     dplyr::pull(feature)
 }
+
+# smiles_to_svg <- function(smiles, file) {
+#   request("https://www.simolecule.com/cdkdepict/depict/bow/svg") %>%
+#     req_url_query(smi = smiles) %>%
+#     req_perform() %>%
+#     resp_body_string() %>%
+#     writeLines(file)
+# }
+
+
+smiles_to_svg <- function(smiles, file, title = NULL) {
+  svg <- request("https://www.simolecule.com/cdkdepict/depict/bow/svg") %>%
+    req_url_query(smi = smiles) %>%
+    req_perform() %>%
+    resp_body_string()
+
+  if (!is.null(title)) {
+    # viewBox is the actual coordinate space, e.g. '0 0 59.509 33.504'
+    vb <- as.numeric(strsplit(
+      sub(".*viewBox='([^']*)'.*", "\\1", svg), " "
+    )[[1]])
+    # vb: minX minY width height
+    new_h  <- vb[4] + 5
+    cx     <- vb[3] / 2
+
+    svg <- sub(
+      sprintf("viewBox='%s %s %s %s'", vb[1], vb[2], vb[3], vb[4]),
+      sprintf("viewBox='%.3f %.3f %.3f %.3f'", vb[1], vb[2], vb[3], new_h),
+      svg, fixed = TRUE
+    )
+    svg <- sub(
+      "</svg>",
+      sprintf(
+        '<text x="%.3f" y="%.3f" text-anchor="middle" font-family="sans-serif" font-size="3">%s</text></svg>',
+        cx, new_h - 1, title
+      ),
+      svg
+    )
+  }
+
+  writeLines(svg, file)
+}
