@@ -104,6 +104,21 @@ if (interactive() && file.exists(ms_exp_path)) {
     spectraFiles = meta$path,
     sampleData = meta
   )
+  # Load all spectra into memory once here so downstream steps never re-read
+  # from the mzML files. Repeated reads trigger an intermittent macOS-only
+  # memory-corruption bug in mzR/proteowizard (sneumann/xcms#422).
+  # MsExperiment::spectra(ms_exp) <- Spectra::setBackend(
+  #   MsExperiment::spectra(ms_exp),
+  #   Spectra::MsBackendMemory()
+  # )
+  MsExperiment::spectra(ms_exp) <- retry_on_error(
+    quote(
+      Spectra::setBackend(
+        MsExperiment::spectra(ms_exp),
+        Spectra::MsBackendMemory()
+      )
+    )
+  )
   saveRDS(object = ms_exp, file = ms_exp_path)
   cli::cli_alert_success(
     paste0(

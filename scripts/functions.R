@@ -1532,8 +1532,9 @@ run_biotransformer <- function(
       "-jar", "BioTransformer3.0_20230525.jar",
       "-k", k_task,
       "-b", b_type,
-      "-ismi", smiles,
-      "-ocsv", paste0(biot_output_loc, "/", clean_nm, ".csv"),
+      # Needs shell quote
+      "-ismi", shQuote(smiles),
+      "-ocsv", shQuote(paste0(biot_output_loc, "/", clean_nm, ".csv")),
       "-a"
     ),
     stdout = TRUE,
@@ -1541,6 +1542,26 @@ run_biotransformer <- function(
   )
   cat(biot_output, sep = "\n")
   setwd(old_wd)
+}
+
+# mzR/proteowizard has an intermittent macOS-only memory-corruption bug that
+# surfaces as "Sizes of mz and intensity arrays don't match" during bulk
+# reads from mzML files (sneumann/xcms#422). Retrying the same read succeeds
+# in practice, so this wraps a read-like call and retries it on failure.
+retry_on_error <- function(expr, max_tries = 5) {
+  for (attempt in seq_len(max_tries)) {
+    result <- tryCatch(
+      list(value = eval(expr), ok = TRUE),
+      error = function(e) {
+        cli::cli_alert_warning(
+          "Attempt {attempt}/{max_tries} failed: {conditionMessage(e)}"
+        )
+        list(ok = FALSE)
+      }
+    )
+    if (result$ok) return(result$value)
+  }
+  cli::cli_abort("Failed after {max_tries} attempts")
 }
 
 script_header <- function() {
