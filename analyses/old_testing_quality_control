@@ -1,0 +1,118 @@
+
+################################################################################
+## Correlation-to-own-group-median QC, across ALL experiments (xchr.rds) -----
+################################################################################
+# chromPeaks() peaks aren't corresponded across samples at this stage, so this
+# builds a quick sample x (mz, rt) bin intensity matrix as a stand-in feature
+# profile per sample. Groups here are only 4 replicates - too few to estimate
+# a covariance matrix (PCA/Mahalanobis distance was unstable, see prior
+# attempt), so instead: for each sample, correlate its own profile against
+# the median profile of its OTHER same-group replicates (leave-one-out, so a
+# bad sample can't drag its own reference down). Runs across every experiment
+# in exps_for_tic in one pass, so bad samples can be pulled out in bulk
+# instead of eyeballing each experiment's boxplot one at a time.
+
+all_corr_qc <- exps_for_tic %>%
+  purrr::map(
+    .x = .,
+    .f = ~ {
+      xchr_qc <- readRDS(file = .x)
+
+      xchr_qc_peaks <- tibble::as_tibble(
+        xcms::chromPeaks(xchr_qc),
+        rownames = "peak"
+      )
+
+      xchr_qc_meta <- tibble::as_tibble(
+        MsExperiment::sampleData(xchr_qc),
+        rownames = "sample_id"
+      ) %>%
+        dplyr::mutate(sample = dplyr::row_number())
+
+      bin_mat <- xchr_qc_peaks %>%
+        dplyr::mutate(
+          mz_bin = round(mz / 0.01) * 0.01,
+          rt_bin = round(rt / 5) * 5,
+          bin = paste0(mz_bin, "_", rt_bin)
+        ) %>%
+        dplyr::group_by(sample, bin) %>%
+        dplyr::summarize(into = sum(into, na.rm = TRUE), .groups = "drop") %>%
+        tidyr::pivot_wider(
+          names_from = bin,
+          values_from = into,
+          values_fill = 0
+        )
+
+      mat_log <- log2(as.matrix(bin_mat[, -1]) + 1)
+      rownames(mat_log) <- bin_mat$sample
+
+      group_med_profile <- function(samples_in_group) {
+        apply(
+          mat_log[as.character(samples_in_group), , drop = FALSE],
+          2,
+          stats::median
+        )
+      }
+
+      xchr_qc_meta %>%
+        dplyr::filter(sample %in% bin_mat$sample) %>%
+        dplyr::group_by(group) %>%
+        dplyr::mutate(
+          corr_to_group = purrr::map_dbl(sample, ~ {
+            peer_samples <- sample[sample != .x]
+            # a group of 1 has no peers to compare against
+            if (length(peer_samples) == 0) return(NA_real_)
+            med_profile <- group_med_profile(peer_samples)
+            stats::cor(
+              mat_log[as.character(.x), ],
+              med_profile,
+              method = "pearson"
+            )
+          })
+        ) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(
+          experiment = basename(dirname(dirname(.x))),
+          .before = "sample_id"
+        )
+    }
+  ) %>%
+  dplyr::bind_rows() %>%
+  dplyr::mutate(
+    corr_flag = factor(
+      dplyr::if_else(corr_to_group < 0.32, "bad", "good"),
+      levels = c("good", "bad")
+    )
+  ) %>%
+  dplyr::arrange(corr_to_group)
+
+# The actual deliverable: every sample flagged bad, across every experiment,
+# in one table - ready to drive a removal/exclusion step.
+all_corr_qc %>%
+  dplyr::filter(corr_flag == "bad")
+
+# Ranked plot per experiment, for a visual sanity check of the flags above
+all_corr_qc %>%
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = forcats::fct_reorder(sample_id, corr_to_group),
+      y = corr_to_group,
+      color = group,
+      shape = corr_flag
+    )
+  ) +
+  ggplot2::geom_point(size = 2) +
+  ggplot2::geom_hline(yintercept = 0.32, linetype = "dashed", color = "grey40") +
+  ggplot2::facet_wrap(~experiment, scales = "free_x") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(
+    axis.text.x = ggplot2::element_blank(),
+    axis.ticks.x = ggplot2::element_blank(),
+    legend.position = "none"
+  ) +
+  ggplot2::labs(
+    x = NULL,
+    y = "Correlation to own group's median profile",
+    title = "Sample QC via correlation to own-group median, all experiments",
+    subtitle = "Low correlation = doesn't look like its own replicates"
+  )

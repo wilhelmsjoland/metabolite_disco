@@ -1,6 +1,7 @@
 library(janitor)
 library(yaml)
 
+# exp_path <- "V:/aglycone_release_100um_24h"
 exp_path <- "/Volumes/bluecub/aglycone_release_100um_24h"
 
 # ==============================================================================
@@ -138,7 +139,7 @@ experiments <- purrr::map2(
 # Get information on molecules in experiments ----------------------------------
 # ==============================================================================
 glycone_list <- readxl::read_xlsx(
-  path = "molekyler/information/glycone_list.xlsx",
+  path = "other/glycone_list.xlsx",
   sheet = "molecules",
   na = c("", "NA")
 )
@@ -179,7 +180,7 @@ glycone_info <- glycone_list %>%
 # Get chemical formula and SMILES for glycosides & aglycones -------------------
 # ==============================================================================
 glycone_pairs <- readxl::read_xlsx(
-  path = "molekyler/information/glycone_list.xlsx",
+  path = "other/glycone_list.xlsx",
   sheet = "glycone_pairs",
   na = c("", "NA")
 )

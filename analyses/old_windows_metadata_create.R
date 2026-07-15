@@ -1,28 +1,12 @@
-# Run
-# source(analyses/metadata_prep.R)
-# Manually run -> analyses/check_tics.R and add to excel file
-# I do it manually to not resave this by mistake later
-
 # ==============================================================================
 # Create configs and metadata files --------------------------------------------
 # ==============================================================================
-config_path <- "input/experiment/configs"
-metadata_path <- "input/experiment/metadata"
-dir.create(config_path, FALSE, TRUE)
-dir.create(metadata_path, FALSE, TRUE)
-
-# Add bad samples to this list
-bad_samples <- readxl::read_xlsx(
-  path = file.path(exp_path, "data", "experiment", "bad_samples.xlsx"),
-  sheet = "bad_samples"
-)
-
-# Bad samples
-# experiments %>%
-#   dplyr::filter(sample %in% bad_samples$sample)
+config_path <- "V:/aglycone_release_100um_24h/configs"
+metadata_path <- "V:/aglycone_release_100um_24h/metadata"
+dir.create("V:/aglycone_release_100um_24h/configs", FALSE, TRUE)
+dir.create("V:/aglycone_release_100um_24h/metadata", FALSE, TRUE)
 
 experiments %>%
-  dplyr::filter(!sample %in% bad_samples$sample) %>%
   split(.$experiment) %>%
   purrr::walk2(
     .x = .,
@@ -40,13 +24,8 @@ experiments %>%
 
       # # Create the config and write as YAML
       config <- list(
-        output = paste0(
-          "/Volumes/bluecub/aglycone_release_100um_24h/output/",
-          .y
-        ),
-        data_path = paste0(
-          "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml"
-        ),
+        output = paste0("V:/aglycone_release_100um_24h/output/", .y),
+        data_path = "V:/aglycone_release_100um_24h/data/mzml_files",
         meta_file = file.path(metadata_path, paste0(.y, ".csv")),
         internal_standard = "C7H8O2",
         is_adduct = "[M-H]-",
@@ -66,13 +45,12 @@ experiments %>%
         qvalue = 0.05,
         polarity = "negative",
         biotransf_file = paste0(
-          "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/",
-          "input/experiment/biotransformations/",
-          "biotransformations.csv"
+          "V:/aglycone_release_100um_24h/data/biotransformations",
+          "/biotransformations.csv"
         ),
         rpairs_path = paste0(
-          "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/",
-          "scripts/search_compounds/output/rpairs.tsv"
+          "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/",
+          "03_psm/scripts/search_compounds/output/rpairs.tsv"
         ),
         glycoside = mol_info$glycoside_form,
         aglycone = mol_info$aglycone_form,
@@ -80,11 +58,11 @@ experiments %>%
         all_vs_all = FALSE,
         smiles = mol_info$aglycone_SMILES,
         biot_dir = paste0(
-          "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/",
-          "biotransformer3.0jar"
+          "C:/Users/wilhelm/Documents/MEGA/01_juniper/01_arbete/01_projekt/",
+          "03_psm/biotransformer3.0jar"
         ),
         seed = 123,
-        cores = 10
+        cores = 6
       )
 
       yaml::write_yaml(config, file.path(config_path, paste0(.y, ".yaml")))

@@ -18,8 +18,14 @@ source("analyses/analyses_functions.R")
 ###############################################################################
 # Setup output folder ----------------------------------------------------------
 ################################################################################
-output_path <- "/Volumes/bluecub/aglycone_release_100um_24h/output/experiment"
-analysis_output_path <- "/Volumes/bluecub/aglycone_release_100um_24h/output/experiment_analyses"
+output_path <- paste0(
+  "/Volumes/bluecub/aglycone_release_100um_24h/old/",
+  "old_windows_output/experiment"
+)
+analysis_output_path <- paste0(
+  "/Volumes/bluecub/aglycone_release_100um_24h/old/",
+  "old_windows_output/experiment_analyses"
+)
 exp_to_use <- "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
 output_folders <- list.dirs(
   output_path,
