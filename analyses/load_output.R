@@ -19,12 +19,10 @@ source("analyses/analyses_functions.R")
 # Setup output folder ----------------------------------------------------------
 ################################################################################
 output_path <- paste0(
-  "/Volumes/bluecub/aglycone_release_100um_24h/old/",
-  "old_windows_output/experiment"
+  "/Volumes/bluecub/aglycone_release_100um_24h/output"
 )
 analysis_output_path <- paste0(
-  "/Volumes/bluecub/aglycone_release_100um_24h/old/",
-  "old_windows_output/experiment_analyses"
+  "/Volumes/bluecub/aglycone_release_100um_24h/output/experiment_analyses"
 )
 exp_to_use <- "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
 output_folders <- list.dirs(
@@ -33,6 +31,9 @@ output_folders <- list.dirs(
   recursive = FALSE
 )
 output_folders <- output_folders[output_folders != output_path]
+
+# Remove currently running file
+output_folders <- output_folders[-1]
 # Legacy single-experiment workflow is kept below for reference and disabled.
 run_all_experiment_analyses <- TRUE
 sim_filter <- 0.2
@@ -42,7 +43,7 @@ fold_change_min <- 1
 # fold_change_min times larger than the maximum of the glucose group means.
 # With fold_change_min <- 10: if the highest glucose group mean is 5,000,
 # both substrate group means must be above 50,000 to pass.
-cores <- 4
+cores <- 1
 BiocParallel::register(BiocParallel::MulticoreParam(workers = cores))
 
 ################################################################################
@@ -243,35 +244,37 @@ xchr9 <- readRDS(
   )
 )
 sp <- spectra(xchr9)
-sp@backend@spectraData$dataStorage <- gsub(
-  r"(V:\aglycone_release_100um_24h\data\mzml_files\)",
-  "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml/",
-  sp@backend@spectraData$dataStorage,
-  fixed = TRUE
-)
-xchr9@spectra <- sp
-xchr9@spectra <- Spectra::setBackend(
-  spectra(xchr9),
-  MsBackendMemory()
-)
 
-# After loading xchr9, sync sampleData with local meta
-sd <- MsExperiment::sampleData(xchr9)
-sd$path <- meta$path
-rownames(sd) <- meta$sample
-sd$spectraOrigin <- gsub(
-  r"(V:\aglycone_release_100um_24h\data\mzml_files\)",
-  "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml/",
-  sd$spectraOrigin,
-  fixed = TRUE
-)
-MsExperiment::sampleData(xchr9) <- sd
-meta$path <- gsub(
-  "V:/aglycone_release_100um_24h",
-  "/Volumes/bluecub/aglycone_release_100um_24h",
-  meta$path,
-  fixed = TRUE
-)
+# old when used different location
+# sp@backend@spectraData$dataStorage <- gsub(
+#   r"(V:\aglycone_release_100um_24h\data\mzml_files\)",
+#   "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml/",
+#   sp@backend@spectraData$dataStorage,
+#   fixed = TRUE
+# )
+# xchr9@spectra <- sp
+# xchr9@spectra <- Spectra::setBackend(
+#   spectra(xchr9),
+#   MsBackendMemory()
+# )
+
+# # After loading xchr9, sync sampleData with local meta
+# sd <- MsExperiment::sampleData(xchr9)
+# sd$path <- meta$path
+# rownames(sd) <- meta$sample
+# sd$spectraOrigin <- gsub(
+#   r"(V:\aglycone_release_100um_24h\data\mzml_files\)",
+#   "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml/",
+#   sd$spectraOrigin,
+#   fixed = TRUE
+# )
+# MsExperiment::sampleData(xchr9) <- sd
+# meta$path <- gsub(
+#   "V:/aglycone_release_100um_24h",
+#   "/Volumes/bluecub/aglycone_release_100um_24h",
+#   meta$path,
+#   fixed = TRUE
+# )
 
 ################################################################################
 # Extract only interesting significant differences where G + Samp > Samp -------

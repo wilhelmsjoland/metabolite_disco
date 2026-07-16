@@ -84,7 +84,7 @@ experiments %>%
           "biotransformer3.0jar"
         ),
         seed = 123,
-        cores = 10
+        cores = 6
       )
 
       yaml::write_yaml(config, file.path(config_path, paste0(.y, ".yaml")))
