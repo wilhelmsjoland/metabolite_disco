@@ -37,6 +37,8 @@ suppressWarnings(
     library(purrr)
     library(readr)
     library(MsExperiment)
+    library(MsBackendSql)
+    library(RSQLite)
     library(RColorBrewer)
     library(tibble)
   })
@@ -104,20 +106,45 @@ if (interactive() && file.exists(ms_exp_path)) {
     spectraFiles = meta$path,
     sampleData = meta
   )
-  # Load all spectra into memory once here so downstream steps never re-read
-  # from the mzML files. Repeated reads trigger an intermittent macOS-only
+  # Materialize all spectra once here so downstream steps never re-read from
+  # the mzML files. Repeated reads trigger an intermittent macOS-only
   # memory-corruption bug in mzR/proteowizard (sneumann/xcms#422).
-  # MsExperiment::spectra(ms_exp) <- Spectra::setBackend(
-  #   MsExperiment::spectra(ms_exp),
-  #   Spectra::MsBackendMemory()
+  #
+  # MsBackendMemory() (below, commented) works but embeds the full decoded
+  # spectra data into the ms_exp object itself - since that object gets
+  # saveRDS()'d again at nearly every later pipeline step, the payload was
+  # getting duplicated into every checkpoint file (measured: ~0.86 GB per
+  # checkpoint for this dataset, so 8-17+ GB per experiment across the
+  # pipeline). MsBackendSql instead writes the data once to a SQLite file
+  # on disk and keeps only a lightweight connection reference in the R
+  # object, so every checkpoint after this one stays tiny (tens of KB)
+  # regardless of how many steps re-save it (measured: ~1.17 GB total for
+  # this dataset, one-time, vs. 1.72 GB after just 2 Memory-backed steps).
+  # MsExperiment::spectra(ms_exp) <- retry_on_error(
+  #   quote(
+  #     Spectra::setBackend(
+  #       MsExperiment::spectra(ms_exp),
+  #       Spectra::MsBackendMemory()
+  #     )
+  #   )
   # )
+  spectra_db_path <- file.path(
+    snakemake@params$output,
+    "objects",
+    "spectra.sqlite"
+  )
   MsExperiment::spectra(ms_exp) <- retry_on_error(
-    quote(
+    quote({
+      # a failed attempt can leave a partially-written db behind, which
+      # collides with the next retry ("table already exists") - start clean
+      if (file.exists(spectra_db_path)) file.remove(spectra_db_path)
       Spectra::setBackend(
         MsExperiment::spectra(ms_exp),
-        Spectra::MsBackendMemory()
+        MsBackendSql::MsBackendOfflineSql(),
+        drv = RSQLite::SQLite(),
+        dbname = spectra_db_path
       )
-    )
+    })
   )
   saveRDS(object = ms_exp, file = ms_exp_path)
   cli::cli_alert_success(

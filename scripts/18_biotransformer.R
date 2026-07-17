@@ -18,6 +18,8 @@ suppressWarnings(
     library(MetaboCoreUtils)
     library(MsCoreUtils)
     library(xcms)
+    library(RSQLite) # for sql backend
+    library(MsBackendSql) # for sql backend
   })
 )
 

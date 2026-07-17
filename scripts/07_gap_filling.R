@@ -15,6 +15,8 @@ suppressWarnings(
     library(tibble)
     library(dplyr)
     library(tidyr)
+    library(RSQLite) # for sql backend
+    library(MsBackendSql) # for sql backend
   })
 )
 

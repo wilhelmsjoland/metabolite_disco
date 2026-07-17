@@ -15,6 +15,8 @@ suppressWarnings(
     library(MsExperiment)
     library(QFeatures)
     library(dplyr)
+    library(RSQLite) # for sql backend
+    library(MsBackendSql) # for sql backend
   })
 )
 

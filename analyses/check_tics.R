@@ -203,4 +203,6 @@ bad_samples <- summed_tics %>%
   dplyr::pull(comb) %>%
   unique()
 
-bad_samples
+for (i in bad_samples) {
+  cat(i, "\n")
+}

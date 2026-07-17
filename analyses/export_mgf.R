@@ -7,6 +7,9 @@ library(BiocParallel)
 # import from export_mgf.R
 feature_levels
 
+# this should be redone so it selects all interesting peaks
+# after that I can filter based on similarity etc...
+
 # # Extract MS1 spectra at feature apexes
 feat_spectra <- xcms::featureSpectra(
   xchr9,
@@ -29,7 +32,7 @@ feat_export <- selectSpectraVariables(
     "rtime",
     "precursorMz",
     "precursorCharge",
-    "msLevel",
+    "msLevel" # ,
   )
 )
 
