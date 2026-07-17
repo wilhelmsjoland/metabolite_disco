@@ -13,8 +13,8 @@ suppressWarnings(
     library(BiocParallel)
     library(xcms)
     library(MsExperiment)
-    library(RSQLite)
-    library(MsBackendSql)
+    library(RSQLite) # for sql backend
+    library(MsBackendSql) # for sql backend
   })
 )
 
