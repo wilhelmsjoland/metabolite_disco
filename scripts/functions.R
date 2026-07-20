@@ -1042,7 +1042,29 @@ pred_biot <- function(
   if (!is.null(features_of_interest)) {
     foi_idx <- which(feat_vec %in% features_of_interest)
     if (length(foi_idx) == 0) {
-      stop("None of the features_of_interest found in data")
+      cli::cli_alert_warning(
+        "None of the features_of_interest found in data, returning empty result"
+      )
+      return(
+        tibble::tibble(
+          name = character(),
+          chem_change = character(),
+          feat1 = character(),
+          feat2 = character(),
+          mz1 = double(),
+          mz2 = double(),
+          adduct1 = character(),
+          adduct2 = character(),
+          mass1 = double(),
+          mass2 = double(),
+          rt1 = double(),
+          rt2 = double(),
+          delta_mass = double(),
+          obs_delta_mass = double(),
+          peak1_id = integer(),
+          peak2_id = integer()
+        )
+      )
     }
   }
   # ============================================================================
