@@ -82,13 +82,10 @@ cli::cli_alert_success(
 # ==============================================================================
 # Calculate correlation on the log2 transformed base peak intensities
 bpcs_bin <- ProtGenerics::bin(bpcs, binSize = 1)
+bpcs_bin_mat <- do.call(cbind, lapply(bpcs_bin, intensity))
+bpcs_bin_mat[bpcs_bin_mat == 0] <- NA # log2(0) = -Inf, not caught by complete.obs below
 cormat <- cor(
-  log2(
-    do.call(
-      cbind,
-      lapply(bpcs_bin, intensity)
-    )
-  ),
+  log2(bpcs_bin_mat),
   use = "complete.obs" # Because NAs
 )
 cormat_rownames <- basename(Biobase::pData(xcms::phenoData(bpcs))$path)

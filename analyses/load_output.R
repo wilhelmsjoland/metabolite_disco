@@ -162,8 +162,8 @@ xchr9_datas <- purrr::map(
         )
         sig_higher <- extract_sig_higher(
           exp_dir = dirname(dirname(.x)),
-          fold_change_min = 5, # 70
-          top_pct = 0.05
+          fold_change_min = fold_change_min, # 70
+          top_pct = NULL
           # fold_change_min
         )
         intensities %>%

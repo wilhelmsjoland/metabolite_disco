@@ -1,7 +1,7 @@
 library(tidyverse)
 
 pipeline_logs <- list.files(
-  path = "V:aglycone_release_100um_24h/output",
+  path = "/Volumes/bluecub/aglycone_release_100um_24h/output",
   recursive = TRUE,
   pattern = "pipeline.log",
   full.names = TRUE

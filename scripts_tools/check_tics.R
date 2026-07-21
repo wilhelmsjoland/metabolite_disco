@@ -3,8 +3,9 @@ library(xcms)
 
 exps_for_tic <- list.files(
   path = paste0(
-    "/Volumes/bluecub/aglycone_release_100um_24h/old/old_windows_output",
-    "/experiment"
+    # "/Volumes/bluecub/aglycone_release_100um_24h/old/old_windows_output",
+    # "/experiment"
+    "/Volumes/bluecub/aglycone_release_100um_24h/output"
   ),
   include.dirs = TRUE,
   recursive = TRUE,

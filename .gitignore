@@ -24,3 +24,5 @@
 glycone_list.xlsx
 example_config.yaml
 012626_FASI PR_LL.pptx
+.vscode/
+analyses/__pycache__

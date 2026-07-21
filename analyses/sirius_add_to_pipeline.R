@@ -24,9 +24,8 @@ input_path <- file.path(
   "/Volumes/bluecub/aglycone_release_100um_24h/output",
   "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
 )
-mgf_export_path <- file.path(input_path, "sirius")
 sim_filter <- 0.2
-fold_change_min <- 1
+fold_change_min <- 5 # 1 # 10 works OK
 # It means: the minimum of the substrate group means must be at least
 # fold_change_min times larger than the maximum of the glucose group means.
 # With fold_change_min <- 10: if the highest glucose group mean is 5,000,
@@ -133,8 +132,8 @@ xchr9_data <- tryCatch(
     )
     sig_higher <- extract_sig_higher(
       exp_dir = dirname(dirname(int_path)),
-      fold_change_min = 5, # 70
-      top_pct = 0.05
+      fold_change_min = fold_change_min, # 70
+      top_pct = NULL
       # fold_change_min
     )
     intensities %>%
@@ -222,8 +221,8 @@ xchr9_all_ints <- xchr9_data %>%
 shared_features <- unique(
   c(
     extract_feats$peak_id,
-    extract_bio_sims$feature,
-    xchr9_all_ints$feature
+    extract_bio_sims$feature # ,
+    # xchr9_all_ints$feature
   )
 )
 
@@ -244,50 +243,58 @@ feat_map <- xcms::featureDefinitions(xchr9) %>%
 
 feature_levels <- names(feat_map)
 
+readr::write_csv(
+  x = tibble::tibble(feature = feature_levels),
+  file = file.path(input_path, "tables", "feature_levels.csv")
+)
+
 ################################################################################
 # Export mgfs ------------------------------------------------------------------
 ################################################################################
 
+# Export path
+# mgf_export_path <- file.path(input_path, "sirius")
+
 # Extract MS1 spectra at feature apexes
-feat_spectra <- xcms::featureSpectra(
-  xchr9,
-  msLevel = 1L,
-  method = "closest_rt", # Makes sense for MS1 but not for MS2
-  BPPARAM = BiocParallel::SerialParam(),
-  features = feature_levels
-)
+# feat_spectra <- xcms::featureSpectra(
+#   xchr9,
+#   msLevel = 1L,
+#   method = "closest_rt", # Makes sense for MS1 but not for MS2
+#   BPPARAM = BiocParallel::SerialParam(),
+#   features = feature_levels
+# )
 
-feat_spectra$precursorCharge <- -1L
+# feat_spectra$precursorCharge <- -1L
 
-feat_export <- Spectra::selectSpectraVariables(
-  feat_spectra,
-  c(
-    "scanIndex",
-    "mz",
-    "intensity",
-    "rtime",
-    "precursorMz",
-    "precursorCharge",
-    "msLevel"
-  )
-)
+# feat_export <- Spectra::selectSpectraVariables(
+#   feat_spectra,
+#   c(
+#     "scanIndex",
+#     "mz",
+#     "intensity",
+#     "rtime",
+#     "precursorMz",
+#     "precursorCharge",
+#     "msLevel"
+#   )
+# )
 
-map <- c(
-  feature_id = "TITLE",
-  Spectra::spectraVariableMapping(MsBackendMgf::MsBackendMgf())
-)
+# map <- c(
+#   feature_id = "TITLE",
+#   Spectra::spectraVariableMapping(MsBackendMgf::MsBackendMgf())
+# )
 
-dir.create(
-  mgf_export_path,
-  recursive = TRUE,
-  showWarnings = FALSE
-)
+# dir.create(
+#   mgf_export_path,
+#   recursive = TRUE,
+#   showWarnings = FALSE
+# )
 
-# Export into the output folder
-Spectra::export(
-  object = feat_export,
-  BPPARAM = BiocParallel::SerialParam(),
-  backend = MsBackendMgf::MsBackendMgf(),
-  mapping = map,
-  file = file.path(mgf_export_path, "ms1_features.mgf")
-)
+# # Export into the output folder
+# Spectra::export(
+#   object = feat_export,
+#   BPPARAM = BiocParallel::SerialParam(),
+#   backend = MsBackendMgf::MsBackendMgf(),
+#   mapping = map,
+#   file = file.path(mgf_export_path, "ms1_features.mgf")
+# )
