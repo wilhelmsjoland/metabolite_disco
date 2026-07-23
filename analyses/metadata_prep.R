@@ -1,5 +1,6 @@
 library(janitor)
 library(yaml)
+library(writexl)
 
 exp_path <- "/Volumes/bluecub/aglycone_release_100um_24h"
 
@@ -232,3 +233,73 @@ glycone_pairs_metadata <- glycone_pairs %>%
       "aglycone_SMILES"
     )
   )
+
+
+
+# Create a list of experiments to inspect later
+experiment_matrix_path <- file.path(
+  "molekyler",
+  "information",
+  "experiment_matrix.xlsx"
+)
+
+if (!file.exists(experiment_matrix_path)) {
+  writexl::write_xlsx(
+    x = experiments,
+    path = experiment_matrix_path
+  )
+}
+
+# Create a list of glycones to inspect later
+glycones <- readxl::read_xlsx(
+  path = file.path("molekyler", "information", "glycone_list.xlsx"),
+  sheet = "glycone_pairs"
+) %>%
+  dplyr::select(glycoside, aglycone)
+
+cln_glycone_nms <- glycones %>%
+  dplyr::mutate(
+    dplyr::across(
+      .cols = c("glycoside", "aglycone"),
+      .fns = ~ janitor::make_clean_names(
+        string = .,
+        case = "snake",
+        allow_dupes = TRUE
+      )
+    )
+  )
+
+cln_glycone_nms_path <- file.path(
+  "molekyler",
+  "information",
+  "clean_names_glycone_list.xlsx"
+)
+if (!file.exists(cln_glycone_nms_path)) {
+  writexl::write_xlsx(
+    x = cln_glycone_nms,
+    path = cln_glycone_nms_path
+  )
+}
+
+
+clean_glycone_metadata <- glycone_info %>%
+  dplyr::mutate(
+    molecule = janitor::make_clean_names(
+      string = molecule,
+      case = "snake",
+      allow_dupes = TRUE
+    )
+  )
+
+clean_glycone_metadata_path <- file.path(
+  "molekyler",
+  "information",
+  "clean_glycone_metadata.xlsx"
+)
+
+if (!file.exists(clean_glycone_metadata_path)) {
+  writexl::write_xlsx(
+    x = clean_glycone_metadata,
+    path = clean_glycone_metadata_path
+  )
+}

@@ -1,5 +1,6 @@
 
 # %%
+# TODO Needs cleaning!
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +9,10 @@ from rdkit.Chem import DataStructs, rdFingerprintGenerator, rdFMCS, rdMolDescrip
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Chem import PandasTools
 import re
-from IPython.display import HTML
+import argparse
+import os
+import sys
+# from IPython.display import HTML
 
 # this RDKit build has no Cairo backend (MolDraw2DCairo unavailable), so use
 # SVG rendering instead of the PNG-via-Cairo default, for any dataframe with
@@ -17,13 +21,82 @@ PandasTools.molRepresentation = "svg"
 PandasTools.RenderImagesInAllDataFrames(images=True)
 # %%
 
+################################################################################
+# Argparse arguments -----------------------------------------------------------
+################################################################################
 # %%
-# Variables
-output_dir = (
-    "/Volumes/bluecub/aglycone_release_100um_24h/output/"
-    "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+parser = argparse.ArgumentParser(
+    description="Filter and report on candidate hits vs a reference compound"
 )
+parser.add_argument(
+    "-i", "--input",
+    required=True,
+    help="Path to metabolite_disco output directory"
+)
+parser.add_argument(
+    "-s", "--smiles",
+    required=True,
+    help="SMILES of the reference compound" 
+)
+parser.add_argument(
+    "-c", "--chromatogram",
+    help="Path to chromatogram SVGs parquet [default: <input>/report/features.parquet]"
+)
+parser.add_argument(
+    "-t", "--similarity_cutoff",
+    type=float,
+    default=0.2,
+    help="Minimum Tanimoto similarity to keep [default: %(default)s]"
+)
+parser.add_argument(
+    "-m", "--mcs_cutoff",
+    type=float,
+    default=0,
+    help="Minimum MCS fraction of reference to keep [default: %(default)s]"
+)
+parser.add_argument(
+    "-o", "--output",
+    default=None,
+    help="Path to output folder [default: <input>/report/]"
+)
+
+args = parser.parse_args()
+# %%
+
+################################################################################
+# Setting variables ------------------------------------------------------------
+################################################################################
+# %%
+output_dir = args.input
 tables_dir = f"{output_dir}/tables"
+reference_smiles = args.smiles
+chromatogram_svgs_path = (
+    args.chromatogram if args.chromatogram
+    else f"{output_dir}/report/features.parquet"
+)
+html_export_path = (
+    f"{args.output}/similar_hits.html" if args.output
+    else f"{output_dir}/report/similar_hits.html"
+)
+pcoa_export_path = (
+    f"{args.output}/pcoa.svg" if args.output
+    else f"{output_dir}/report/pcoa.svg"
+)
+os.makedirs(os.path.dirname(html_export_path), exist_ok=True)
+
+similarity_cutoff = args.similarity_cutoff
+mcs_cutoff = args.mcs_cutoff
+
+chromatogram_svgs = pd.read_parquet(chromatogram_svgs_path)
+
+# an experiment with zero features retained upstream (filter_intensity.R)
+# produces a genuinely columnless 0x0 parquet here (not just 0 rows) - treat
+# that as "nothing to report" rather than crashing on a missing "feature" col
+if chromatogram_svgs.empty or "feature" not in chromatogram_svgs.columns:
+    print(f"No retained features for {output_dir} - nothing to report, skipping.")
+    sys.exit(0)
+
+feature_levels = chromatogram_svgs["feature"]
 anno_similarities = pd.read_csv(
     f"{tables_dir}/anno_similarities.csv",
     on_bad_lines = "warn"
@@ -31,14 +104,32 @@ anno_similarities = pd.read_csv(
 biotransformer_similarities = pd.read_csv(
     f"{tables_dir}/biotransformer_similarities.csv"
 )
-
-# kaempferol, the afzelin aglycone
-reference_smiles = "C1=CC(=CC=C1C2=C(C(=O)C3=C(C=C(C=C3O2)O)O)O)O"
-
-# Created a parquet with svg information
-chromatogram_svgs = pd.read_parquet("/Users/wilhelm/Desktop/features.parquet")
 # %%
 
+################################################################################
+# Old interactive --------------------------------------------------------------
+################################################################################
+# %%
+# html_export_path = "/Users/wilhelm/Desktop/similar_hits.html"
+# output_dir = (
+#     "/Volumes/bluecub/aglycone_release_100um_24h/output/"
+#     "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+# )
+# tables_dir = f"{output_dir}/tables"
+# anno_similarities = pd.read_csv(
+#     f"{tables_dir}/anno_similarities.csv",
+#     on_bad_lines = "warn"
+# )
+# biotransformer_similarities = pd.read_csv(
+#     f"{tables_dir}/biotransformer_similarities.csv"
+# )
+# # kaempferol, the afzelin aglycone
+# reference_smiles = "C1=CC(=CC=C1C2=C(C(=O)C3=C(C=C(C=C3O2)O)O)O)O"
+# # Created a parquet with svg information
+# chromatogram_svgs = pd.read_parquet("/Users/wilhelm/Desktop/features.parquet")
+# similarity_cutoff = 0.2
+# mcs_cutoff = 0.5
+# %%
 
 # %%
 hits = pd.concat(
@@ -50,6 +141,7 @@ hits = pd.concat(
                 "target_smiles",
                 "sim",
                 "ppm_error",
+                "mz",
                 "rtime"
             ]
         ].rename(
@@ -64,7 +156,7 @@ hits = pd.concat(
                 "feature",
                 "SMILES",
                 "sim",
-                "mz", 
+                "mz",
                 "mzmed",
                 "rtmed"
             ]
@@ -77,7 +169,11 @@ hits = pd.concat(
             ppm_error=lambda df: (df["mzmed"] - df["mz"]) / df["mz"] * 1e6,
             source="biotransformer",
         )
-        .drop(columns=["mz", "mzmed"]),
+        # "mz" here was the candidate's own theoretical m/z (only needed for
+        # the ppm_error calc above) - "mzmed" is the observed feature m/z,
+        # same meaning as anno_similarities' "mz" column, so rename to match
+        .drop(columns=["mz"])
+        .rename(columns={"mzmed": "mz"}),
     ],
     ignore_index=True,
 ).dropna(subset=["smiles"])
@@ -89,7 +185,6 @@ hits = hits[hits["mol"].notna()].reset_index(drop=True)
 # sirius_add_to_pipeline.R (feature_levels there) - higher peak area in the
 # glycoside-cultivated samples vs. glucose control, among other criteria.
 # Written out from that script as a plain one-column CSV.
-feature_levels = pd.read_csv(f"{tables_dir}/feature_levels.csv")["feature"]
 hits = hits[hits["feature"].isin(feature_levels)].reset_index(drop=True)
 # %%
 
@@ -98,7 +193,6 @@ hits = hits[hits["feature"].isin(feature_levels)].reset_index(drop=True)
 reference_mol = Chem.MolFromSmiles(reference_smiles)
 reference_num_atoms = reference_mol.GetNumAtoms()
 
-similarity_cutoff = 0.2
 similar_hits = hits[hits["sim"] >= similarity_cutoff].reset_index(drop = True)
 
 
@@ -212,7 +306,6 @@ similar_hits["extra_atoms_vs_reference"] = (
     similar_hits["candidate_num_atoms"] - similar_hits["mcs_atoms_vs_reference"]
 )
 
-
 def leftover_profile(leftover_smi):
     # Coarse composition of the attached piece: ring count + which
     # heteroatoms it contains. Two attachments with different exact
@@ -270,7 +363,7 @@ similar_hits["abs_ppm_error"] = similar_hits["ppm_error"].abs()
 
 # %%
 # Filter with cutoff for MCS
-mcs_cutoff = 0.5
+
 mcs_survivors = similar_hits[
     similar_hits["mcs_fraction_of_reference"] >= mcs_cutoff
 ].reset_index(drop=True)
@@ -359,29 +452,41 @@ ax.scatter(
     s=250,
     color="black",
     marker="*",
-    label="kaempferol (reference)",
+    label="reference compound",
     zorder=5,
 )
 
 ax.set_xlabel(f"PCo1 ({all_pcoa_explained[0]:.1%})")
 ax.set_ylabel(f"PCo2 ({all_pcoa_explained[1]:.1%})")
-ax.set_title("PCoA of individual candidate assignments vs. reference")
+ax.set_title("PCoA of individual candidate assignments vs reference")
 ax.legend(title="Source")
 fig.tight_layout()
-plt.show()
+fig.savefig(pcoa_export_path, format="svg")
 # %%
 
 # %%
 # Resorting columns
+similar_hits["reference_smiles"] = reference_smiles
+PandasTools.AddMoleculeColumnToFrame(
+    similar_hits, smilesCol="reference_smiles", molCol="reference_structure"
+)
 PandasTools.AddMoleculeColumnToFrame(
     similar_hits, smilesCol="scaffold_smiles", molCol="scaffold_structure"
 )
 
 cols = list(similar_hits.columns)
-cols.remove("scaffold_structure")
-cols.insert(cols.index("mol"), "scaffold_structure")
-cols.remove("scaffold_smiles")
-cols.insert(cols.index("feature") + 1, "scaffold_smiles")
+for col in ["reference_structure", "scaffold_structure", "reference_smiles", "scaffold_smiles", "mz"]:
+    cols.remove(col)
+
+mol_idx = cols.index("mol")
+cols[mol_idx:mol_idx] = ["reference_structure", "scaffold_structure"]
+
+feature_idx = cols.index("feature") + 1
+cols[feature_idx:feature_idx] = ["reference_smiles", "scaffold_smiles"]
+
+rtime_idx = cols.index("rtime")
+cols[rtime_idx:rtime_idx] = ["mz"]
+
 similar_hits = similar_hits[cols]
 # %%
 
@@ -474,8 +579,6 @@ similar_hits = similar_hits[cols]
 # Standalone HTML export - everything here is self-contained (RDKit SVGs +
 # base64-embedded PNG), so it opens in any browser outside VS Code, no
 # Python/RDKit needed to view it.
-html_export_path = "/Users/wilhelm/Desktop/similar_hits.html"
-
 with open(html_export_path, "w") as f:
     f.write(
         f"""<!DOCTYPE html>

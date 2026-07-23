@@ -8,28 +8,97 @@ suppressPackageStartupMessages(
     library(Spectra)
     library(MsBackendMgf)
     library(BiocParallel)
+    library(optparse)
+    library(cli)
   }
 )
 source("scripts/functions.R")
 source("analyses/analyses_functions.R")
 
-# TODO
-# - Move extract_sig_higher to the functions file instead of analyses_functions
-# - Integrate this into the pipeline
-
-###############################################################################
-# Setup output folder ----------------------------------------------------------
 ################################################################################
-input_path <- file.path(
-  "/Volumes/bluecub/aglycone_release_100um_24h/output",
-  "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+# Optparse arguments -----------------------------------------------------------
+################################################################################
+
+option_list <- list(
+  optparse::make_option(
+    c("-i", "--input"),
+    type = "character",
+    default = NULL,
+    help = "Path to metabolite_disco output directory",
+    metavar = "character"
+  ),
+  optparse::make_option(
+    c("-s", "--similarity_filter"),
+    type = "double",
+    default = 0.2,
+    help = "Minimum similarity to keep [default %default]",
+    metavar = "double"
+  ),
+  optparse::make_option(
+    c("-f", "--fold_change"),
+    type = "double",
+    default = 5,
+    help = "Minimum fold change difference between groups [default %default]",
+    metavar = "double"
+  ),
+  optparse::make_option(
+    c("-o", "--output"),
+    type = "character",
+    default = NULL,
+    help = "Path to output [default: <input>/report/retained_features.csv]",
+    metavar = "character"
+  )
 )
-sim_filter <- 0.2
-fold_change_min <- 5 # 1 # 10 works OK
+
+opt_parser <- optparse::OptionParser(option_list = option_list)
+opt <- optparse::parse_args(opt_parser)
+
+if (is.null(opt$input) && !interactive()) {
+  optparse::print_help(opt_parser)
+  stop("--input must be supplied", call. = TRUE)
+}
+
+################################################################################
+# Setup ------------------------------------------------------------------------
+################################################################################
+# input_path <- file.path(
+#   "/Volumes/bluecub/aglycone_release_100um_24h/output",
+#   "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+# )
+# sim_filter <- 0.2
+# fold_change_min <- 5 # 1 # 10 works OK
+
+input_path <- opt$input
+output_file <- if (is.null(opt$output)) {
+  file.path(input_path, "report", "retained_features.csv")
+} else {
+  opt$output
+}
+sim_filter <- opt$similarity_filter
+fold_change_min <- opt$fold_change
+
 # It means: the minimum of the substrate group means must be at least
 # fold_change_min times larger than the maximum of the glucose group means.
 # With fold_change_min <- 10: if the highest glucose group mean is 5,000,
 # both substrate group means must be above 50,000 to pass.
+
+output_path_msg <- file.path(
+  # basename(dirname(dirname(output_file))),
+  basename(dirname(output_file)),
+  basename(output_file)
+)
+
+cli::cli_progress_step(
+  msg = paste0(
+    "Filtering hits in {.path {basename(input_path)}} by Tanimoto similarity: ",
+    "{.val {sim_filter}}, fold_change: {.val {fold_change_min}}"
+  ),
+  msg_done = paste0(
+    "Saved hits filtered by Tanimoto similarity: ",
+    "{.val {sim_filter}}, fold_change: {.val {fold_change_min}} to: ",
+    "{.path {output_path_msg}}"
+  )
+)
 
 ################################################################################
 # Read bio_sim -----------------------------------------------------------------
@@ -241,60 +310,17 @@ feat_map <- xcms::featureDefinitions(xchr9) %>%
   dplyr::pull(title, name = feature)
 # names = feature IDs, values = display titles, sorted by mzmed
 
-feature_levels <- names(feat_map)
+retained_features <- names(feat_map)
 
-readr::write_csv(
-  x = tibble::tibble(feature = feature_levels),
-  file = file.path(input_path, "tables", "feature_levels.csv")
+dir.create(
+  path = file.path(input_path, "report"),
+  recursive = TRUE,
+  showWarnings = FALSE
 )
 
-################################################################################
-# Export mgfs ------------------------------------------------------------------
-################################################################################
+readr::write_csv(
+  x = tibble::tibble(feature = retained_features),
+  file = output_file
+)
 
-# Export path
-# mgf_export_path <- file.path(input_path, "sirius")
-
-# Extract MS1 spectra at feature apexes
-# feat_spectra <- xcms::featureSpectra(
-#   xchr9,
-#   msLevel = 1L,
-#   method = "closest_rt", # Makes sense for MS1 but not for MS2
-#   BPPARAM = BiocParallel::SerialParam(),
-#   features = feature_levels
-# )
-
-# feat_spectra$precursorCharge <- -1L
-
-# feat_export <- Spectra::selectSpectraVariables(
-#   feat_spectra,
-#   c(
-#     "scanIndex",
-#     "mz",
-#     "intensity",
-#     "rtime",
-#     "precursorMz",
-#     "precursorCharge",
-#     "msLevel"
-#   )
-# )
-
-# map <- c(
-#   feature_id = "TITLE",
-#   Spectra::spectraVariableMapping(MsBackendMgf::MsBackendMgf())
-# )
-
-# dir.create(
-#   mgf_export_path,
-#   recursive = TRUE,
-#   showWarnings = FALSE
-# )
-
-# # Export into the output folder
-# Spectra::export(
-#   object = feat_export,
-#   BPPARAM = BiocParallel::SerialParam(),
-#   backend = MsBackendMgf::MsBackendMgf(),
-#   mapping = map,
-#   file = file.path(mgf_export_path, "ms1_features.mgf")
-# )
+cli::cli_progress_done()

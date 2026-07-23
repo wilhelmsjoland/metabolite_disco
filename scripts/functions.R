@@ -141,8 +141,11 @@ find_y_position <- function(
     )
 
   sum_df <- sum_df %>%
-    dplyr::select(.data[[group_col]], tidyselect::all_of(fun_data)) %>%
-    dplyr::rename("y.pos" = .data[[fun_data]])
+    dplyr::select(
+      tidyselect::all_of(group_col),
+      tidyselect::all_of(fun_data)
+    ) %>%
+    dplyr::rename("y.pos" = tidyselect::all_of(fun_data))
 
   group1_names <- setNames(group_col, "group1")
   group2_names <- setNames(group_col, "group2")
