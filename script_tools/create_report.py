@@ -45,7 +45,7 @@ parser.add_argument(
 parser.add_argument(
     "-t", "--similarity_cutoff",
     type=float,
-    default=0.2,
+    default=0.1,
     help="Minimum Tanimoto similarity to keep [default: %(default)s]"
 )
 parser.add_argument(

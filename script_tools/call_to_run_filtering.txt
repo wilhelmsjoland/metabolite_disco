@@ -1,0 +1,1 @@
+caffeinate -i conda run -n psm_chem python run_filtering.py 2>&1 | tee run_filtering.log

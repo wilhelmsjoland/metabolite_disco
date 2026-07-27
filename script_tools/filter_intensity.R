@@ -61,21 +61,22 @@ if (is.null(opt$input) && !interactive()) {
 ################################################################################
 # Setup ------------------------------------------------------------------------
 ################################################################################
-# input_path <- file.path(
-#   "/Volumes/bluecub/aglycone_release_100um_24h/output",
-#   "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
-# )
-# sim_filter <- 0.2
-# fold_change_min <- 5 # 1 # 10 works OK
+input_path <- file.path(
+  "/Volumes/bluecub/aglycone_release_100um_24h/output",
+  "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
+)
+sim_filter <- 0.2
+fold_change_min <- 3 # 1 # 10 works OK
+output_file <- file.path(input_path, "report", "retained_features.csv")
 
-input_path <- opt$input
-output_file <- if (is.null(opt$output)) {
-  file.path(input_path, "report", "retained_features.csv")
-} else {
-  opt$output
-}
-sim_filter <- opt$similarity_filter
-fold_change_min <- opt$fold_change
+# input_path <- opt$input
+# output_file <- if (is.null(opt$output)) {
+#   file.path(input_path, "report", "retained_features.csv")
+# } else {
+#   opt$output
+# }
+# sim_filter <- opt$similarity_filter
+# fold_change_min <- opt$fold_change
 
 # It means: the minimum of the substrate group means must be at least
 # fold_change_min times larger than the maximum of the glucose group means.
@@ -312,15 +313,15 @@ feat_map <- xcms::featureDefinitions(xchr9) %>%
 
 retained_features <- names(feat_map)
 
-dir.create(
-  path = file.path(input_path, "report"),
-  recursive = TRUE,
-  showWarnings = FALSE
-)
+# dir.create(
+#   path = file.path(input_path, "report"),
+#   recursive = TRUE,
+#   showWarnings = FALSE
+# )
 
-readr::write_csv(
-  x = tibble::tibble(feature = retained_features),
-  file = output_file
-)
+# readr::write_csv(
+#   x = tibble::tibble(feature = retained_features),
+#   file = output_file
+# )
 
 cli::cli_progress_done()

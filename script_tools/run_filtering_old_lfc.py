@@ -30,12 +30,7 @@ clean_glycone_metadata = pd.read_excel(
 )
 
 run_df = (
-    exp_mtx[["experiment", "condition", "group"]]
-    .groupby("experiment", as_index=False)
-    .agg({
-        "condition": "first",
-        "group": lambda g: sorted(set(g)),
-    })
+    exp_mtx[["experiment", "condition"]]
     .merge(
         clean_nms_glycone_list,
         left_on="condition",
@@ -68,31 +63,26 @@ for idx, row in run_df.iterrows():
     input_dir = f"{output_dir}/{row['experiment']}"
     aglycone = row["aglycone"]
     aglycone_smiles = row["aglycone_smiles"]
-    exp_groups = list(filter(lambda x: "ycfa_glucose" not in x, row["group"]))
-    groups = ",".join(exp_groups)
 
     run_subprocess(
-        f"Rscript script_tools/filter_features.R \
-        --input {input_dir} \
-        --grouping {groups} \
-        --similarity_filter 0.1 \
-        --lfc 3 \
-        --qval 0.1 \
-        --beta_cor 0.6"
+        f"Rscript script_tools/filter_intensity.R \
+        -i {input_dir} \
+        -s 0.2 \
+        -f 5"
     )
 
     run_subprocess(
         f"Rscript script_tools/chromatogram_plots.R \
-        --input {input_dir} \
-        --features {input_dir}/report/retained_features.csv"
+        -i {input_dir} \
+        -f {input_dir}/report/retained_features.csv"
     )
 
     run_subprocess(
         f"conda run -n psm_chem python script_tools/create_report.py \
-        --input {input_dir} \
-        --smiles '{aglycone_smiles}' \
-        --chromatogram {input_dir}/report/features.parquet \
-        --similarity_cutoff 0.1 \
-        --mcs_cutoff 0"
+        -i {input_dir} \
+        -s '{aglycone_smiles}' \
+        -c {input_dir}/report/features.parquet \
+        -t 0.2 \
+        -m 0"
     )
     break
