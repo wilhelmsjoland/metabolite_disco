@@ -15,9 +15,6 @@ suppressWarnings(
     library(tibble)
     library(readr)
     library(purrr)
-    library(rcdk)
-    library(fingerprint)
-    library(rJava)
   })
 )
 
@@ -48,34 +45,10 @@ if (interactive() && file.exists(anno_sims_final_path)) {
     )
   )
 } else {
-  cli::cli_progress_step(
-    paste0(
-      "Calculate molecular similarity of databased annotated features to: ",
-      "{.val {snakemake@params$smiles}} " # using similarity cutoff 0.1" # NOT
-    )
-  )
-  anno_filt <- anno %>%
+  anno_sims <- anno %>%
     dplyr::group_by(adduct) %>%
-    dplyr::distinct(target_inchikey, .keep_all = TRUE)
-
-  anno_smiles <- anno_filt$target_smiles
-  names(anno_smiles) <- anno_filt$feature
-
-  anno_sims <- mol_similarity(
-    query_smiles = snakemake@params$smiles,
-    target_smiles = anno_smiles,
-    kekulise = TRUE, # parsing incorrect smiles with electrons
-    omit_nulls = TRUE,
-    fingerprint = "circular",
-    circular_type = "ECFP6",
-    method = "tanimoto"
-  ) %>%
-    dplyr::left_join(
-      x = .,
-      y = anno,
-      by = "feature"
-    )
-  cli::cli_progress_done()
+    dplyr::distinct(target_inchikey, .keep_all = TRUE) %>%
+    dplyr::ungroup()
 
   # Get names for individual inchikey
   inchi_ks_split <- split(
@@ -164,33 +137,7 @@ if (interactive() && file.exists(chem_pred_feats_path)) {
     dplyr::group_by(feature, adduct) %>%
     dplyr::distinct(InChIKey, .keep_all = TRUE)
 
-  pred_smiles <- chem_pred_feats$SMILES
-  names(pred_smiles) <- chem_pred_feats$met_id
-
-  cli::cli_progress_step(
-    paste0(
-      "Calculate molecular similarity of biotransformer predicted ",
-      "features to: {.val {snakemake@params$smiles}}"
-    )
-  )
-  pred_sims <- mol_similarity(
-    query_smiles = snakemake@params$smiles,
-    target_smiles = pred_smiles,
-    kekulise = TRUE,
-    omit_nulls = TRUE,
-    fingerprint = "circular",
-    circular_type = "ECFP6",
-    method = "tanimoto"
-  ) %>%
-    # rename to not overlap in the dplyr::left_join()
-    dplyr::rename("met_id" = "feature") %>%
-    dplyr::left_join(
-      x = .,
-      y = chem_pred_feats,
-      by = c("met_id")
-    )
-
-  cli::cli_progress_done()
+  pred_sims <- chem_pred_feats
 
   readr::write_csv(
     x = pred_sims,

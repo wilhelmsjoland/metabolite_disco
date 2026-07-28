@@ -19,7 +19,7 @@ rule met_disco:
         f"{config['output']}/snakemake_objects/12_volcano.rds",
         f"{config['output']}/snakemake_objects/14_intersecting_features.rds",
         f"{config['output']}/snakemake_objects/16_mz_predictions.rds",
-        f"{config['output']}/snakemake_objects/19_molecular_similarity.rds"
+        f"{config['output']}/snakemake_objects/19_filter_matches.rds"
 
 rule setup:
     output:
@@ -293,16 +293,16 @@ rule biotransformer:
     script:
         "scripts/18_biotransformer.R"
 
-rule molecular_similarity:
+rule filter_matches:
     input:
         annotation = rules.annotation.output[0],
         biotransformer = rules.biotransformer.output[0]
     output:
-        f"{config['output']}/snakemake_objects/19_molecular_similarity.rds"
+        f"{config['output']}/snakemake_objects/19_filter_matches.rds"
     params:
         output = config["output"],
         smiles = config["smiles"],
         seed = config["seed"],
         cores = config["cores"]
     script:
-        "scripts/19_molecular_similarity.R"
+        "scripts/19_filter_matches.R"
