@@ -18,9 +18,13 @@ for (script in pipeline_scripts) {
     config_file = paste0(
       # "V:/aglycone_release_100um_24h/configs/",
       # "avicularin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon.yaml"
-      "/Users/wilhelm/Documents/from_ssd/aglycone_release_100um_24h/configs/",
-      "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon.yaml"
+      # "/Users/wilhelm/Documents/from_ssd/aglycone_release_100um_24h/configs/",
+      # "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon.yaml"
       # "example_config.yaml"
+      "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/input/",
+      "experiment/",
+      "afzelin_test.yaml"
+
     )
   )
   source(script)

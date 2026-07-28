@@ -202,8 +202,9 @@ mock_snakemake <- function(rule = NULL, config_file = NULL) {
     ),
     annotation = list(
       input  = list(
-        limma     = sm("10_limma.rds"),
-        prep_biot = sm("15_prep_annotation_biotransformation.rds")
+        limma           = sm("10_limma.rds"),
+        prep_biot       = sm("15_prep_annotation_biotransformation.rds"),
+        filter_features = sm("08_filter_features.rds")
       ),
       output = list(sm("17_annotation.rds")),
       params = c(common, list(
@@ -223,12 +224,12 @@ mock_snakemake <- function(rule = NULL, config_file = NULL) {
         ppm_match = config[["ppm_match"]]
       ))
     ),
-    molecular_similarity = list(
+    filter_matches = list(
       input  = list(
         annotation     = sm("17_annotation.rds"),
         biotransformer = sm("18_biotransformer.rds")
       ),
-      output = list(sm("19_molecular_similarity.rds")),
+      output = list(sm("19_filter_matches.rds")),
       params = c(common, list(
         smiles = config[["smiles"]]
       ))

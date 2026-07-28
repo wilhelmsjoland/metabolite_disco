@@ -1251,7 +1251,10 @@ filt_features <- function(
 }
 
 start_log <- function(output_folder = NULL) {
-  Sys.setlocale("LC_CTYPE", ".utf8")
+  if (Sys.info()[["sysname"]] == "Windows") {
+    Sys.setlocale("LC_CTYPE", ".utf8")
+  }
+
   options(
     cli.ansi = FALSE,
     cli.unicode = TRUE,
