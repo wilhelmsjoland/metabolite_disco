@@ -10,6 +10,8 @@ pipeline_scripts <- list.files(
   full.names = TRUE
 )
 
+pipeline_scripts[19]
+
 for (script in pipeline_scripts) {
   rule <- gsub("[0-9]+_", "", basename(script))
   rule <- tools::file_path_sans_ext(rule)
