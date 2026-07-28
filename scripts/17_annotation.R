@@ -20,6 +20,8 @@ suppressWarnings(
     library(xcms)
     library(MetaboCoreUtils)
     library(ProtGenerics)
+    library(RSQLite)
+    library(MsBackendSql)
   })
 )
 

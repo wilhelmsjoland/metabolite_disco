@@ -16,6 +16,8 @@ suppressWarnings(
       library(MsExperiment)
       library(dplyr)
       library(tibble)
+      library(RSQLite)
+      library(MsBackendSql)
     }
   )
 )

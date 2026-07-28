@@ -20,6 +20,8 @@ suppressWarnings(
     library(MsCoreUtils)
     library(future)
     library(future.apply)
+    library(RSQLite)
+    library(MsBackendSql)
   })
 )
 

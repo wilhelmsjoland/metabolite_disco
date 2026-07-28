@@ -16,6 +16,8 @@ suppressWarnings(
     library(ggplot2)
     library(ggrepel)
     library(forcats)
+    library(RSQLite)
+    library(MsBackendSql)
   })
 )
 

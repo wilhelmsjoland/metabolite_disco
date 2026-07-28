@@ -18,6 +18,8 @@ suppressWarnings(
       library(pheatmap)
       library(ggplot2)
       library(ProtGenerics)
+      library(RSQLite)
+      library(MsBackendSql)
     }
   )
 )

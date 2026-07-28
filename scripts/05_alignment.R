@@ -15,6 +15,8 @@ suppressWarnings(
     library(MsExperiment)
     library(Spectra)
     library(dplyr)
+    library(RSQLite)
+    library(MsBackendSql)
   })
 )
 

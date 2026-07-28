@@ -15,6 +15,8 @@ suppressWarnings(
     library(tibble)
     library(readr)
     library(purrr)
+    library(RSQLite)
+    library(MsBackendSql)
   })
 )
 

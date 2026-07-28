@@ -20,6 +20,8 @@ suppressWarnings(
     library(stringr)
     library(Rdisop)
     library(tidyselect)
+    library(RSQLite)
+    library(MsBackendSql)
   })
 )
 
