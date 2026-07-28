@@ -313,15 +313,15 @@ feat_map <- xcms::featureDefinitions(xchr9) %>%
 
 retained_features <- names(feat_map)
 
-# dir.create(
-#   path = file.path(input_path, "report"),
-#   recursive = TRUE,
-#   showWarnings = FALSE
-# )
+dir.create(
+  path = file.path(input_path, "report"),
+  recursive = TRUE,
+  showWarnings = FALSE
+)
 
-# readr::write_csv(
-#   x = tibble::tibble(feature = retained_features),
-#   file = output_file
-# )
+readr::write_csv(
+  x = tibble::tibble(feature = retained_features),
+  file = output_file
+)
 
 cli::cli_progress_done()

@@ -68,8 +68,11 @@ for idx, row in run_df.iterrows():
     input_dir = f"{output_dir}/{row['experiment']}"
     aglycone = row["aglycone"]
     aglycone_smiles = row["aglycone_smiles"]
+    glycoside = row["glycoside"]
+    glycoside_smiles = row["glycoside_smiles"]
     exp_groups = list(filter(lambda x: "ycfa_glucose" not in x, row["group"]))
-    groups = ",".join(exp_groups)
+    # groups = ",".join(exp_groups)
+    groups = ",".join(f"{g}" for g in exp_groups)
 
     run_subprocess(
         f"Rscript script_tools/filter_features.R \
@@ -90,7 +93,8 @@ for idx, row in run_df.iterrows():
     run_subprocess(
         f"conda run -n psm_chem python script_tools/create_report.py \
         --input {input_dir} \
-        --smiles '{aglycone_smiles}' \
+        --names '{aglycone},{glycoside}' \
+        --smiles '{aglycone_smiles},{glycoside_smiles}' \
         --chromatogram {input_dir}/report/features.parquet \
         --similarity_cutoff 0.1 \
         --mcs_cutoff 0"

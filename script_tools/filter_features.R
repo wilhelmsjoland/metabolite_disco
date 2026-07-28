@@ -20,8 +20,8 @@ option_list <- list(
   optparse::make_option(
     c("-g", "--grouping"),
     type = "character",
-    default = "b_ovatus_atcc_8483_afzelin,b_ovatus_atcc_8483_d_operon_afzelin",
-    help = "Groups where good peak shapes are required (experimental samples)",
+    default = NULL,
+    help = "Group(s) where good peak shapes are required (samples)",
     metavar = "character"
   ),
   optparse::make_option(

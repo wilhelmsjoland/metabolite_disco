@@ -145,21 +145,46 @@ Processing chromatographic peaks for features
 ℹ Producing chromatogram plots for: 'afzelin_b_ovatus_atcc_8483_and_b_ovatus_at…
 ✔ Saved plots to: '/Volumes/bluecub/aglycone_release_100um_24h/output/afzelin_b…
 
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 8 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 6 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-[18:25:10] non-ring atom 1 marked aromatic
-82 distinct scaffolds among 157 MCS survivors
-110 distinct attached fragments among 144 candidates
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 8 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 6 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:50] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 8 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 3 marked aromatic
+[12:26:57] non-ring atom 3 marked aromatic
+[12:26:57] non-ring atom 6 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[12:26:57] non-ring atom 1 marked aromatic
+[kaempferol] 82 distinct scaffolds among 157 MCS survivors
+[kaempferol] 110 distinct attached fragments among 144 candidates
+[afzelin] 82 distinct scaffolds among 157 MCS survivors
+[afzelin] 108 distinct attached fragments among 142 candidates
 Saved to /Volumes/bluecub/aglycone_release_100um_24h/output/afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon/report/similar_hits.html

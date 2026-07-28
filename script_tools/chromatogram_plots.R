@@ -78,8 +78,9 @@ output_path_msg <- file.path(
 # Produce chromatograms and .svgs ----------------------------------------------
 ################################################################################
 cli::cli_progress_step(
-  msg = paste0(
-    "Producing chromatogram plots for: {.path {basename(basename(input_path))}}"
+  msg = c(
+    "Producing chromatogram plots for: ",
+    "{.path {basename(basename(input_path))}}"
   ),
   msg_done = paste0(
     "Saved plots to: {.path {output_file}}"
