@@ -51,9 +51,10 @@ if (interactive() && file.exists(anno_sims_final_path)) {
     dplyr::ungroup()
 
   # Get names for individual inchikey
+  unique_inchikeys <- unique(anno_sims$target_inchikey) # check each key once
   inchi_ks_split <- split(
-    anno_sims$target_inchikey,
-    ceiling(seq_along(anno_sims$target_inchikey) / 500)
+    unique_inchikeys,
+    ceiling(seq_along(unique_inchikeys) / 500)
   )
   inchi_ks <- lapply(
     X = inchi_ks_split,
@@ -90,7 +91,11 @@ if (interactive() && file.exists(anno_sims_final_path)) {
     dplyr::left_join(
       x = .,
       y = full_inchikey_map,
-      by = c("target_inchikey" = "InChIKey")
+      by = c("target_inchikey" = "InChIKey"),
+      # Expected: same inchikey can repeat across adducts (x), and PubChem
+      # can have multiple CIDs for one inchikey (y) - keeping all of them
+      # since there's no principled way to pick a single "best" CID.
+      relationship = "many-to-many"
     )
 
   readr::write_csv(
@@ -137,11 +142,9 @@ if (interactive() && file.exists(chem_pred_feats_path)) {
     dplyr::group_by(feature, adduct) %>%
     dplyr::distinct(InChIKey, .keep_all = TRUE)
 
-  pred_sims <- chem_pred_feats
-
   readr::write_csv(
-    x = pred_sims,
-    file = chem_pred_feats_path # pred_sims_path not this
+    x = chem_pred_feats,
+    file = chem_pred_feats_path
   )
 
   cli::cli_alert_success(
@@ -157,10 +160,8 @@ if (interactive() && file.exists(chem_pred_feats_path)) {
 # ==============================================================================
 saveRDS(
   object = list(
-    # This was chem_pred_feats but
-    # should've been pred_sims
     anno_sims_final = anno_sims_final,
-    chem_pred_feats = pred_sims # chem_pred_feats
+    chem_pred_feats = chem_pred_feats
   ),
   file = snakemake@output[[1]]
 )
