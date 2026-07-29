@@ -32,8 +32,9 @@ predicted_feats <- biot_data$predicted_feats
 anno_sims_final_path <- file.path(
   snakemake@params$output,
   "tables",
-  "anno_similarities.csv"
+  "annotation_predictions.csv"
 )
+
 if (interactive() && file.exists(anno_sims_final_path)) {
   anno_sims_final <- readr::read_csv(
     file = anno_sims_final_path,
@@ -43,7 +44,7 @@ if (interactive() && file.exists(anno_sims_final_path)) {
   cli::cli_alert_success(
     paste0(
       "{.path {anno_sims_final_path}} already exists, ",
-      "imported molecular similarities of database annotated features"
+      "imported database annotated features"
     )
   )
 } else {
@@ -67,7 +68,7 @@ if (interactive() && file.exists(anno_sims_final_path)) {
 
   cli::cli_progress_step(
     paste0(
-      "Annotating molecular similarity dataframes with info from pubchem"
+      "Annotating dataframes with info from pubchem"
     )
   )
   full_inchikey_map <- tibble::tibble()
@@ -106,7 +107,7 @@ if (interactive() && file.exists(anno_sims_final_path)) {
   )
   cli::cli_alert_success(
     paste0(
-      "Saved molecular similarity of databased annotated features to: ",
+      "Saved filtered database annotated features to: ",
       "{.path {anno_sims_final_path}}"
     )
   )
@@ -118,7 +119,7 @@ if (interactive() && file.exists(anno_sims_final_path)) {
 chem_pred_feats_path <- file.path(
   snakemake@params$output,
   "tables",
-  "biotransformer_similarities.csv"
+  "biotransformer_predictions.csv"
 )
 
 if (interactive() && file.exists(chem_pred_feats_path)) {
@@ -130,7 +131,7 @@ if (interactive() && file.exists(chem_pred_feats_path)) {
   cli::cli_alert_success(
     paste0(
       "{.path {chem_pred_feats_path}} already exists, ",
-      "imported molecular similarities of biotransformer predicted features"
+      "imported biotransformer predicted features"
     )
   )
 } else {
@@ -151,7 +152,7 @@ if (interactive() && file.exists(chem_pred_feats_path)) {
 
   cli::cli_alert_success(
     paste0(
-      "Saved molecular similarity of biotransformer predicted features to: ",
+      "Saved filtered biotransformer predicted features to: ",
       "{.path {chem_pred_feats_path}}"
     )
   )

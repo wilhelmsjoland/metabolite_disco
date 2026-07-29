@@ -30,191 +30,180 @@ xchr9 <- filter_data$xchr9
 # Biotransformer.jar -----------------------------------------------------------
 # ==============================================================================
 cli::cli_h3("Predicting biotransformations from SMILES")
-prediction_path <- file.path(
-  snakemake@params$output,
-  "tables",
-  "prediction.csv"
+
+# "name,smiles;name,smiles" - ";" and "," never appear in plain SMILES, unlike
+# "=" (double bonds) or ":" (aromatic bonds/atom maps), and neither collides
+# with this project's underscore-heavy naming convention.
+smiles_pairs <- unlist(strsplit(snakemake@params$smiles, ";"))
+smiles_vec <- setNames(
+  sub("^[^,]+,", "", smiles_pairs),
+  sub(",.*$", "", smiles_pairs)
 )
-if (interactive() && file.exists(prediction_path)) {
-  biot_pred <- readr::read_csv(
-    file = prediction_path,
-    show_col_types = FALSE,
-    progress = FALSE
-  )
-  cli::cli_alert_success(
-    paste0(
-      "Imported predictions for {.val {snakemake@params$smiles}} from: ",
-      "{.path {prediction_path}}"
-    )
-  )
-} else {
-  cli::cli_alert_info(
-    paste0(
-      "Predicting biotransformations from {.val {snakemake@params$smiles}} ",
-      "with biotransformer.jar"
-    )
-  )
-  run_biotransformer(
-    bt_dir = "biotransformer3.0jar",
-    smiles = snakemake@params$smiles,
-    b_type = "superbio",
-    k_task = "pred",
-    output_file = "prediction"
-  )
 
-  cli::cli_alert_success(
-    paste0(
-      "Saved biotransformer predictions to: ",
-      "{.path {prediction_path}}"
-    )
-  )
+output_dir <- snakemake@params$output
 
-  biot_pred <- readr::read_csv(
-    file = prediction_path,
-    show_col_types = FALSE,
-    progress = FALSE
-  )
+prediction_path <- function(mol_name, output_dir) {
+  file.path(output_dir, "tables", paste0("prediction_", mol_name, ".csv"))
 }
+
+cli::cli_alert_info(
+  paste0(
+    "Predicting biotransformations for {.val {names(smiles_vec)}} ",
+    "with biotransformer.jar (in parallel, one process per molecule)"
+  )
+)
+biot_pred <- BiocParallel::bplapply(
+  X = names(smiles_vec),
+  FUN = function(mol_name) {
+    run_biotransformer(
+      bt_dir = "biotransformer3.0jar",
+      smiles = smiles_vec[[mol_name]],
+      b_type = "superbio",
+      k_task = "pred",
+      output_file = paste0("prediction_", mol_name),
+      results_path = output_dir
+    )
+    readr::read_csv(
+      file = prediction_path(mol_name, output_dir),
+      show_col_types = FALSE,
+      progress = FALSE
+    ) %>%
+      dplyr::mutate(input = mol_name)
+  },
+  BPPARAM = bp
+) %>% dplyr::bind_rows()
+
+cli::cli_alert_success(
+  paste0(
+    "Saved biotransformer predictions for {.val {names(smiles_vec)}} to: ",
+    "{.path {file.path(output_dir, 'tables')}}"
+  )
+)
 
 cli::cli_alert_success("Merging predicted features with feature definitions")
 predicted_feats_path <- file.path(
-  snakemake@params$output,
-  "tables",
-  "predicted_annotated_feats.csv"
+snakemake@params$output,
+"tables",
+"predicted_annotated_feats.csv"
 )
-if (interactive() && file.exists(predicted_feats_path)) {
-  predicted_feats <- readr::read_csv(
-    file = predicted_feats_path,
-    show_col_types = FALSE,
-    progress = FALSE
+
+biot_dedup <- biot_pred %>%
+  dplyr::group_by(InChIKey, input) %>%
+  dplyr::summarize(
+    dplyr::across(
+      .cols = setdiff(colnames(.), c("InChIKey", "input")),
+      .fns  = ~ paste(unique(.x), collapse = ", ")
+    ),
+    .groups = "keep"
   )
-  cli::cli_alert_success(
-    paste0(
-      "Imported biotransformer predicted features from: ",
-      "{.path {predicted_feats_path}}"
-    )
-  )
-} else {
-  biot_dedup <- biot_pred %>%
-    dplyr::group_by(InChIKey) %>%
-    dplyr::summarize(
-      dplyr::across(
-        .cols = setdiff(colnames(.), "InChIKey"),
-        .fns  = ~ paste(unique(.x), collapse = ", ")
-      ),
-      .groups = "keep"
-    )
 
-  biot_mass <- biot_dedup %>%
-    dplyr::mutate(
-      mass = MetaboCoreUtils::calculateMass(`Molecular formula`)
-    ) %>%
-    dplyr::relocate(mass, .before = "InChI")
-
-  biot_mets <- biot_mass$mass
-  names(biot_mets) <- biot_mass$InChIKey
-
-  biot_final <- MetaboCoreUtils::mass2mz(
-    x = biot_mets,
-    adduct = MetaboCoreUtils::adducts(polarity = snakemake@params$polarity)
+biot_mass <- biot_dedup %>%
+  dplyr::mutate(
+    mass = MetaboCoreUtils::calculateMass(`Molecular formula`),
+    row_id = dplyr::row_number()
   ) %>%
-    tibble::as_tibble(., rownames = "InChIKey") %>%
-    tidyr::pivot_longer(
-      cols = 2:ncol(.),
-      names_to = "adduct",
-      values_to = "mz"
-    ) %>%
-    dplyr::arrange(InChIKey) %>%
-    dplyr::left_join(
-      x = .,
-      y = biot_mass,
-      by = "InChIKey",
-      relationship = "many-to-one"
-    )
+  dplyr::relocate(mass, .before = "InChI")
 
-  biot_mass_len <- length(biot_mass$InChIKey) *
-    nrow(MetaboCoreUtils::adducts(polarity = snakemake@params$polarity))
+# row_id (plain, unique integers) is the join key back onto biot_mass below -
+# unambiguous, unlike trying to key on InChIKey/input directly (InChIKey
+# alone isn't unique anymore now that the same metabolite can come from
+# multiple inputs).
+biot_mets <- biot_mass$mass
+names(biot_mets) <- biot_mass$row_id
 
-  if (biot_mass_len != nrow(biot_final)) {
-    cli::cli_alert_danger(
-      "The transformation prediction dataframes are not the same length."
-    )
-  }
+biot_final <- MetaboCoreUtils::mass2mz(
+  x = biot_mets,
+  adduct = MetaboCoreUtils::adducts(polarity = snakemake@params$polarity)
+) %>%
+  tibble::as_tibble(., rownames = "row_id") %>%
+  dplyr::mutate(row_id = as.integer(row_id)) %>%
+  tidyr::pivot_longer(
+    cols = -row_id,
+    names_to = "adduct",
+    values_to = "mz"
+  ) %>%
+  dplyr::left_join(
+    x = .,
+    y = biot_mass,
+    by = "row_id",
+    relationship = "many-to-one"
+  ) %>%
+  dplyr::select(-row_id) %>%
+  dplyr::arrange(InChIKey)
 
-  def_tib <- xcms::featureDefinitions(xchr9) %>%
-    tibble::as_tibble(., rownames = "feature")
-  # biot_final = mass to mzs - > match the m/zs to the m/zs in the data
-  predicted_feats <- biot_final %>%
-    dplyr::inner_join(
-      x = .,
-      y = def_tib %>%
-        dplyr::mutate(
-          tol = MsCoreUtils::ppm(mzmed, snakemake@params$ppm_match),
-          mz_lo = mzmed - tol,
-          mz_hi = mzmed + tol
-        ) %>%
-        dplyr::relocate(c("mz_lo", "mz_hi"), .after = "feature"),
-      by = dplyr::join_by(dplyr::between(mz, mz_lo, mz_hi))
-    )
-  cli::cli_alert_success("Merged predicted features with feature definitions")
+biot_mass_len <- length(biot_mass$InChIKey) *
+  nrow(MetaboCoreUtils::adducts(polarity = snakemake@params$polarity))
 
-  readr::write_csv(
-    x = predicted_feats,
-    file = predicted_feats_path
-  )
-  cli::cli_alert_success(
-    paste0(
-      "Saved biotransformer predicted features to: ",
-      "{.path {predicted_feats_path}}"
-    )
+if (biot_mass_len != nrow(biot_final)) {
+  cli::cli_alert_danger(
+    "The transformation prediction dataframes are not the same length."
   )
 }
+
+def_tib <- xcms::featureDefinitions(xchr9) %>%
+  tibble::as_tibble(., rownames = "feature")
+# biot_final = mass to mzs - > match the m/zs to the m/zs in the data
+predicted_feats <- biot_final %>%
+  dplyr::inner_join(
+    x = .,
+    y = def_tib %>%
+      dplyr::mutate(
+        tol = MsCoreUtils::ppm(mzmed, snakemake@params$ppm_match),
+        mz_lo = mzmed - tol,
+        mz_hi = mzmed + tol
+      ) %>%
+      dplyr::relocate(c("mz_lo", "mz_hi"), .after = "feature"),
+    by = dplyr::join_by(dplyr::between(mz, mz_lo, mz_hi))
+  )
+cli::cli_alert_success("Merged predicted features with feature definitions")
+
+readr::write_csv(
+  x = predicted_feats,
+  file = predicted_feats_path
+)
+cli::cli_alert_success(
+  paste0(
+    "Saved biotransformer predicted features to: ",
+    "{.path {predicted_feats_path}}"
+  )
+)
 
 pred_peak_ids <- sort(unique(predicted_feats$feature))
 
 pred_chrs_path <- file.path(
-  snakemake@params$output,
-  "objects",
-  "pred_chrs.rds"
+snakemake@params$output,
+"objects",
+"pred_chrs.rds"
 )
-if (interactive() && file.exists(pred_chrs_path)) {
-  pred_chrs <- readRDS(pred_chrs_path)
-  cli::cli_alert_success(
-    paste0(
-      "Imported biotransformer predicted feature chromatograms from: ",
-      "{.path {pred_chrs_path}}"
-    )
+
+cli::cli_alert_info(
+  paste0(
+    "Generating chromatograms for annotated ",
+    "biotransformer predicted features"
   )
-} else {
-  cli::cli_alert_info(
-    paste0(
-      "Generating chromatograms for annotated ",
-      "biotransformer predicted features"
-    )
+)
+pred_chrs <- xcms::featureChromatograms(
+  BPPARAM = BiocParallel::SerialParam(),
+  chunkSize = 1L,
+  object = xchr9,
+  expandRt = 0,
+  expandMz = 0,
+  aggregationFun = "sum",
+  filled = TRUE,
+  features = pred_peak_ids,
+  missing = 0,
+  return.type = "XChromatograms"
+)
+saveRDS(
+  object = pred_chrs,
+  file = pred_chrs_path
+)
+cli::cli_alert_success(
+  paste0(
+    "Saved biotransformer predicted feature chromatograms: ",
+    "{.path {pred_chrs_path}}"
   )
-  pred_chrs <- xcms::featureChromatograms(
-    BPPARAM = BiocParallel::SerialParam(),
-    chunkSize = 1L,
-    object = xchr9,
-    expandRt = 0,
-    expandMz = 0,
-    aggregationFun = "sum",
-    filled = TRUE,
-    features = pred_peak_ids,
-    missing = 0,
-    return.type = "XChromatograms"
-  )
-  saveRDS(
-    object = pred_chrs,
-    file = pred_chrs_path
-  )
-  cli::cli_alert_success(
-    paste0(
-      "Saved biotransformer predicted feature chromatograms: ",
-      "{.path {pred_chrs_path}}"
-    )
-  )
-}
+)
 
 # ==============================================================================
 # Snakesave --------------------------------------------------------------------
