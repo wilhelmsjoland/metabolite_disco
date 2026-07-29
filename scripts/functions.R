@@ -1,3 +1,12 @@
+# Snakemake runs rule scripts via `Rscript --vanilla`, which skips
+# .Rprofile/.Renviron entirely - renv's own activation (normally triggered by
+# .Rprofile sourcing this) would never run, leaving every renv-installed
+# package invisible. Activate explicitly here instead, since this file is
+# source()'d first by every pipeline script regardless of --vanilla.
+if (file.exists("renv/activate.R")) {
+  source("renv/activate.R")
+}
+
 import_mzml <- function(
   data_path = NULL,
   meta_file = NULL
