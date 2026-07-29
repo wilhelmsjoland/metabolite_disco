@@ -90,4 +90,6 @@ saveRDS(
   object = list(res = res),
   file = snakemake@output[[1]]
 )
+
+script_footer()
 end_log()

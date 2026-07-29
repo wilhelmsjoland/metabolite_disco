@@ -2,7 +2,7 @@
 authors = ["Wilhelm Sjöland <wilhelmsjoland@gmail.com>"]
 channels = ["conda-forge", "bioconda"]
 name = "metabolite_disco"
-platforms = ["osx-64"] # was osx-arm64 — switched because rcdk/rJava/this.path have no arm64 builds
+platforms = ["osx-arm64"] # was osx-arm64 — switched because rcdk/rJava/this.path have no arm64 builds
 version = "0.1.0"
 
 [tasks]
@@ -30,8 +30,6 @@ r-stringr = "==1.6.0"
 r-tidyselect = "==1.2.1"
 r-future = "==1.69.0"
 "r-future.apply" = "==1.20.2"
-r-rcdk = "==3.8.2"
-r-fingerprint = "==3.5.7"
 r-rjava = "==1.0.11"
 r-cowplot = "==1.2.0"
 r-ggpubr = "==0.6.3"

@@ -1286,7 +1286,16 @@ script_header <- function() {
     basename(snakemake@output[[1]])
   )
   timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-  cli::cli_h1("{rule_name} {.emph {timestamp}}")
+  cli::cli_h1("START: {rule_name} {.emph {timestamp}}")
+}
+
+script_footer <- function() {
+  rule_name <- gsub(
+    "\\d+_|\\.rds$", "",
+    basename(snakemake@output[[1]])
+  )
+  timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  cli::cli_h1("FINISH: {rule_name} {.emph {timestamp}}")
 }
 
 
@@ -1316,7 +1325,7 @@ start_pipeline_msg <- function() {
       " " = "",
       "i" = "Creator: {.emph Wilhelm Sjöland}",
       "i" = "Email: {.email wilhelm.sjoland@wlab.gu.se}",
-      "i" = "Version: {.val {0.1}}",
+      "i" = "Version: {.val {0.2}}",
       "i" = "Started pipeline: {.time {format(Sys.time())}}"
       # "i" = "A URL: {.url https://acme.com}"
     )

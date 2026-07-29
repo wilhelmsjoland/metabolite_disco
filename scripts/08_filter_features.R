@@ -115,4 +115,6 @@ saveRDS(
   object = list(xchr9 = xchr9, xchr9_filt = xchr9_filt),
   file = snakemake@output[[1]]
 )
+
+script_footer()
 end_log()

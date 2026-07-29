@@ -139,4 +139,6 @@ saveRDS(
   ),
   file = snakemake@output[[1]]
 )
+
+script_footer()
 end_log()

@@ -231,4 +231,6 @@ saveRDS(
   object = list(xchr7 = xchr7),
   file = snakemake@output[[1]]
 )
+
+script_footer()
 end_log()
