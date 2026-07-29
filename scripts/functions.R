@@ -1290,23 +1290,20 @@ start_log <- function(output_folder = NULL) {
 }
 
 script_header <- function() {
-  rule_name <- gsub(
-    "\\d+_|\\.rds$", "",
-    basename(snakemake@output[[1]])
-  )
+  rule_name <- sub("^[^.]*\\.", "", snakemake@rule)
   timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-  cli::cli_h1("START: {rule_name} {.emph {timestamp}}")
+  cli::cli_h1(
+    "{START: .file {rule_name}} {.emph {timestamp}}"
+  )
 }
 
 script_footer <- function() {
-  rule_name <- gsub(
-    "\\d+_|\\.rds$", "",
-    basename(snakemake@output[[1]])
-  )
+  rule_name <- sub("^[^.]*\\.", "", snakemake@rule)
   timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-  cli::cli_h1("FINISH: {rule_name} {.emph {timestamp}}")
+  cli::cli_h1(
+    "{FINISH: .file {rule_name}} {.emph {timestamp}}"
+  )
 }
-
 
 end_log <- function() {
   # cli::cli_alert_success(
@@ -1608,14 +1605,6 @@ retry_on_error <- function(expr, max_tries = 5) {
     if (result$ok) return(result$value)
   }
   cli::cli_abort("Failed after {max_tries} attempts")
-}
-
-script_header <- function() {
-  rule_name <- sub("^[^.]*\\.", "", snakemake@rule)
-  timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-  cli::cli_h1(
-    "{.file {rule_name}} {.emph {timestamp}}"
-  )
 }
 
 get_chr_data <- function(chrs, feature_name, meta) {
