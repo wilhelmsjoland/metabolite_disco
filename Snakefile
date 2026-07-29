@@ -285,7 +285,6 @@ rule biotransformer:
     params:
         output = config["output"],
         smiles = config["smiles"],
-        biot_dir = config["biot_dir"],
         polarity = config["polarity"],
         ppm_match = config["ppm_match"],
         seed = config["seed"],

@@ -55,7 +55,7 @@ if (interactive() && file.exists(prediction_path)) {
     )
   )
   run_biotransformer(
-    bt_dir = snakemake@params$biot_dir,
+    bt_dir = "biotransformer3.0jar",
     smiles = snakemake@params$smiles,
     b_type = "superbio",
     k_task = "pred",
