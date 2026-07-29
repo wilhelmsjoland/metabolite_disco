@@ -98,6 +98,7 @@ biot_dedup <- biot_pred %>%
   )
 
 biot_mass <- biot_dedup %>%
+  dplyr::ungroup() %>% # changed so row_number is consistent - check!!!!!
   dplyr::mutate(
     mass = MetaboCoreUtils::calculateMass(`Molecular formula`),
     row_id = dplyr::row_number()
