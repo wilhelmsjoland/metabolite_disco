@@ -1,4 +1,5 @@
 *.DS_Store
+.DS_Store
 /01_sent_to_me
 /02_manually_produced
 /99_arkiv
@@ -22,6 +23,7 @@
 *.svg
 *.bat
 .snakemake/
+.pixi/
 glycone_list.xlsx
 example_config.yaml
 012626_FASI PR_LL.pptx
