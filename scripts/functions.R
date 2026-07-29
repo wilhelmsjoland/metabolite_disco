@@ -3,7 +3,10 @@
 # .Rprofile sourcing this) would never run, leaving every renv-installed
 # package invisible. Activate explicitly here instead, since this file is
 # source()'d first by every pipeline script regardless of --vanilla.
-if (file.exists("renv/activate.R")) {
+# Only do this under pixi (PIXI_PROJECT_ROOT only set when pixi activated the
+# environment) - otherwise testing with a plain system R would also trigger
+# renv, installing packages there that aren't wanted outside the pixi env.
+if (Sys.getenv("PIXI_PROJECT_ROOT") != "" && file.exists("renv/activate.R")) {
   source("renv/activate.R")
 }
 
