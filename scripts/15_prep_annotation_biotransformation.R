@@ -67,7 +67,7 @@ possible_adducts <- MetaboCoreUtils::mz2mass(
 if (nrow(xchr9_defs) * 17 == nrow(possible_adducts)) {
   cli::cli_alert_success("Adducts expanded")
 } else {
-  cli::cli_alert_danger("Adducts did not correctly expanded")
+  cli::cli_alert_danger("Adducts did not correctly expand")
 }
 
 cli::cli_progress_step("Import biotransformation file")
