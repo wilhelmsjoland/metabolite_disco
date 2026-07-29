@@ -72,7 +72,7 @@ if (nrow(xchr9_defs) * 17 == nrow(possible_adducts)) {
 
 cli::cli_progress_step("Import biotransformation file")
 bio_transf <- import_biotransform_meta(
-  file = file.path(snakemake@params$biotransf_file)
+  file = file.path(snakemake@params$mass_shift_path)
 )
 cli::cli_progress_done()
 

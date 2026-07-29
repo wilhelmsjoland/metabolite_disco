@@ -139,7 +139,7 @@ cli::cli_bullets(
   c(
     "i" = "Predicting subset of potential biotransformations based on: ",
     # below: + the other kegg stuff
-    "i" = "\tdatabase: {.val {snakemake@params$biotransf_file}}",
+    "i" = "\tdatabase: {.val {snakemake@params$mass_shift_path}}",
     "i" = "\tppm: {.val {snakemake@params$ppm_match}}"
   )
 )
@@ -204,7 +204,7 @@ if (snakemake@params$all_vs_all) {
     c(
       "i" = "Predicting all potential biotransformations based on: ",
       # + the other kegg stuff
-      "i" = "\tdatabase: {.val {snakemake@params$biotransf_file}}",
+      "i" = "\tdatabase: {.val {snakemake@params$mass_shift_path}}",
       "i" = "\tppm: {.val {snakemake@params$ppm_match}}"
     )
   )
