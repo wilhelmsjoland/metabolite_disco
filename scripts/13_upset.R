@@ -15,6 +15,8 @@ suppressWarnings(
     library(tidyr)
     library(tibble)
     library(ComplexHeatmap)
+    library(RSQLite)
+    library(MsBackendSql)
   })
 )
 

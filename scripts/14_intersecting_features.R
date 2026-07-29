@@ -16,6 +16,8 @@ suppressWarnings(
     library(purrr)
     library(ComplexHeatmap)
     library(dplyr)
+    library(RSQLite)
+    library(MsBackendSql)
   })
 )
 
