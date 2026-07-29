@@ -1594,7 +1594,7 @@ run_biotransformer <- function(
 # surfaces as "Sizes of mz and intensity arrays don't match" during bulk
 # reads from mzML files (sneumann/xcms#422). Retrying the same read succeeds
 # in practice, so this wraps a read-like call and retries it on failure.
-retry_on_error <- function(expr, max_tries = 5) {
+retry_on_error <- function(expr, max_tries = 10) {
   for (attempt in seq_len(max_tries)) {
     result <- tryCatch(
       list(value = eval(expr), ok = TRUE),
