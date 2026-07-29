@@ -79,10 +79,6 @@ experiments %>%
         ppm_match = 5,
         all_vs_all = FALSE,
         smiles = mol_info$aglycone_SMILES,
-        biot_dir = paste0(
-          "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/",
-          "biotransformer3.0jar"
-        ),
         seed = 123,
         cores = 6
       )
