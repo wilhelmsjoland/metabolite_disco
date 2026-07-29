@@ -5,7 +5,6 @@ source("scripts/functions.R")
 dir.create(snakemake@params$output, FALSE, TRUE)
 start_log(snakemake@params$output)
 
-library(this.path)
 library(cli)
 set.seed(snakemake@params$seed)
 register_parallel(snakemake@params$cores)
@@ -31,7 +30,6 @@ cli::cli_rule()
 cli::cli_alert_info("Loading libraries")
 suppressWarnings(
   suppressPackageStartupMessages({
-    library(cli)
     library(BiocParallel)
     library(dplyr)
     library(purrr)
