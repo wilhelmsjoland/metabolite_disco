@@ -187,6 +187,21 @@ glycone_pairs <- readxl::read_xlsx(
 
 # Make pairs for metadata
 glycone_pairs_metadata <- glycone_pairs %>%
+  dplyr::rename(
+    "glycoside_unclean" = "glycoside",
+    "aglycone_unclean" = "aglycone"
+  ) %>%
+  dplyr::mutate(
+    dplyr::across(
+      .cols = c("glycoside_unclean", "aglycone_unclean"),
+      .fns = ~ janitor::make_clean_names(
+        string = .,
+        case = "snake",
+        allow_dupes = TRUE
+      ),
+      .names = "{stringr::str_remove_all(.col, '_unclean')}"
+    )
+  ) %>%
   dplyr::left_join(
     x = .,
     y = glycone_info %>%
@@ -227,6 +242,8 @@ glycone_pairs_metadata <- glycone_pairs %>%
     c(
       "glycoside",
       "aglycone",
+      "glycoside_unclean",
+      "aglycone_unclean",
       "glycoside_form",
       "aglycone_form",
       "glycoside_SMILES",

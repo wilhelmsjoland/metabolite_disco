@@ -34,7 +34,7 @@ experiments %>%
       mol_info <- glycone_pairs_metadata %>%
         dplyr::filter(
           glycoside == unique(
-            .x$unclean_condition[.x$condition != "ycfa_glucose"]
+            .x$condition[.x$condition != "ycfa_glucose"]
           )
         )
 
@@ -65,20 +65,19 @@ experiments %>%
         gap_filling = "norm_fill_imp",
         qvalue = 0.05,
         polarity = "negative",
-        biotransf_file = paste0(
-          "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/",
-          "input/experiment/biotransformations/",
-          "biotransformations.csv"
-        ),
-        rpairs_path = paste0(
-          "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/",
-          "scripts/search_compounds/output/rpairs.tsv"
-        ),
+        mass_shift_path = "mass_shift/mass_shifts.csv",
+        rpairs_path = "mass_shift/rpairs.tsv",
         glycoside = mol_info$glycoside_form,
         aglycone = mol_info$aglycone_form,
         ppm_match = 5,
         all_vs_all = FALSE,
-        smiles = mol_info$aglycone_SMILES,
+        smiles = paste0(
+          mol_info$aglycone, ",",
+          mol_info$aglycone_SMILES,
+          ";",
+          mol_info$glycoside, ",",
+          mol_info$glycoside_SMILES
+        ),
         seed = 123,
         cores = 6
       )
