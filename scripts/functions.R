@@ -1293,7 +1293,7 @@ script_header <- function() {
   rule_name <- sub("^[^.]*\\.", "", snakemake@rule)
   timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
   cli::cli_h1(
-    "{START: .file {rule_name}} {.emph {timestamp}}"
+    "START: {.file {rule_name}} {.emph {timestamp}}"
   )
 }
 
@@ -1301,7 +1301,7 @@ script_footer <- function() {
   rule_name <- sub("^[^.]*\\.", "", snakemake@rule)
   timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
   cli::cli_h1(
-    "{FINISH: .file {rule_name}} {.emph {timestamp}}"
+    "FINISH: {.file {rule_name}} {.emph {timestamp}}"
   )
 }
 
