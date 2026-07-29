@@ -300,7 +300,6 @@ rule filter_matches:
         f"{config['output']}/snakemake_objects/19_filter_matches.rds"
     params:
         output = config["output"],
-        smiles = config["smiles"],
         seed = config["seed"],
         cores = config["cores"]
     script:
