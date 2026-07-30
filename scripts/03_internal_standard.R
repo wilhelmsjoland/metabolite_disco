@@ -283,8 +283,8 @@ is_peaks <- tibble::as_tibble(
 # Max: 2-4x times the average size
 is_min_peak_width <- min(is_peaks$delta_rt, na.rm = TRUE)
 is_max_peak_width <- max(is_peaks$delta_rt, na.rm = TRUE)
-min_peak_width <- unname(quantile(is_peaks$delta_rt, 0.05, na.rm = TRUE) * 0.3)
-max_peak_width <- unname(quantile(is_peaks$delta_rt, 0.95, na.rm = TRUE) * 4)
+min_peak_width <- unname(quantile(is_peaks$delta_rt, 0.05, na.rm = TRUE) * 0.1)
+max_peak_width <- unname(quantile(is_peaks$delta_rt, 0.95, na.rm = TRUE) * 8)
 
 cli::cli_ul("Internal standard: {snakemake@params$internal_standard}")
 cli::cli_ul("Internal standard adduct: {snakemake@params$is_adduct}")
