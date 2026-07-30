@@ -17,6 +17,7 @@ suppressWarnings(
     library(purrr)
     library(RSQLite)
     library(MsBackendSql)
+    library(httr2)
   })
 )
 
@@ -66,6 +67,20 @@ if (interactive() && file.exists(anno_sims_final_path)) {
     }
   )
 
+  pubchem_req <- httr2::request(
+    paste0(
+      "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchikey/",
+      "property/Title,MolecularFormula,InChIKey,ExactMass,XLogP,TPSA/CSV"
+    )
+  ) %>%
+    # PubChem PUG REST usage policy: no more than 5 requests/second
+    httr2::req_throttle(capacity = 5, fill_time_s = 1) %>%
+    httr2::req_retry(
+      max_tries = 5,
+      is_transient = \(resp) httr2::resp_status(resp) == 503,
+      backoff = \(i) 2^i
+    )
+
   cli::cli_progress_step(
     paste0(
       "Annotating dataframes with info from pubchem"
@@ -73,18 +88,12 @@ if (interactive() && file.exists(anno_sims_final_path)) {
   )
   full_inchikey_map <- tibble::tibble()
   for (i in seq_along(inchi_ks)) {
-    cmd <- paste0(
-      "curl -s -d \"inchikey=", inchi_ks[[i]], "\" ",
-      "\"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchikey/property/",
-      "Title,MolecularFormula,InChIKey,ExactMass,XLogP,TPSA/",
-      "CSV\""
-    )
-    results <- system(cmd, intern = TRUE)
-    inchikey_map <- readr::read_csv(
-      file = I(results),
-      show_col_types = FALSE,
-      progress = FALSE
-    )
+    resp <- pubchem_req %>%
+      httr2::req_body_form(inchikey = inchi_ks[[i]]) %>%
+      httr2::req_perform()
+
+    inchikey_map <- httr2::resp_body_string(resp) %>%
+      readr::read_csv(show_col_types = FALSE, progress = FALSE)
 
     full_inchikey_map <- dplyr::bind_rows(full_inchikey_map, inchikey_map)
   }
