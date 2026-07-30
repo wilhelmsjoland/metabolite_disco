@@ -177,6 +177,7 @@ rule pca:
         setup = f"{config['output']}/snakemake_objects/01_setup.rds"
     output:
         f"{config['output']}/snakemake_objects/11_pca.rds"
+    threads: 1
     params:
         output = config["output"],
         seed = config["seed"],
@@ -189,6 +190,7 @@ rule volcano:
         limma = f"{config['output']}/snakemake_objects/10_limma.rds"
     output:
         f"{config['output']}/snakemake_objects/12_volcano.rds"
+    threads: 1
     params:
         output = config["output"],
         qvalue = config["qvalue"],
@@ -203,6 +205,7 @@ rule upset:
         limma = rules.limma.output[0]
     output:
         f"{config['output']}/snakemake_objects/13_upset.rds"
+    threads: 1
     params:
         output = config["output"],
         qvalue = config["qvalue"],
@@ -217,6 +220,7 @@ rule intersecting_features:
         upset = rules.upset.output[0]
     output:
         f"{config['output']}/snakemake_objects/14_intersecting_features.rds"
+    threads: 1
     params:
         output = config["output"],
         seed = config["seed"],
@@ -230,6 +234,7 @@ rule prep_annotation_biotransformation:
         limma = rules.limma.output[0]
     output:
         f"{config['output']}/snakemake_objects/15_prep_annotation_biotransformation.rds"
+    threads: 1
     params:
         output = config["output"],
         data_path = config["data_path"],
@@ -248,6 +253,7 @@ rule mz_predictions:
         prep_biot = rules.prep_annotation_biotransformation.output[0]
     output:
         f"{config['output']}/snakemake_objects/16_mz_predictions.rds"
+    threads: config["cores"]
     params:
         output = config["output"],
         glycoside = config["glycoside"],
@@ -268,6 +274,7 @@ rule annotation:
         filter_features = rules.filter_features.output[0]
     output:
         f"{config['output']}/snakemake_objects/17_annotation.rds"
+    threads: config["cores"]
     params:
         output = config["output"],
         polarity = config["polarity"],
@@ -282,6 +289,9 @@ rule biotransformer:
         filter_features = rules.filter_features.output[0]
     output:
         f"{config['output']}/snakemake_objects/18_biotransformer.rds"
+    # One process per molecule (see scripts/18_biotransformer.R) - never
+    # needs more threads than there are SMILES strings to predict from
+    threads: min(config["cores"], len(config["smiles"].split(";")))
     params:
         output = config["output"],
         smiles = config["smiles"],
@@ -298,6 +308,7 @@ rule filter_matches:
         biotransformer = rules.biotransformer.output[0]
     output:
         f"{config['output']}/snakemake_objects/19_filter_matches.rds"
+    threads: 1
     params:
         output = config["output"],
         seed = config["seed"],
