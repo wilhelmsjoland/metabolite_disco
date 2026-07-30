@@ -52,6 +52,12 @@ cli::cli_alert_info(
     "with biotransformer.jar (in parallel, one process per molecule)"
   )
 )
+# One process per molecule -- more workers than SMILES strings just spawns
+# processes with nothing to do
+BiocParallel::bpworkers(bp) <- min(
+  BiocParallel::bpworkers(bp),
+  length(smiles_vec)
+)
 biot_pred <- BiocParallel::bplapply(
   X = names(smiles_vec),
   FUN = function(mol_name) {
