@@ -78,6 +78,7 @@ experiments %>%
           mol_info$glycoside, ",",
           mol_info$glycoside_SMILES
         ),
+        annotate_path = "/Volumes/bluecub/databases/pubchem/260730_pubchem.db",
         seed = 123,
         cores = 6
       )
