@@ -19,6 +19,8 @@
 /anteckningar
 /analyses/old/
 /testing
+/script_tools/test_sqlite_db.R
+/script_tools/__pycache__/
 *.html
 *.pdf
 *.svg
