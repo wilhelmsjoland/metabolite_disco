@@ -18,6 +18,7 @@
 /tmp
 /anteckningar
 /analyses/old/
+/testing
 *.html
 *.pdf
 *.svg
