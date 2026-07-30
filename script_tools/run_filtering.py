@@ -74,6 +74,8 @@ for idx, row in run_df.iterrows():
     # groups = ",".join(exp_groups)
     groups = ",".join(f"{g}" for g in exp_groups)
 
+    # Add a script that checks similarity here....
+
     run_subprocess(
         f"Rscript script_tools/filter_features.R \
         --input {input_dir} \
