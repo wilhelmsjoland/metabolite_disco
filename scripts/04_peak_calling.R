@@ -89,9 +89,6 @@ param_msg(xchr_params)
 # ==============================================================================
 cli::cli_h3("Inspecting peaks with the largest area for each sample")
 peaks_to_inspect <- tibble::as_tibble(chromPeaks(xchr), rownames = "peak") %>%
-  tidyr::drop_na(beta_cor, beta_snr) %>%
-  dplyr::filter(beta_cor >= snakemake@params$beta_cor_threshold) %>%
-  dplyr::filter(beta_snr >= snakemake@params$beta_snr_threshold) %>%
   dplyr::arrange(desc(into)) %>%
   # Keeps the top peak for every sample
   dplyr::distinct(sample, .keep_all = TRUE) %>%

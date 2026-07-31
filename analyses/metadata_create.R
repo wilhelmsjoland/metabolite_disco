@@ -53,8 +53,8 @@ experiments %>%
         ppm_global = 25,
         sn_threshold = 10,
         mzdiff = 0.01,
-        beta_cor_threshold = 0.8,
-        beta_snr_threshold = 3,
+        # beta_cor_threshold = 0.8, # old
+        # beta_snr_threshold = 3, # old
         bw_first_grouping = 3,
         peak_anchor_sd = 2,
         min_fraction_align = 0.9,

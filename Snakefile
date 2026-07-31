@@ -73,8 +73,6 @@ rule peak_calling:
         ppm_global = config["ppm_global"],
         sn_threshold = config["sn_threshold"],
         mzdiff = config["mzdiff"],
-        beta_cor_threshold = config["beta_cor_threshold"],
-        beta_snr_threshold = config["beta_snr_threshold"],
         seed = config["seed"],
         cores = config["cores"]
     script:
@@ -138,8 +136,6 @@ rule filter_features:
         output = config["output"],
         missingness = config["missingness"],
         sn_threshold = config["sn_threshold"],
-        beta_cor_threshold = config["beta_cor_threshold"],
-        beta_snr_threshold = config["beta_snr_threshold"],
         seed = config["seed"],
         cores = config["cores"]
     script:
