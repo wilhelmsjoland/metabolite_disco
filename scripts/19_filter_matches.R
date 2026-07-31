@@ -152,7 +152,7 @@ if (interactive() && file.exists(chem_pred_feats_path)) {
     dplyr::relocate(met_id, .before = "inchikey") %>%
     # Here don't need unique since it's not matched against a db
     # so shouldnt have duplicates for the same feature and adduct
-    dplyr::group_by(feature, adduct) %>%
+    dplyr::group_by(feature, adduct, input) %>%
     dplyr::distinct(inchikey, .keep_all = TRUE)
 
   readr::write_csv(
