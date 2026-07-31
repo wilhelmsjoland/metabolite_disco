@@ -146,27 +146,46 @@ glycone_list <- readxl::read_xlsx(
 
 inchis <- glycone_list$InChI[!is.na(glycone_list$InChI)]
 
-# pubchem_info <- inchis %>%
-#   purrr::map(
-#     .f = ~ {
-#       resp <- httr::POST(
-#         url = paste0(
-#           "https://pubchem.ncbi.nlm.nih.gov",
-#           "/rest/pug/compound/inchi/property/",
-#           "Title,MolecularFormula,InChIKey,InChI",
-#           ",ExactMass,XLogP,TPSA,IsomericSMILES/CSV"
-#         ),
-#         body = list(inchi = .x),
-#         encode = "form"
-#       )
-#       readr::read_csv(
-#         I(httr::content(resp, as = "text", encoding = "UTF-8")),
-#         show_col_types = FALSE,
-#         progress = FALSE
-#       )
-#     }
-#   ) %>%
-#   dplyr::bind_rows()
+pubchem_info_path <- file.path(
+  "molekyler",
+  "information",
+  "pubchem_info.csv"
+)
+
+if (!file.exists(pubchem_info_path)) {
+  pubchem_info <- inchis %>%
+    purrr::map(
+      .f = ~ {
+        resp <- httr::POST(
+          url = paste0(
+            "https://pubchem.ncbi.nlm.nih.gov",
+            "/rest/pug/compound/inchi/property/",
+            "Title,MolecularFormula,InChIKey,InChI",
+            ",ExactMass,XLogP,TPSA,IsomericSMILES/CSV"
+          ),
+          body = list(inchi = .x),
+          encode = "form"
+        )
+        readr::read_csv(
+          I(httr::content(resp, as = "text", encoding = "UTF-8")),
+          show_col_types = FALSE,
+          progress = FALSE
+        )
+      }
+    ) %>%
+    dplyr::bind_rows()
+
+  readr::write_csv(
+    x = pubchem_info,
+    file = pubchem_info_path,
+  )
+} else {
+  pubchem_info <- readr::read_csv(
+    file = pubchem_info_path,
+    show_col_types = FALSE,
+    progress = FALSE
+  )
+}
 
 glycone_info <- glycone_list %>%
   dplyr::left_join(

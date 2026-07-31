@@ -1,5 +1,5 @@
 # Run
-# source(analyses/metadata_prep.R)
+source("analyses/metadata_prep.R")
 # Manually run -> analyses/check_tics.R and add to excel file
 # I do it manually to not resave this by mistake later
 
@@ -67,8 +67,11 @@ experiments %>%
         polarity = "negative",
         mass_shift_path = "mass_shift/mass_shifts.csv",
         rpairs_path = "mass_shift/rpairs.tsv",
-        glycoside = mol_info$glycoside_form,
-        aglycone = mol_info$aglycone_form,
+        metabolite_search = paste0(
+          mol_info$glycoside_form,
+          ";",
+          mol_info$aglycone_form
+        ),
         ppm_match = 5,
         all_vs_all = FALSE,
         smiles = paste0(
