@@ -298,7 +298,8 @@ rule biotransformer:
         polarity = config["polarity"],
         ppm_match = config["ppm_match"],
         seed = config["seed"],
-        cores = config["cores"]
+        cores = config["cores"],
+        annotate_path = config.get("annotate_path")
     script:
         "scripts/18_biotransformer.R"
 
@@ -312,6 +313,7 @@ rule filter_matches:
     params:
         output = config["output"],
         seed = config["seed"],
-        cores = config["cores"]
+        cores = config["cores"],
+        annotate_path = config.get("annotate_path")
     script:
         "scripts/19_filter_matches.R"

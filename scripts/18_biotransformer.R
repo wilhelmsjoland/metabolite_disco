@@ -14,6 +14,7 @@ suppressWarnings(
     library(dplyr)
     library(tibble)
     library(tidyr)
+    library(dplyr)
     library(readr)
     library(MetaboCoreUtils)
     library(MsCoreUtils)
@@ -67,17 +68,21 @@ biot_pred <- BiocParallel::bplapply(
       b_type = "superbio",
       k_task = "pred",
       output_file = paste0("prediction_", mol_name),
-      results_path = output_dir
+      results_path = output_dir,
+      annotate_path = snakemake@params$annotate_path
     )
+
     readr::read_csv(
       file = prediction_path(mol_name, output_dir),
       show_col_types = FALSE,
       progress = FALSE
     ) %>%
-      dplyr::mutate(input = mol_name)
+      dplyr::mutate(input = mol_name) %>%
+      dplyr::rename("inchikey" = "InChIKey")
   },
   BPPARAM = bp
-) %>% dplyr::bind_rows()
+) %>%
+  dplyr::bind_rows()
 
 cli::cli_alert_success(
   paste0(
@@ -88,16 +93,16 @@ cli::cli_alert_success(
 
 cli::cli_alert_success("Merging predicted features with feature definitions")
 predicted_feats_path <- file.path(
-snakemake@params$output,
-"tables",
-"predicted_annotated_feats.csv"
+  snakemake@params$output,
+  "tables",
+  "predicted_annotated_feats.csv"
 )
 
 biot_dedup <- biot_pred %>%
-  dplyr::group_by(InChIKey, input) %>%
+  dplyr::group_by(inchikey, input) %>%
   dplyr::summarize(
     dplyr::across(
-      .cols = setdiff(colnames(.), c("InChIKey", "input")),
+      .cols = setdiff(colnames(.), c("inchikey", "input")),
       .fns  = ~ paste(unique(.x), collapse = ", ")
     ),
     .groups = "keep"
@@ -136,9 +141,9 @@ biot_final <- MetaboCoreUtils::mass2mz(
     relationship = "many-to-one"
   ) %>%
   dplyr::select(-row_id) %>%
-  dplyr::arrange(InChIKey)
+  dplyr::arrange(inchikey)
 
-biot_mass_len <- length(biot_mass$InChIKey) *
+biot_mass_len <- length(biot_mass$inchikey) *
   nrow(MetaboCoreUtils::adducts(polarity = snakemake@params$polarity))
 
 if (biot_mass_len != nrow(biot_final)) {
@@ -178,9 +183,9 @@ cli::cli_alert_success(
 pred_peak_ids <- sort(unique(predicted_feats$feature))
 
 pred_chrs_path <- file.path(
-snakemake@params$output,
-"objects",
-"pred_chrs.rds"
+  snakemake@params$output,
+  "objects",
+  "pred_chrs.rds"
 )
 
 cli::cli_alert_info(

@@ -1277,7 +1277,7 @@ start_log <- function(output_folder = NULL) {
   )
 
   if (!interactive()) {
-    log_file <- file.path(
+    pipeline_log_shared_path <<- file.path(
       output_folder,
       "logs",
       paste0(
@@ -1286,9 +1286,52 @@ start_log <- function(output_folder = NULL) {
         ".log"
       )
     )
-    con <<- file(log_file, open = "at", encoding = "UTF-8")
-    sink(con, type = "output", append = TRUE)
-    sink(con, type = "message", append = TRUE)
+    # Each rule writes to its own private log while running, so concurrent
+    # rules never interleave mid-run - it's only merged into the shared log
+    # as one contiguous block when this rule finishes (flush_pipeline_log).
+    # Named with a pipeline_log_ prefix (not just "con") since these are
+    # global variables in a script sourced at the top level - a generic
+    # name here can silently collide with any `con <- ...` a script writes
+    # for its own purposes (e.g. a DB connection), which then breaks
+    # cleanup and masks the real error behind a confusing second one.
+    pipeline_log_private_path <<- tempfile(fileext = ".log")
+    pipeline_log_con <<- file(
+      pipeline_log_private_path,
+      open = "at",
+      encoding = "UTF-8"
+    )
+    sink(pipeline_log_con, type = "output", append = TRUE)
+    sink(pipeline_log_con, type = "message", append = TRUE)
+
+    # on.exit() can't help here - it only fires when the enclosing function
+    # returns, not when the whole script crashes. options(error = ...) is
+    # R's actual hook for "run this on any uncaught error", which is what
+    # guarantees a crash still gets flushed into the shared log.
+    options(
+      error = quote({
+        flush_pipeline_log()
+        quit(save = "no", status = 1)
+      })
+    )
+  }
+}
+
+flush_pipeline_log <- function() {
+  if (!interactive()) {
+    sink(type = "message")
+    sink(type = "output")
+    close(pipeline_log_con)
+
+    # single bulk append so rules finishing around the same time don't
+    # interleave the way continuous real-time writes did
+    cat(
+      readLines(pipeline_log_private_path, warn = FALSE),
+      "",
+      file = pipeline_log_shared_path,
+      sep = "\n",
+      append = TRUE
+    )
+    unlink(pipeline_log_private_path)
   }
 }
 
@@ -1313,11 +1356,7 @@ end_log <- function() {
   #   "Pipeline finished on {.time {format(Sys.time())}}"
   # )
 
-  if (!interactive()) {
-    sink(type = "message")
-    sink(type = "output")
-    close(con)
-  }
+  flush_pipeline_log()
 
   options(
     cli.width = 220,
@@ -1561,7 +1600,8 @@ run_biotransformer <- function(
   b_type = "superbio",
   k_task = "pred", # pred for prediction, or cid for compound identification
   output_file = "prediction",
-  results_path = snakemake@params$output
+  results_path = snakemake@params$output,
+  annotate_path = NULL
 ) {
   old_wd <- getwd()
   new_wd <- normalizePath(bt_dir, mustWork = FALSE)
@@ -1572,22 +1612,71 @@ run_biotransformer <- function(
   clean_nm <- gsub("\\..*$", "", output_file)
 
   setwd(new_wd)
+
+  biot_args <- c(
+    "-jar", "BioTransformer3.0_20230525.jar",
+    "-k", k_task,
+    "-b", b_type,
+    # Needs shell quote
+    "-ismi", shQuote(smiles),
+    "-ocsv", shQuote(paste0(biot_output_loc, "/", clean_nm, ".csv"))
+  )
+  if (is.null(annotate_path)) {
+    biot_args <- c(biot_args, "-a")
+  }
+
   biot_output <- system2(
     command = "java",
-    args = c(
-      "-jar", "BioTransformer3.0_20230525.jar",
-      "-k", k_task,
-      "-b", b_type,
-      # Needs shell quote
-      "-ismi", shQuote(smiles),
-      "-ocsv", shQuote(paste0(biot_output_loc, "/", clean_nm, ".csv")),
-      "-a"
-    ),
+    args = biot_args,
     stdout = TRUE,
     stderr = TRUE
   )
+
   cat(biot_output, sep = "\n")
   setwd(old_wd)
+}
+
+fetch_pubchem_annotations <- function(inchikeys, batch_size = 500) {
+  unique_inchikeys <- unique(inchikeys)
+  inchi_ks_split <- split(
+    unique_inchikeys,
+    ceiling(seq_along(unique_inchikeys) / batch_size)
+  )
+  inchi_ks <- lapply(
+    X = inchi_ks_split,
+    FUN = function(x) {
+      paste0(x, collapse = ",")
+    }
+  )
+
+  pubchem_req <- httr2::request(
+    paste0(
+      "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchikey/",
+      "property/Title,MolecularFormula,InChIKey,ExactMass/CSV"
+    )
+  ) %>%
+    # PubChem PUG REST usage policy: no more than 5 requests/second
+    httr2::req_throttle(capacity = 5, fill_time_s = 1) %>%
+    httr2::req_retry(
+      max_tries = 5,
+      is_transient = \(resp) httr2::resp_status(resp) == 503,
+      backoff = \(i) 2^i
+    )
+
+  full_inchikey_map <- tibble::tibble()
+  for (i in seq_along(inchi_ks)) {
+    resp <- pubchem_req %>%
+      httr2::req_body_form(inchikey = inchi_ks[[i]]) %>%
+      httr2::req_perform()
+
+    inchikey_map <- httr2::resp_body_string(resp) %>%
+      readr::read_csv(show_col_types = FALSE, progress = FALSE)
+
+    full_inchikey_map <- dplyr::bind_rows(full_inchikey_map, inchikey_map)
+  }
+
+  full_inchikey_map %>%
+    dplyr::rename("inchikey" = "InChIKey")
 }
 
 # mzR/proteowizard has an intermittent macOS-only memory-corruption bug that
