@@ -56,11 +56,11 @@ experiments %>%
         # beta_cor_threshold = 0.8, # old
         # beta_snr_threshold = 3, # old
         bw_first_grouping = 3,
+        bw_second_grouping = 0.5,
         peak_anchor_sd = 2,
         min_fraction_align = 0.9,
         extra_peaks = 0,
         span = 0.6,
-        bw_second_grouping = 0.5,
         missingness = 50,
         gap_filling = "norm_fill_imp",
         qvalue = 0.05,
