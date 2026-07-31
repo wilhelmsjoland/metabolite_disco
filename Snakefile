@@ -256,8 +256,7 @@ rule mz_predictions:
     threads: config["cores"]
     params:
         output = config["output"],
-        glycoside = config["glycoside"],
-        aglycone = config["aglycone"],
+        metabolite_search = config["metabolite_search"],
         polarity = config["polarity"],
         mass_shift_path = config["mass_shift_path"],
         ppm_match = config["ppm_match"],

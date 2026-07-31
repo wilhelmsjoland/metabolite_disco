@@ -43,92 +43,75 @@ cli::cli_h3(
   )
 )
 
-# Checking specifically for the glycoside anad aglycone m/zs
-glycoside <- MetaboCoreUtils::mass2mz(
-  x = MetaboCoreUtils::calculateMass(snakemake@params$glycoside)[[1]],
-  adduct = MetaboCoreUtils::adducts(polarity = snakemake@params$polarity)
-) %>%
-  t() %>%
-  as.data.frame() %>%
-  tibble::as_tibble(
-    x = .,
-    rownames = "adduct",
-    .name_repair = "universal_quiet"
-  ) %>%
-  dplyr::rename("glycoside" = V1)
-
-aglycone <- MetaboCoreUtils::mass2mz(
-  x = MetaboCoreUtils::calculateMass(snakemake@params$aglycone)[[1]],
-  adduct = MetaboCoreUtils::adducts(polarity = snakemake@params$polarity)
-) %>%
-  t() %>%
-  as.data.frame() %>%
-  tibble::as_tibble(
-    x = .,
-    rownames = "adduct",
-    .name_repair = "universal_quiet"
-  ) %>%
-  dplyr::rename("aglycone" = V1)
+# "C21H20O10;C15H10O6" - any number of formulas to search for, each checked
+# independently (OR'd together) rather than as a fixed pair
+metabolite_formulas <- unlist(strsplit(snakemake@params$metabolite_search, ";"))
 
 # This is okay for now since it's only looking for the glycone and aglycone
 range_tol <- 0.002 # used to be glycoside_ppm at 2000
 
-gly_agly_adducts <- glycoside %>%
-  dplyr::left_join(
-    x = .,
-    y = aglycone,
-    by = "adduct"
+metabolite_mz <- purrr::map_dfr(
+  .x = metabolite_formulas,
+  .f = ~ MetaboCoreUtils::mass2mz(
+    x = MetaboCoreUtils::calculateMass(.x)[[1]],
+    adduct = MetaboCoreUtils::adducts(polarity = snakemake@params$polarity)
   ) %>%
+    t() %>%
+    as.data.frame() %>%
+    tibble::as_tibble(
+      x = .,
+      rownames = "adduct",
+      .name_repair = "universal_quiet"
+    ) %>%
+    dplyr::rename("mz" = V1) %>%
+    dplyr::mutate(formula = .x, .before = "adduct")
+) %>%
   dplyr::mutate(
-    glycoside_min = glycoside - range_tol,
-    glycoside_max = glycoside + range_tol,
-    aglycone_min = aglycone - range_tol,
-    aglycone_max = aglycone + range_tol
+    mz_min = mz - range_tol,
+    mz_max = mz + range_tol
   )
 
-gly_agly <- tibble::tibble()
-for (i in seq_along(gly_agly_adducts)) {
+metabolite_search <- tibble::tibble()
+for (i in seq_len(nrow(metabolite_mz))) {
   tmp <- intensities$raw_fill_imp$untransformed %>%
     dplyr::filter(
       dplyr::between(
         mzmed,
-        gly_agly_adducts[i, ]$glycoside_min,
-        gly_agly_adducts[i, ]$glycoside_max
-      ) |
-        dplyr::between(
-          mzmed,
-          gly_agly_adducts[i, ]$aglycone_min,
-          gly_agly_adducts[i, ]$aglycone_max
-        )
+        metabolite_mz[i, ]$mz_min,
+        metabolite_mz[i, ]$mz_max
+      )
     ) %>%
-    dplyr::mutate(adduct = gly_agly_adducts[i, ]$adduct) %>%
-    dplyr::relocate(adduct, .after = "feature")
+    dplyr::mutate(
+      formula = metabolite_mz[i, ]$formula,
+      adduct = metabolite_mz[i, ]$adduct
+    ) %>%
+    dplyr::relocate(c(formula, adduct), .after = "feature")
 
-  gly_agly <- bind_rows(gly_agly, tmp)
+  metabolite_search <- bind_rows(metabolite_search, tmp)
 }
 
-gly_agly_path <- file.path(
+metabolite_search_path <- file.path(
   snakemake@params$output,
   "tables",
-  "gly_agly.csv"
+  "metabolite_search.csv"
 )
 
-if (interactive() && file.exists(gly_agly_path)) {
-  cli::cli_alert_info("Glycone/aglycone table already exists, skipping")
+if (interactive() && file.exists(metabolite_search_path)) {
+  cli::cli_alert_info("Metabolite search table already exists, skipping")
 } else {
-  readr::write_csv(gly_agly, gly_agly_path)
+  readr::write_csv(metabolite_search, metabolite_search_path)
   cli::cli_alert_info(
     paste0(
-      "Glycone/aglycone table saved to {.path {gly_agly_path}}"
+      "Metabolite search table saved to {.path {metabolite_search_path}}"
     )
   )
 }
 
-pot_glycosides <- unique(gly_agly$feature)
+pot_metabolite_hits <- unique(metabolite_search$feature)
 cli::cli_alert_info(
   paste0(
-    "Potential glycosides/aglycones",
-    "{.val {pot_glycosides}}"
+    "Potential metabolite hits: ",
+    "{.val {pot_metabolite_hits}}"
   )
 )
 
@@ -164,7 +147,7 @@ if (interactive() && file.exists(subset_matched_diffs_path)) {
     data = possible_adducts_signif,
     biotransf_data = bio_transf2,
     tolerance_ppm = snakemake@params$ppm_match,
-    features_of_interest = pot_glycosides,
+    features_of_interest = pot_metabolite_hits,
     parallel = TRUE
   ) %>%
     dplyr::mutate(
@@ -289,7 +272,7 @@ saveRDS(
     subset_matched_diffs = subset_matched_diffs,
     glycoside_pairs = glycoside_pairs,
     matched_diffs = if (exists("matched_diffs")) matched_diffs else NULL,
-    gly_agly = gly_agly
+    metabolite_search = metabolite_search
   ),
   file = snakemake@output[[1]]
 )
