@@ -78,8 +78,8 @@ for idx, row in run_df.iterrows():
         f"conda run -n psm_chem python script_tools/calc_similarity.py \
         --input '{input_dir}' \
         --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
-        --radius 3 \
-        --fpsize 2048"
+        --radius 2 \
+        --fpsize 4096"
     )
 
     run_subprocess(
@@ -106,4 +106,3 @@ for idx, row in run_df.iterrows():
         --similarity_cutoff 0.1 \
         --mcs_cutoff 0"
     )
-    break
