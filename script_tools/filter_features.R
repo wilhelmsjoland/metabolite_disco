@@ -151,7 +151,7 @@ good_limma_features <- full_limma %>%
 # next bio sim
 bio_sim_path <- file.path(
   file.path(input_path),
-  "tables",
+  "report",
   "biotransformer_similarities.csv"
 )
 bio_sim_path <- bio_sim_path[file.exists(bio_sim_path)]
@@ -165,8 +165,8 @@ bio_sim <- readr::read_csv(
 # next anno sim
 anno_sim_path <- file.path(
   file.path(input_path),
-  "tables",
-  "anno_similarities.csv"
+  "report",
+  "annotation_similarities.csv"
 )
 anno_sim_path <- anno_sim_path[file.exists(anno_sim_path)]
 
@@ -178,7 +178,7 @@ anno_sim <- readr::read_csv(
 
 extract_bio_sims <- bio_sim %>%
   dplyr::group_by(adduct) %>%
-  dplyr::distinct(InChIKey, .keep_all = TRUE) %>%
+  dplyr::distinct(inchikey, .keep_all = TRUE) %>%
   dplyr::ungroup() %>%
   dplyr::filter(feature %in% good_features) %>%
   dplyr::filter(feature %in% good_limma_features) %>%

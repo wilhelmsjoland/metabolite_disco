@@ -21,6 +21,8 @@
 /testing
 /script_tools/test_sqlite_db.R
 /script_tools/__pycache__/
+/script_tools/test_*
+/script_tools/__pycache__/create_report.cpython-312.pyc
 *.html
 *.pdf
 *.svg

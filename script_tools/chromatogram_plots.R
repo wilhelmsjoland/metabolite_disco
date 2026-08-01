@@ -77,13 +77,10 @@ output_path_msg <- file.path(
 ################################################################################
 # Produce chromatograms and .svgs ----------------------------------------------
 ################################################################################
-cli::cli_progress_step(
-  msg = c(
+cli::cli_alert_info(
+  text = c(
     "Producing chromatogram plots for: ",
     "{.path {basename(basename(input_path))}}"
-  ),
-  msg_done = paste0(
-    "Saved plots to: {.path {output_file}}"
   )
 )
 
@@ -143,4 +140,8 @@ arrow::write_parquet(
   sink = output_file
 )
 
-cli::cli_progress_done()
+cli::cli_alert_success(
+  text = paste0(
+    "Saved plots to: {.path {output_file}}"
+  )
+)

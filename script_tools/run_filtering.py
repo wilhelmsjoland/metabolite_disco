@@ -74,15 +74,21 @@ for idx, row in run_df.iterrows():
     # groups = ",".join(exp_groups)
     groups = ",".join(f"{g}" for g in exp_groups)
 
-    # Add a script that checks similarity here....
+    run_subprocess(
+        f"conda run -n psm_chem python script_tools/calc_similarity.py \
+        --input '{input_dir}' \
+        --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
+        --radius 3 \
+        --fpsize 2048"
+    )
 
     run_subprocess(
         f"Rscript script_tools/filter_features.R \
         --input {input_dir} \
         --grouping {groups} \
         --similarity_filter 0.1 \
-        --lfc 3 \
-        --qval 0.1 \
+        --lfc 2 \
+        --qval 0.05 \
         --beta_cor 0.6"
     )
 
@@ -95,8 +101,7 @@ for idx, row in run_df.iterrows():
     run_subprocess(
         f"conda run -n psm_chem python script_tools/create_report.py \
         --input {input_dir} \
-        --names '{aglycone},{glycoside}' \
-        --smiles '{aglycone_smiles},{glycoside_smiles}' \
+        --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
         --chromatogram {input_dir}/report/features.parquet \
         --similarity_cutoff 0.1 \
         --mcs_cutoff 0"

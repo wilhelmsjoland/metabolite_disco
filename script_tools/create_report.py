@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from rdkit import Chem
-from rdkit.Chem import DataStructs, rdFingerprintGenerator, rdFMCS, rdMolDescriptors
+from rdkit.Chem import DataStructs, inchi, rdFingerprintGenerator, rdFMCS, rdMolDescriptors
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Chem import PandasTools
 import re
@@ -36,14 +36,8 @@ parser.add_argument(
 parser.add_argument(
     "-s", "--smiles",
     required=True,
-    help="Comma-separated SMILES of one or more reference compounds, "
-         "e.g. 'smiles1,smiles2'"
-)
-parser.add_argument(
-    "-n", "--names",
-    default=None,
-    help="Comma-separated labels for each reference compound, same order "
-         "as --smiles - used in output filenames [default: ref1,ref2,...]"
+    help="Names and SMILES of one or more reference compounds, "
+         "e.g. 'name1,smiles1;name2,smiles2'"
 )
 parser.add_argument(
     "-c", "--chromatogram",
@@ -69,16 +63,9 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-smiles_list = args.smiles.split(",")
-names_list = args.names.split(",") if args.names else None
-
-if names_list is not None and len(names_list) != len(smiles_list):
-    parser.error("--names must have the same number of entries as --smiles")
-
-reference_names = names_list if names_list else [
-    f"ref{i + 1}" for i in range(len(smiles_list))
-]
-references = list(zip(reference_names, smiles_list))
+smiles_list = args.smiles.split(";")
+ref_smiles = dict(x.split(",") for x in smiles_list)
+references = list(ref_smiles.items())
 # %%
 
 ################################################################################
@@ -86,6 +73,7 @@ references = list(zip(reference_names, smiles_list))
 ################################################################################
 # %%
 output_dir = args.input
+report_dir = f"{output_dir}/report"
 tables_dir = f"{output_dir}/tables"
 chromatogram_svgs_path = (
     args.chromatogram if args.chromatogram
@@ -107,12 +95,12 @@ if chromatogram_svgs.empty or "feature" not in chromatogram_svgs.columns:
     sys.exit(0)
 
 feature_levels = chromatogram_svgs["feature"]
-anno_similarities = pd.read_csv(
-    f"{tables_dir}/anno_similarities.csv",
+annotation_similarities = pd.read_csv(
+    f"{report_dir}/annotation_similarities.csv",
     on_bad_lines = "warn"
 )
 biotransformer_similarities = pd.read_csv(
-    f"{tables_dir}/biotransformer_similarities.csv"
+    f"{report_dir}/biotransformer_similarities.csv"
 )
 # %%
 
@@ -126,12 +114,13 @@ biotransformer_similarities = pd.read_csv(
 #     "afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
 # )
 # tables_dir = f"{output_dir}/tables"
-# anno_similarities = pd.read_csv(
-#     f"{tables_dir}/anno_similarities.csv",
+# report_dir = f"{output_dir}/report"
+# annotation_similarities = pd.read_csv(
+#     f"{report_dir}/annotation_similarities.csv",
 #     on_bad_lines = "warn"
 # )
 # biotransformer_similarities = pd.read_csv(
-#     f"{tables_dir}/biotransformer_similarities.csv"
+#     f"{report_dir}/biotransformer_similarities.csv"
 # )
 # # kaempferol, the afzelin aglycone
 # reference_smiles = "C1=CC(=CC=C1C2=C(C(=O)C3=C(C=C(C=C3O2)O)O)O)O"
@@ -144,12 +133,13 @@ biotransformer_similarities = pd.read_csv(
 # %%
 hits = pd.concat(
     [
-        anno_similarities[
+        annotation_similarities[
             [
                 "feature",
                 "peak_id",
                 "target_smiles",
                 "sim",
+                "sim_mol",
                 "ppm_error",
                 "mz",
                 "rtime",
@@ -167,6 +157,7 @@ hits = pd.concat(
                 "feature",
                 "SMILES",
                 "sim",
+                "sim_mol",
                 "mz",
                 "mzmed",
                 "rtmed",
@@ -183,7 +174,7 @@ hits = pd.concat(
         )
         # "mz" here was the candidate's own theoretical m/z (only needed for
         # the ppm_error calc above) - "mzmed" is the observed feature m/z,
-        # same meaning as anno_similarities' "mz" column, so rename to match
+        # same meaning as annotation_similarities' "mz" column, so rename to match
         .drop(columns=["mz"])
         .rename(columns={"mzmed": "mz"}),
     ],
@@ -192,6 +183,19 @@ hits = pd.concat(
 
 hits["mol"] = hits["smiles"].apply(Chem.MolFromSmiles)
 hits = hits[hits["mol"].notna()].reset_index(drop=True)
+
+# Different stereoisomers of the same skeleton (e.g. regiochemistry-preserving
+# biotransformations applied at different positions) can independently match
+# the same feature and show up as visually near-identical rows - the default
+# Morgan fingerprint used for `sim` ignores stereochemistry too, so their
+# similarity scores are literally identical. Collapse to one representative
+# per feature/source/skeleton, using the InChIKey connectivity layer (first
+# 14 chars, which by design excludes stereo/isotope/charge) as the "same
+# skeleton" key.
+hits["skeleton_key"] = hits["mol"].apply(lambda mol: inchi.MolToInchiKey(mol)[:14])
+hits = hits.drop_duplicates(
+    subset=["feature", "source", "sim_mol", "skeleton_key"]
+).reset_index(drop=True)
 
 # Restrict to features already flagged as interesting in
 # sirius_add_to_pipeline.R (feature_levels there) - higher peak area in the
@@ -225,7 +229,14 @@ def process_reference(reference_smiles, ref_name):
     reference_mol = Chem.MolFromSmiles(reference_smiles)
     reference_num_atoms = reference_mol.GetNumAtoms()
 
-    similar_hits = hits[hits["sim"] >= similarity_cutoff].reset_index(drop=True)
+    # hits holds one row per (candidate, reference) pair (from calc_similarity.py
+    # scoring every candidate against every reference) - without the sim_mol
+    # filter here, every call to process_reference() would see every reference's
+    # rows pooled together, and would label rows scored against some *other*
+    # reference with this call's reference_structure/reference_smiles instead.
+    similar_hits = hits[
+        (hits["sim"] >= similarity_cutoff) & (hits["sim_mol"] == ref_name)
+    ].reset_index(drop=True)
 
     def mcs_result_vs_reference(mol):
         return rdFMCS.FindMCS([mol, reference_mol], timeout=10)
