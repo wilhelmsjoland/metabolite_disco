@@ -106,4 +106,3 @@ for idx, row in run_df.iterrows():
         --similarity_cutoff 0.1 \
         --mcs_cutoff 0"
     )
-    break
