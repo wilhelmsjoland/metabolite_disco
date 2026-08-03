@@ -75,7 +75,7 @@ for idx, row in run_df.iterrows():
     groups = ",".join(f"{g}" for g in exp_groups)
 
     run_subprocess(
-        f"conda run -n psm_chem python script_tools/calc_similarity.py \
+        f"python script_tools/calc_similarity.py \
         --input '{input_dir}' \
         --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
         --radius 2 \
@@ -89,7 +89,7 @@ for idx, row in run_df.iterrows():
         --similarity_filter 0.1 \
         --lfc 2 \
         --qval 0.05 \
-        --beta_cor 0.6"
+        --beta_cor 0.65"
     )
 
     run_subprocess(
@@ -99,10 +99,11 @@ for idx, row in run_df.iterrows():
     )
 
     run_subprocess(
-        f"conda run -n psm_chem python script_tools/create_report.py \
+        f"python script_tools/create_report.py \
         --input {input_dir} \
         --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
         --chromatogram {input_dir}/report/features.parquet \
         --similarity_cutoff 0.1 \
         --mcs_cutoff 0"
     )
+    break

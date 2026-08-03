@@ -95,12 +95,11 @@ if chromatogram_svgs.empty or "feature" not in chromatogram_svgs.columns:
     sys.exit(0)
 
 feature_levels = chromatogram_svgs["feature"]
-annotation_similarities = pd.read_csv(
-    f"{report_dir}/annotation_similarities.csv",
-    on_bad_lines = "warn"
+annotation_similarities = pd.read_parquet(
+    f"{report_dir}/annotation_similarities.parquet"
 )
-biotransformer_similarities = pd.read_csv(
-    f"{report_dir}/biotransformer_similarities.csv"
+biotransformer_similarities = pd.read_parquet(
+    f"{report_dir}/biotransformer_similarities.parquet"
 )
 # %%
 
@@ -710,6 +709,56 @@ print(
     f"-> {scaffold_pcoa_export_path}",
 )
 
+# to_html() emits every SVG once per *row*, which is ~99% of the file: the two
+# reference structures get redrawn on all ~900 rows, each feature's
+# chromatogram is repeated for every hit on that feature, and scaffolds recur
+# heavily too. Hoist each distinct drawing into a <symbol> emitted once, and
+# leave a <use> reference in the cell.
+#
+# The cell keeps its original <svg ...> opening tag verbatim (width/height/
+# viewBox/style), so every row still renders exactly the same picture at
+# exactly the same size - only the path data stops being duplicated. <use>
+# resolves within the document, so the report stays standalone.
+def dedupe_svgs(table_html):
+    symbols = {}
+
+    def to_symbol_reference(match):
+        svg = match.group(0)
+        root = re.match(r"<svg\b[^>]*>", svg).group(0)
+
+        if svg not in symbols:
+            symbol_id = f"sym{len(symbols)}"
+            # The symbol needs the viewBox to scale into each <use>'s viewport;
+            # everything else stays on the per-cell <svg> tag.
+            viewbox = re.search(r"viewBox=['\"]([^'\"]*)['\"]", root)
+            inner = svg[len(root):-len("</svg>")]
+            symbols[svg] = (
+                symbol_id,
+                f"<symbol id='{symbol_id}'"
+                + (f" viewBox='{viewbox.group(1)}'" if viewbox else "")
+                + f">{inner}</symbol>",
+            )
+
+        symbol_id, _ = symbols[svg]
+        return f"{root}<use href='#{symbol_id}'/></svg>"
+
+    # No SVG in this table nests another, so a non-greedy match is unambiguous.
+    table_html = re.sub(
+        r"<svg\b.*?</svg>", to_symbol_reference, table_html, flags=re.S
+    )
+
+    defs = "".join(symbol for _, symbol in symbols.values())
+    print(
+        f"Deduplicated SVGs: {len(symbols)} distinct drawings hoisted to <symbol>"
+    )
+    return (
+        f"<svg xmlns='http://www.w3.org/2000/svg' style='display:none'>"
+        f"{defs}</svg>\n{table_html}"
+    )
+
+
+table_html = dedupe_svgs(similar_hits.to_html(escape=False, index=False))
+
 # Standalone HTML export - everything here is self-contained (RDKit SVGs +
 # base64-embedded PNG), so it opens in any browser outside VS Code, no
 # Python/RDKit needed to view it.
@@ -720,8 +769,8 @@ document.addEventListener("DOMContentLoaded", function () {
   var headerCells = table.querySelectorAll("thead tr th");
   var allColumns = [];
   headerCells.forEach(function (th, idx) {
-    // pandas adds a blank leading <th> for the row index - skip it, nothing
-    // useful to toggle there
+    // to_html(index=False) means every header cell is a real column, but keep
+    // the guard so an unnamed one could never produce a blank toggle
     if (th.textContent.trim() !== "") {
       allColumns.push({ idx: idx, name: th.textContent });
     }
@@ -765,7 +814,7 @@ th {{ position: sticky; top: 0; background: #f5f5f5; }}
 </head>
 <body>
 <div id="column-toggles"><strong>Toggle columns:</strong></div>
-{similar_hits.to_html(escape=False)}
+{table_html}
 <script>
 {toggle_script}
 </script>

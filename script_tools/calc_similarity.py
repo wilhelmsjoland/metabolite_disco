@@ -55,7 +55,7 @@ args = parser.parse_args()
 
 exp_dir = Path(args.input)
 smiles_str = args.smiles
-output_dir = args.output if args.output else Path(exp_dir).joinpath("report")
+output_dir = Path(args.output) if args.output else Path(exp_dir).joinpath("report")
 smiles_list = smiles_str.split(";")
 ref_smiles = dict(x.split(",") for x in smiles_list)
 radius_arg = args.radius
@@ -120,17 +120,15 @@ biot_sims = compute_similarity(
 
 # %%
 os.makedirs(Path(output_dir), exist_ok=True)
-biot_sims.to_csv(
-    path_or_buf=(
-        output_dir.joinpath("biotransformer_similarities.csv")
+biot_sims.to_parquet(
+    path=(
+        output_dir.joinpath("biotransformer_similarities.parquet")
     ),
-    sep=",",
     index=False
 )
-anno_sims.to_csv(
-    path_or_buf=(
-        output_dir.joinpath("annotation_similarities.csv")
+anno_sims.to_parquet(
+    path=(
+        output_dir.joinpath("annotation_similarities.parquet")
     ),
-    sep=",",
     index=False
 )

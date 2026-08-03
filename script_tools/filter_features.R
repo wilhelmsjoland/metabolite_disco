@@ -4,6 +4,7 @@ suppressPackageStartupMessages(
     library(xcms)
     library(RSQLite)
     library(optparse)
+    library(arrow)
   }
 )
 ################################################################################
@@ -152,29 +153,21 @@ good_limma_features <- full_limma %>%
 bio_sim_path <- file.path(
   file.path(input_path),
   "report",
-  "biotransformer_similarities.csv"
+  "biotransformer_similarities.parquet"
 )
 bio_sim_path <- bio_sim_path[file.exists(bio_sim_path)]
 
-bio_sim <- readr::read_csv(
-  file = bio_sim_path,
-  progress = FALSE,
-  show_col_types = FALSE
-)
+bio_sim <- arrow::read_parquet(file = bio_sim_path)
 
 # next anno sim
 anno_sim_path <- file.path(
   file.path(input_path),
   "report",
-  "annotation_similarities.csv"
+  "annotation_similarities.parquet"
 )
 anno_sim_path <- anno_sim_path[file.exists(anno_sim_path)]
 
-anno_sim <- readr::read_csv(
-  file = anno_sim_path,
-  progress = FALSE,
-  show_col_types = FALSE
-)
+anno_sim <- arrow::read_parquet(file = anno_sim_path)
 
 extract_bio_sims <- bio_sim %>%
   dplyr::group_by(adduct) %>%
