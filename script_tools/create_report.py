@@ -222,6 +222,26 @@ chromatogram_svgs["chromatogram"] = [
 html_export_path = f"{report_dir}/similar_hits.html"
 
 
+def pcoa(distance_matrix, n_components=2):
+    n = distance_matrix.shape[0]
+    d2 = distance_matrix**2
+    centering = np.eye(n) - np.ones((n, n)) / n
+    b = -0.5 * centering @ d2 @ centering
+
+    eigenvalues, eigenvectors = np.linalg.eigh(b)
+    order = np.argsort(eigenvalues)[::-1]
+    eigenvalues = eigenvalues[order]
+    eigenvectors = eigenvectors[:, order]
+
+    coords = eigenvectors[:, :n_components] * np.sqrt(
+        np.clip(eigenvalues[:n_components], 0, None)
+    )
+    explained_variance_ratio = (
+        eigenvalues[:n_components] / eigenvalues[eigenvalues > 0].sum()
+    )
+    return coords, explained_variance_ratio
+
+
 def process_reference(reference_smiles, ref_name):
     pcoa_export_path = f"{report_dir}/pcoa_{ref_name}.svg"
 
@@ -441,25 +461,6 @@ def process_reference(reference_smiles, ref_name):
     # relative to the reference, using every hit rather than a reduced/grouped set.
     morgan_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
 
-    def pcoa(distance_matrix, n_components=2):
-        n = distance_matrix.shape[0]
-        d2 = distance_matrix**2
-        centering = np.eye(n) - np.ones((n, n)) / n
-        b = -0.5 * centering @ d2 @ centering
-
-        eigenvalues, eigenvectors = np.linalg.eigh(b)
-        order = np.argsort(eigenvalues)[::-1]
-        eigenvalues = eigenvalues[order]
-        eigenvectors = eigenvectors[:, order]
-
-        coords = eigenvectors[:, :n_components] * np.sqrt(
-            np.clip(eigenvalues[:n_components], 0, None)
-        )
-        explained_variance_ratio = (
-            eigenvalues[:n_components] / eigenvalues[eigenvalues > 0].sum()
-        )
-        return coords, explained_variance_ratio
-
     hit_fps = [morgan_gen.GetFingerprint(mol) for mol in similar_hits["mol"]]
     reference_fp = morgan_gen.GetFingerprint(reference_mol)
     all_fps = hit_fps + [reference_fp]
@@ -608,6 +609,106 @@ similar_hits = similar_hits.sort_values(
     ["sim", "feature", "scaffold_similarity_to_reference"],
     ascending=[False, True, False],
 ).reset_index(drop=True)
+
+################################################################################
+# Scaffold PCoA (all references pooled) -----------------------------------------
+################################################################################
+scaffold_pcoa_export_path = f"{report_dir}/pcoa_scaffolds.svg"
+
+# One point per *distinct* scaffold rather than per hit - the same scaffold
+# recurring across features/references would otherwise stack up on one
+# coordinate and say nothing. Reference scaffolds are put into the same
+# distance matrix (not projected in afterwards) so they're positioned by the
+# same ordination as everything else. Unlike the per-reference PCoAs above,
+# this is a single plot over all references' hits pooled together.
+reference_scaffold_smiles_by_name = {
+    ref_name: Chem.MolToSmiles(
+        MurckoScaffold.GetScaffoldForMol(Chem.MolFromSmiles(reference_smiles))
+    )
+    for ref_name, reference_smiles in references
+}
+
+# Two references can share a scaffold - key by scaffold so such a point is
+# drawn once and labelled with both names.
+reference_names_by_scaffold = {}
+for ref_name, scaffold_smi in reference_scaffold_smiles_by_name.items():
+    reference_names_by_scaffold.setdefault(scaffold_smi, []).append(ref_name)
+
+hit_scaffold_counts = similar_hits["scaffold_smiles"].value_counts()
+
+# Acyclic candidates get an empty Murcko scaffold (""), whose fingerprint is
+# all-zeros - Tanimoto 0 against everything, including other empty scaffolds.
+# That's a distance of 1 to the whole set, which drags the ordination around
+# for a point that carries no scaffold information at all. Drop them.
+scaffold_smiles_all = [
+    smi
+    for smi in dict.fromkeys(
+        list(hit_scaffold_counts.index) + list(reference_names_by_scaffold)
+    )
+    if smi
+]
+
+scaffold_pcoa_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+scaffold_fps = [
+    scaffold_pcoa_gen.GetFingerprint(Chem.MolFromSmiles(smi))
+    for smi in scaffold_smiles_all
+]
+scaffold_distance_matrix = 1 - np.array(
+    [DataStructs.BulkTanimotoSimilarity(fp, scaffold_fps) for fp in scaffold_fps]
+)
+scaffold_pcoa_coords, scaffold_pcoa_explained = pcoa(scaffold_distance_matrix)
+
+is_reference_scaffold = np.array(
+    [smi in reference_names_by_scaffold for smi in scaffold_smiles_all]
+)
+# How many hits carry each scaffold - point area, so recurring scaffolds read
+# as the more populated regions of the plot.
+scaffold_hit_counts = np.array(
+    [hit_scaffold_counts.get(smi, 0) for smi in scaffold_smiles_all]
+)
+
+fig, ax = plt.subplots(figsize=(8, 7))
+ax.scatter(
+    scaffold_pcoa_coords[~is_reference_scaffold, 0],
+    scaffold_pcoa_coords[~is_reference_scaffold, 1],
+    s=20 + 25 * np.sqrt(scaffold_hit_counts[~is_reference_scaffold]),
+    color="#0072B2",
+    alpha=0.65,
+    edgecolor="none",
+    label="candidate scaffold",
+)
+ax.scatter(
+    scaffold_pcoa_coords[is_reference_scaffold, 0],
+    scaffold_pcoa_coords[is_reference_scaffold, 1],
+    s=250,
+    color="black",
+    marker="*",
+    label="reference scaffold",
+    zorder=5,
+)
+for i in np.flatnonzero(is_reference_scaffold):
+    ax.annotate(
+        "/".join(reference_names_by_scaffold[scaffold_smiles_all[i]]),
+        (scaffold_pcoa_coords[i, 0], scaffold_pcoa_coords[i, 1]),
+        textcoords="offset points",
+        xytext=(8, 8),
+        fontsize=9,
+        zorder=6,
+    )
+
+ax.set_xlabel(f"PCo1 ({scaffold_pcoa_explained[0]:.1%})")
+ax.set_ylabel(f"PCo2 ({scaffold_pcoa_explained[1]:.1%})")
+ax.set_title("PCoA of Murcko scaffolds (all references)")
+ax.legend()
+fig.tight_layout()
+fig.savefig(scaffold_pcoa_export_path, format="svg")
+plt.close(fig)
+
+print(
+    f"Scaffold PCoA over {len(scaffold_smiles_all)} distinct scaffolds",
+    f"({is_reference_scaffold.sum()} of them reference scaffolds)",
+    f"-> {scaffold_pcoa_export_path}",
+)
 
 # Standalone HTML export - everything here is self-contained (RDKit SVGs +
 # base64-embedded PNG), so it opens in any browser outside VS Code, no
