@@ -23,6 +23,7 @@
 /script_tools/__pycache__/
 /script_tools/test_*
 /script_tools/__pycache__/create_report.cpython-312.pyc
+/script_tools/run_filtering.log
 *.html
 *.pdf
 *.svg
