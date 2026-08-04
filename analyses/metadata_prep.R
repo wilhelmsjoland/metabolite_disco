@@ -153,21 +153,40 @@ pubchem_info_path <- file.path(
 )
 
 if (!file.exists(pubchem_info_path)) {
+  # httr2's req_perform() errors on a non-2xx status, so a PubChem error page
+  # can never reach read_csv(). httr::POST returned it as an ordinary response,
+  # and the HTML got parsed as data - that is how a 502 silently turned into
+  # eight all-NA rows with an "<html><head>" column, and how a molecule lost
+  # its SMILES.
+  pubchem_req <- httr2::request(
+    paste0(
+      "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/",
+      "property/Title,MolecularFormula,InChIKey,InChI",
+      ",ExactMass,XLogP,TPSA,IsomericSMILES/CSV"
+    )
+  ) %>%
+    # PubChem PUG REST usage policy: no more than 5 requests/second
+    httr2::req_throttle(capacity = 5, fill_time_s = 1) %>%
+    httr2::req_retry(
+      max_tries = 5,
+      is_transient = \(resp) httr2::resp_status(resp) %in% c(
+        429,
+        502,
+        503,
+        504
+      ),
+      backoff = \(i) 2^i
+    )
+
   pubchem_info <- inchis %>%
     purrr::map(
       .f = ~ {
-        resp <- httr::POST(
-          url = paste0(
-            "https://pubchem.ncbi.nlm.nih.gov",
-            "/rest/pug/compound/inchi/property/",
-            "Title,MolecularFormula,InChIKey,InChI",
-            ",ExactMass,XLogP,TPSA,IsomericSMILES/CSV"
-          ),
-          body = list(inchi = .x),
-          encode = "form"
-        )
+        resp <- pubchem_req %>%
+          httr2::req_body_form(inchi = .x) %>%
+          httr2::req_perform()
+
         readr::read_csv(
-          I(httr::content(resp, as = "text", encoding = "UTF-8")),
+          I(httr2::resp_body_string(resp)),
           show_col_types = FALSE,
           progress = FALSE
         )
