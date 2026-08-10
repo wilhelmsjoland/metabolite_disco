@@ -1,19 +1,21 @@
 # Run
 source("script_tools/metadata_prep.R")
 # Need to set to TRUE for this to run
-run_create_metadata <- FALSE
+run_create_metadata <- TRUE
 
 # ==============================================================================
 # Create configs and metadata files --------------------------------------------
 # ==============================================================================
-config_path <- "input/experiment/configs"
-metadata_path <- "input/experiment/metadata"
+# "input/experiment/configs"
+config_path <- "input/aglycone_release_100um_24h/config"
+# "input/experiment/metadata"
+metadata_path <- "input/aglycone_release_100um_24h/metadata"
 dir.create(config_path, FALSE, TRUE)
 dir.create(metadata_path, FALSE, TRUE)
 
 # Add bad samples to this list
 bad_samples <- readxl::read_xlsx(
-  path = file.path(exp_path, "data", "experiment", "bad_samples.xlsx"),
+  path = file.path(exp_path, "data", "experiment", "info", "bad_samples.xlsx"),
   sheet = "bad_samples"
 )
 
@@ -43,11 +45,15 @@ if (isTRUE(run_create_metadata)) {
         # # Create the config and write as YAML
         config <- list(
           output = paste0(
-            "/Volumes/bluecub/aglycone_release_100um_24h/output/",
+            # "/Volumes/bluecub/aglycone_release_100um_24h/output/",
+            "/cfs/klemming/projects/supr/sjoland_naiss/project/",
+            "metabolite_disco/output/",
             .y
           ),
           data_path = paste0(
-            "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml"
+            # "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml"
+            "/cfs/klemming/projects/supr/sjoland_naiss",
+            "/data/aglycone_release_100um_24h/mzml"
           ),
           meta_file = file.path(metadata_path, paste0(.y, ".csv")),
           internal_standard = "C7H8O2",
@@ -82,7 +88,8 @@ if (isTRUE(run_create_metadata)) {
             mol_info$glycoside_SMILES
           ),
           annotate_path = paste0(
-            "/Volumes/bluecub/databases/pubchem/260730_pubchem.db"
+            "/cfs/klemming/projects/supr/sjoland_naiss/database/pubchem/",
+            "260730_pubchem.db"
           ),
           seed = 123,
           cores = 6

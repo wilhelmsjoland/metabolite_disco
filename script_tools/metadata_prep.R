@@ -12,6 +12,7 @@ exp_inds <- readr::read_csv(
     exp_path,
     "data",
     "experiment",
+    "info",
     "fixed_070825_index.csv"
   ),
   show_col_types = FALSE,
