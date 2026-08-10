@@ -257,6 +257,19 @@ def process_reference(reference_smiles, ref_name):
         (hits["sim"] >= similarity_cutoff) & (hits["sim_mol"] == ref_name)
     ].reset_index(drop=True)
 
+    # A reference can end up with nothing once the retained-feature filter is
+    # applied, even when it had plenty of hits overall. Everything below then
+    # operates on an empty frame, where pandas has no values to infer dtypes
+    # from: .map(callable) keeps the smiles column's string dtype while
+    # .map(empty_dict) yields float64, and subtracting the two raises. Nothing
+    # to report for this reference anyway, so stop here.
+    if similar_hits.empty:
+        print(
+            f"[{ref_name}] no hits above the similarity cutoff among retained",
+            "features - skipping this reference",
+        )
+        return None
+
     def mcs_result_vs_reference(mol):
         return rdFMCS.FindMCS([mol, reference_mol], timeout=10)
 
@@ -595,10 +608,20 @@ def process_reference(reference_smiles, ref_name):
     return similar_hits
 
 
-similar_hits = pd.concat(
-    [process_reference(reference_smiles, ref_name) for ref_name, reference_smiles in references],
-    ignore_index=True,
-)
+reference_frames = [
+    process_reference(reference_smiles, ref_name)
+    for ref_name, reference_smiles in references
+]
+# process_reference() returns None for a reference with no surviving hits
+reference_frames = [frame for frame in reference_frames if frame is not None]
+
+if not reference_frames:
+    print(
+        f"No hits for any reference in {output_dir} - nothing to report, skipping."
+    )
+    sys.exit(0)
+
+similar_hits = pd.concat(reference_frames, ignore_index=True)
 
 # Sort: 1. overall similarity (sim, highest first), 2. feature, 3. scaffold
 # similarity to the reference (highest first). Rows for different reference
