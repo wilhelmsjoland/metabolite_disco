@@ -1,5 +1,5 @@
 # Run
-source("analyses/metadata_prep.R")
+source("script_tools/metadata_prep.R")
 # Need to set to TRUE for this to run
 run_create_metadata <- FALSE
 
@@ -20,6 +20,7 @@ bad_samples <- readxl::read_xlsx(
 # Bad samples
 # experiments %>%
 #   dplyr::filter(sample %in% bad_samples$sample)
+
 if (isTRUE(run_create_metadata)) {
   cli::cli_alert_info("Creating new configs and metadata")
   experiments %>%
@@ -54,8 +55,6 @@ if (isTRUE(run_create_metadata)) {
           ppm_global = 25,
           sn_threshold = 10,
           mzdiff = 0.01,
-          # beta_cor_threshold = 0.8, # old
-          # beta_snr_threshold = 3, # old
           bw_first_grouping = 3,
           bw_second_grouping = 0.5,
           peak_anchor_sd = 2,
@@ -82,7 +81,9 @@ if (isTRUE(run_create_metadata)) {
             mol_info$glycoside, ",",
             mol_info$glycoside_SMILES
           ),
-          annotate_path = "/Volumes/bluecub/databases/pubchem/260730_pubchem.db",
+          annotate_path = paste0(
+            "/Volumes/bluecub/databases/pubchem/260730_pubchem.db"
+          ),
           seed = 123,
           cores = 6
         )
