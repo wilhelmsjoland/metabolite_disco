@@ -3,6 +3,7 @@ library(yaml)
 library(writexl)
 
 exp_path <- "/Volumes/bluecub/aglycone_release_100um_24h"
+run_path <- "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm/"
 
 # ==============================================================================
 # Create experimental metadata from Longs experiments --------------------------
@@ -140,7 +141,13 @@ experiments <- purrr::map2(
 # Get information on molecules in experiments ----------------------------------
 # ==============================================================================
 glycone_list <- readxl::read_xlsx(
-  path = "molekyler/information/glycone_list.xlsx",
+  path = file.path(
+    run_path,
+    "molekyler",
+    "information",
+    "aglycone_release_100um_24h",
+    "glycone_list.xlsx"
+  ),
   sheet = "molecules",
   na = c("", "NA")
 )
@@ -148,8 +155,10 @@ glycone_list <- readxl::read_xlsx(
 inchis <- glycone_list$InChI[!is.na(glycone_list$InChI)]
 
 pubchem_info_path <- file.path(
+  run_path,
   "molekyler",
   "information",
+  "aglycone_release_100um_24h",
   "pubchem_info.csv"
 )
 
@@ -218,7 +227,13 @@ glycone_info <- glycone_list %>%
 # Get chemical formula and SMILES for glycosides & aglycones -------------------
 # ==============================================================================
 glycone_pairs <- readxl::read_xlsx(
-  path = "molekyler/information/glycone_list.xlsx",
+  path = file.path(
+    run_path,
+    "molekyler",
+    "information",
+    "aglycone_release_100um_24h",
+    "glycone_list.xlsx"
+  ),
   sheet = "glycone_pairs",
   na = c("", "NA")
 )
@@ -289,12 +304,12 @@ glycone_pairs_metadata <- glycone_pairs %>%
     )
   )
 
-
-
 # Create a list of experiments to inspect later
 experiment_matrix_path <- file.path(
+  run_path,
   "molekyler",
   "information",
+  "aglycone_release_100um_24h",
   "experiment_matrix.xlsx"
 )
 
@@ -307,7 +322,13 @@ if (!file.exists(experiment_matrix_path)) {
 
 # Create a list of glycones to inspect later
 glycones <- readxl::read_xlsx(
-  path = file.path("molekyler", "information", "glycone_list.xlsx"),
+  path = file.path(
+    run_path,
+    "molekyler",
+    "information",
+    "aglycone_release_100um_24h",
+    "glycone_list.xlsx"
+  ),
   sheet = "glycone_pairs"
 ) %>%
   dplyr::select(glycoside, aglycone)
@@ -325,8 +346,10 @@ cln_glycone_nms <- glycones %>%
   )
 
 cln_glycone_nms_path <- file.path(
+  run_path,
   "molekyler",
   "information",
+  "aglycone_release_100um_24h",
   "clean_names_glycone_list.xlsx"
 )
 if (!file.exists(cln_glycone_nms_path)) {
@@ -347,8 +370,10 @@ clean_glycone_metadata <- glycone_info %>%
   )
 
 clean_glycone_metadata_path <- file.path(
+  run_path,
   "molekyler",
   "information",
+  "aglycone_release_100um_24h",
   "clean_glycone_metadata.xlsx"
 )
 
