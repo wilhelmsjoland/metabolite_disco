@@ -88,7 +88,7 @@ if (isTRUE(run_create_metadata)) {
             mol_info$glycoside_SMILES
           ),
           annotate_path = paste0(
-            "/Volumes/bluecub/databases/pubchem",
+            "/Volumes/bluecub/databases/pubchem/",
             # "/cfs/klemming/projects/supr/sjoland_naiss/database/pubchem/",
             "260730_pubchem.db"
           ),
