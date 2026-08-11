@@ -1,15 +1,15 @@
 # Run
-source("script_tools/metadata_prep.R")
+source("metabolite_disco/script_tools/metadata_prep.R")
 # Need to set to TRUE for this to run
 run_create_metadata <- TRUE
 
 # ==============================================================================
 # Create configs and metadata files --------------------------------------------
 # ==============================================================================
-# "input/experiment/configs"
-config_path <- "input/aglycone_release_100um_24h/config"
-# "input/experiment/metadata"
+config_path <- "input/aglycone_release_100um_24h/configs"
+# "input/aglycone_release_100um_24h/config"
 metadata_path <- "input/aglycone_release_100um_24h/metadata"
+# "input/aglycone_release_100um_24h/metadata"
 dir.create(config_path, FALSE, TRUE)
 dir.create(metadata_path, FALSE, TRUE)
 
@@ -45,15 +45,15 @@ if (isTRUE(run_create_metadata)) {
         # # Create the config and write as YAML
         config <- list(
           output = paste0(
-            # "/Volumes/bluecub/aglycone_release_100um_24h/output/",
-            "/cfs/klemming/projects/supr/sjoland_naiss/project/",
-            "metabolite_disco/output/",
+            "/Volumes/bluecub/aglycone_release_100um_24h/output/",
+            # "/cfs/klemming/projects/supr/sjoland_naiss/project/",
+            # "metabolite_disco/output/",
             .y
           ),
           data_path = paste0(
-            # "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml"
-            "/cfs/klemming/projects/supr/sjoland_naiss",
-            "/data/aglycone_release_100um_24h/mzml"
+            "/Volumes/bluecub/aglycone_release_100um_24h/data/experiment/mzml"
+            # "/cfs/klemming/projects/supr/sjoland_naiss",
+            # "/data/aglycone_release_100um_24h/mzml"
           ),
           meta_file = file.path(metadata_path, paste0(.y, ".csv")),
           internal_standard = "C7H8O2",
@@ -88,7 +88,8 @@ if (isTRUE(run_create_metadata)) {
             mol_info$glycoside_SMILES
           ),
           annotate_path = paste0(
-            "/cfs/klemming/projects/supr/sjoland_naiss/database/pubchem/",
+            "/Volumes/bluecub/databases/pubchem",
+            # "/cfs/klemming/projects/supr/sjoland_naiss/database/pubchem/",
             "260730_pubchem.db"
           ),
           seed = 123,
