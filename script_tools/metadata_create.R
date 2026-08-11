@@ -51,7 +51,7 @@ if (isTRUE(run_create_metadata)) {
         config <- list(
           output = file.path(
             # "/Volumes/bluecub/aglycone_release_100um_24h/output/",
-            "/cfs/klemming/projects/supr/sjoland_naiss/project/psm/input",
+            "/cfs/klemming/projects/supr/sjoland_naiss/project/psm/output",
             "aglycone_release_100um_24h",
             .y
           ),
