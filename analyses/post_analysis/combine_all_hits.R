@@ -2,6 +2,7 @@ library(tidyverse)
 library(arrow)
 
 exp_dir <- "/Volumes/bluecub/aglycone_release_100um_24h/output"
+res_out <- "/Volumes/bluecub/aglycone_release_100um_24h/combined_results"
 
 exp_names <- list.files(
   exp_dir,
@@ -83,3 +84,11 @@ all_hits <- exp_names %>%
     }
   ) %>%
   dplyr::bind_rows()
+
+arrow::write_parquet(
+  x = all_hits,
+  sink = file.path(
+    res_out,
+    "aglycone_release_100um_24h_hits.parquet"
+  )
+)
