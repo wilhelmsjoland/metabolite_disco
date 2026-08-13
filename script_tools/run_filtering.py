@@ -4,7 +4,7 @@ import pandas as pd
 
 def run_subprocess(x, cwd=None, check=True, shell=True):
     if cwd is None:
-        cwd = work_dir
+        cwd = repo_dir
 
     subprocess.run(
 		x,
@@ -13,9 +13,13 @@ def run_subprocess(x, cwd=None, check=True, shell=True):
 		shell=shell
 )
 
+# Two different roots: the xlsx inputs live under the project folder, the
+# scripts under the repo inside it - the subprocess calls below use paths
+# relative to repo_dir, everything else hangs off work_dir.
 work_dir = "/Users/wilhelm/Proton/01_juniper/01_arbete/01_projekt/03_psm"
+repo_dir = f"{work_dir}/metabolite_disco"
 output_dir = "/Volumes/bluecub/aglycone_release_100um_24h/output"
-mol_info_dir = f"{work_dir}/molekyler/information"
+mol_info_dir = f"{work_dir}/molekyler/information/aglycone_release_100um_24h"
 exp_mtx = pd.read_excel(
     io=f"{mol_info_dir}/experiment_matrix.xlsx",
     sheet_name="Sheet1"
