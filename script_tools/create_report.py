@@ -633,6 +633,28 @@ similar_hits = similar_hits.sort_values(
 ).reset_index(drop=True)
 
 ################################################################################
+# Parquet export ---------------------------------------------------------------
+################################################################################
+# Written before the PCoA/HTML steps below so the machine-readable output still
+# lands if either of those fails.
+parquet_export_path = f"{report_dir}/similar_hits.parquet"
+
+# Mol objects and raw SVG text exist purely for the HTML rendering - Mol isn't
+# parquet-serializable at all, and the SVGs are dead weight downstream. The
+# experiment name lives only in the output path, never as a column, but it's
+# exactly what a cross-experiment bind needs to key on.
+#
+# Chained rather than reassigned: .drop() returns a copy, so similar_hits itself
+# stays intact for the scaffold PCoA and to_html() below.
+similar_hits.drop(
+    columns=["mol", "reference_structure", "scaffold_structure", "chromatogram"]
+).assign(
+    experiment=os.path.basename(os.path.normpath(output_dir))
+).to_parquet(parquet_export_path, index=False)
+
+print(f"Saved to {parquet_export_path}")
+
+################################################################################
 # Scaffold PCoA (all references pooled) -----------------------------------------
 ################################################################################
 scaffold_pcoa_export_path = f"{report_dir}/pcoa_scaffolds.svg"
