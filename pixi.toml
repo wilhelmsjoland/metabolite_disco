@@ -5,6 +5,10 @@ name = "metabolite_disco"
 platforms = ["osx-arm64", "linux-64"]
 version = "0.2.0"
 
+[environments]
+default = { solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }
+
 [tasks]
 restore-r-packages = "Rscript -e 'renv::restore()'"
 fetch-biotransformer = "test -d biotransformer3.0jar || git clone https://bitbucket.org/wishartlab/biotransformer3.0jar.git"
@@ -12,6 +16,17 @@ setup = { depends-on = ["restore-r-packages", "fetch-biotransformer"] }
 
 [activation.env]
 PKG_CONFIG_PATH = "${CONDA_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
+
+[feature.dev.dependencies]
+jupyter = ">=1.1.1,<2"
+ipykernel = "*"
+pip = "*"
+polars = ">=1.43.2,<2"
+seaborn = ">=0.13.2,<0.14"
+matplotlib = ">=3.11.1,<4"
+altair = ">=6.2.2,<7"
+vegafusion = ">=2.0.3,<3"
+vl-convert-python = ">=2.0.0rc1,<3"
 
 [dependencies]
 r-base = "4.5.3.*"
