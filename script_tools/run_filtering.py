@@ -78,29 +78,29 @@ for idx, row in run_df.iterrows():
     # groups = ",".join(exp_groups)
     groups = ",".join(f"{g}" for g in exp_groups)
 
-    run_subprocess(
-        f"python script_tools/calc_similarity.py \
-        --input '{input_dir}' \
-        --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
-        --radius 2 \
-        --fpsize 4096"
-    )
+    # run_subprocess(
+    #     f"python script_tools/calc_similarity.py \
+    #     --input '{input_dir}' \
+    #     --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
+    #     --radius 2 \
+    #     --fpsize 4096"
+    # )
 
-    run_subprocess(
-        f"Rscript script_tools/filter_features.R \
-        --input {input_dir} \
-        --grouping {groups} \
-        --similarity_filter 0.1 \
-        --lfc 2 \
-        --qval 0.05 \
-        --beta_cor 0.65"
-    )
+    # run_subprocess(
+    #     f"Rscript script_tools/filter_features.R \
+    #     --input {input_dir} \
+    #     --grouping {groups} \
+    #     --similarity_filter 0.1 \
+    #     --lfc 2 \
+    #     --qval 0.05 \
+    #     --beta_cor 0.65"
+    # )
 
-    run_subprocess(
-        f"Rscript script_tools/chromatogram_plots.R \
-        --input {input_dir} \
-        --features {input_dir}/report/retained_features.csv"
-    )
+    # run_subprocess(
+    #     f"Rscript script_tools/chromatogram_plots.R \
+    #     --input {input_dir} \
+    #     --features {input_dir}/report/retained_features.csv"
+    # )
 
     run_subprocess(
         f"python script_tools/create_report.py \

@@ -130,6 +130,16 @@ biotransformer_similarities = pd.read_parquet(
 # %%
 
 # %%
+# Both source tables carry the candidate's own identity/metadata under
+# different names - target_* in the annotation table, BioTransformer's own
+# capitalised headers in the other. Renamed to one shared vocabulary here so
+# the two stack into single columns rather than source-specific ones. Columns
+# only one source has (reaction/enzyme/biosystem/precursor for biotransformer,
+# cas/pubchem for annotations) simply come out NaN for the other source.
+#
+# Note both source tables *also* have their own plain "formula"/"smiles"/
+# "exact_mass" columns from an upstream database join - those are deliberately
+# not selected, so renaming target_formula -> formula below can't collide.
 hits = pd.concat(
     [
         annotation_similarities[
@@ -137,6 +147,12 @@ hits = pd.concat(
                 "feature",
                 "peak_id",
                 "target_smiles",
+                "target_inchikey",
+                "target_name",
+                "target_formula",
+                "target_exactmass",
+                "target_pubchem",
+                "target_cas",
                 "sim",
                 "sim_mol",
                 "ppm_error",
@@ -148,13 +164,29 @@ hits = pd.concat(
             columns={
                 "feature": "feature_pred",
                 "peak_id": "feature",
-                "target_smiles": "smiles"
+                "target_smiles": "smiles",
+                "target_inchikey": "inchikey",
+                "target_name": "compound_name",
+                "target_formula": "formula",
+                "target_exactmass": "exact_mass",
+                "target_pubchem": "pubchem_cid",
+                "target_cas": "cas",
             }
         ).assign(source="mz_annotation"),
         biotransformer_similarities[
             [
                 "feature",
                 "SMILES",
+                "inchikey",
+                "Molecular formula",
+                "mass",
+                "met_id",
+                "Reaction",
+                "Enzyme(s)",
+                "Biosystem",
+                "Precursor SMILES",
+                "Precursor InChIKey",
+                "ALogP",
                 "sim",
                 "sim_mol",
                 "mz",
@@ -163,7 +195,18 @@ hits = pd.concat(
                 "adduct"
             ]
         ].rename(
-            columns={"SMILES": "smiles", "rtmed": "rtime"}
+            columns={
+                "SMILES": "smiles",
+                "rtmed": "rtime",
+                "Molecular formula": "formula",
+                "mass": "exact_mass",
+                "Reaction": "reaction",
+                "Enzyme(s)": "enzyme",
+                "Biosystem": "biosystem",
+                "Precursor SMILES": "precursor_smiles",
+                "Precursor InChIKey": "precursor_inchikey",
+                "ALogP": "alogp",
+            }
         ).assign(
             feature_pred=lambda df: df["feature"],
             # no direct mass-error column for biotransformer hits, so compute it
@@ -290,11 +333,11 @@ def process_reference(reference_smiles, ref_name):
         if not frags:
             return None
         largest_frag = max(frags, key=lambda f: f.GetNumAtoms())
-        return Chem.MolToSmiles(largest_frag)
+        return Chem.MolToSmiles(largest_frag, isomericSmiles=False)
 
     def murcko_scaffold_smiles(mol):
         scaffold = MurckoScaffold.GetScaffoldForMol(mol)
-        return Chem.MolToSmiles(scaffold)
+        return Chem.MolToSmiles(scaffold, isomericSmiles=False)
 
     def murcko_generic_scaffold_smiles(mol):
         # Same Bemis-Murcko scaffold, but reduced to a bare carbon-skeleton
@@ -304,7 +347,7 @@ def process_reference(reference_smiles, ref_name):
         # too strict for that and fragments genuinely-related structures apart.
         scaffold = MurckoScaffold.GetScaffoldForMol(mol)
         generic_scaffold = MurckoScaffold.MakeScaffoldGeneric(scaffold)
-        return Chem.MolToSmiles(generic_scaffold)
+        return Chem.MolToSmiles(generic_scaffold, isomericSmiles=False)
 
     reference_scaffold_smiles = murcko_scaffold_smiles(reference_mol)
     reference_generic_scaffold_smiles = murcko_generic_scaffold_smiles(
@@ -667,7 +710,8 @@ scaffold_pcoa_export_path = f"{report_dir}/pcoa_scaffolds.svg"
 # this is a single plot over all references' hits pooled together.
 reference_scaffold_smiles_by_name = {
     ref_name: Chem.MolToSmiles(
-        MurckoScaffold.GetScaffoldForMol(Chem.MolFromSmiles(reference_smiles))
+        MurckoScaffold.GetScaffoldForMol(Chem.MolFromSmiles(reference_smiles)),
+        isomericSmiles=False,
     )
     for ref_name, reference_smiles in references
 }

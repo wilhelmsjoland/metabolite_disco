@@ -7,7 +7,13 @@ version = "0.2.0"
 
 [environments]
 default = { solve-group = "default" }
-dev = { features = ["dev"], solve-group = "default" }
+
+[environments.dev]
+features = ["dev"]
+solve-group = "default"
+
+[environments.dev.dependencies]
+fastexcel = ">=0.20.2,<0.21"
 
 [tasks]
 restore-r-packages = "Rscript -e 'renv::restore()'"

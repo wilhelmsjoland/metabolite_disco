@@ -32,6 +32,3 @@ all_hits = pl.concat([
 ])
 
 all_hits.write_parquet(file=out_save)
-
-
-# %%

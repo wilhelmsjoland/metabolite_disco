@@ -730,6 +730,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/debugpy-1.8.21-py314h42812f9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/double-conversion-3.4.0-hecca717_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/eigen-abi-5.0.1.80-hf414acd_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/fastexcel-0.20.2-py314ha5689aa_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/fontconfig-2.18.3-h27c8c51_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/freetype-2.14.3-ha770c72_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/fribidi-1.0.16-hb03c661_1.conda
@@ -1353,6 +1354,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/cyrus-sasl-2.1.28-hb961e35_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/debugpy-1.8.21-py314he609de1_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/eigen-abi-5.0.1.100-h485a483_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/fastexcel-0.20.2-py314ha97066b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/fontconfig-2.18.3-h2b252f5_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/freetype-2.14.3-hce30654_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/fribidi-1.0.16-h84a0fba_1.conda
@@ -2507,6 +2509,24 @@ packages:
   run_exports: {}
   size: 13265
   timestamp: 1773744756289
+- conda: https://conda.anaconda.org/conda-forge/linux-64/fastexcel-0.20.2-py314ha5689aa_0.conda
+  sha256: 016c6de42d9019aa7d5ba11a609e0441d2ceb48b6f0ea89cae2afd82d5eb86df
+  md5: 8d79228a739fab0818c54c4ce090a752
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=14
+  - python >=3.14,<3.15.0a0
+  - python_abi 3.14.* *_cp314
+  constrains:
+  - pandas >=1.4.4
+  - polars >=0.16.14
+  - pyarrow >=8.0.0
+  - __glibc >=2.17
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 2668512
+  timestamp: 1779625819227
 - conda: https://conda.anaconda.org/conda-forge/linux-64/fontconfig-2.18.3-h27c8c51_0.conda
   sha256: 05b57e2f5aaf3adcccc80653c9795d29974f24dcf9daa40c98b254c99b726227
   md5: bc8843ae1a655600014bb7a09d7b8b89
@@ -9156,6 +9176,24 @@ packages:
   run_exports: {}
   size: 13293
   timestamp: 1773744888755
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/fastexcel-0.20.2-py314ha97066b_0.conda
+  sha256: 2b6bd6f507a61177577ba1881233494c66c4e19e8b069fc3882ab7f5a8a52f2a
+  md5: e7154c1be3b740b96ff4a6a110386eec
+  depends:
+  - __osx >=11.0
+  - python >=3.14,<3.15.0a0
+  - python >=3.14,<3.15.0a0 *_cp314
+  - python_abi 3.14.* *_cp314
+  constrains:
+  - pandas >=1.4.4
+  - __osx >=11.0
+  - polars >=0.16.14
+  - pyarrow >=8.0.0
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 2312973
+  timestamp: 1779626496028
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/fontconfig-2.18.3-h2b252f5_0.conda
   sha256: 6ec1937b910b2ac468459c2f7844b7c98238ada39ede05461dbd4dc764e519a5
   md5: d718960dea5abf5b582fe8ecf363c11d
