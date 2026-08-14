@@ -1246,7 +1246,7 @@ start_pipeline_msg <- function() {
       " " = "",
       "i" = "Creator: {.emph Wilhelm Sjöland}",
       "i" = "Email: {.email wilhelm.sjoland@wlab.gu.se}",
-      "i" = "Version: {.val {0.2}}",
+      "i" = "Version: {.val {0.3}}",
       "i" = "Started pipeline: {.time {format(Sys.time())}}"
       # "i" = "A URL: {.url https://acme.com}"
     )
