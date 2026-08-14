@@ -31,12 +31,10 @@ bpcs <- bpc_data$bpcs
 
 if (isFALSE(snakemake@params$internal_standard)) {
   cli::cli_alert_info("No internal standard specified - skipping IS inspection")
-  cli::cli_ul("Internal standard: {snakemake@params$internal_standard}")
-  cli::cli_ul("Min IS peak width: {round(is_min_peak_width, 2)}")
-  cli::cli_ul("Max IS peak width: {round(is_max_peak_width, 2)}")
   ranges <- NULL
   min_peak_width <- 1
   max_peak_width <- 60
+  cli::cli_ul("Internal standard: {snakemake@params$internal_standard}")
 } else {
   # ============================================================================
   # Inspect internal standard prior to peak-calling ----------------------------
@@ -305,7 +303,6 @@ if (isFALSE(snakemake@params$internal_standard)) {
   cli::cli_ul("Min IS peak width: {round(is_min_peak_width, 2)}")
   cli::cli_ul("Max IS peak width: {round(is_max_peak_width, 2)}")
 }
-
 
 saveRDS(
   object = list(
