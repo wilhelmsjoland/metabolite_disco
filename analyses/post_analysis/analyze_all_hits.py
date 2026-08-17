@@ -76,7 +76,7 @@ exp_info = (
     .agg(pl.all().exclude("experiment").unique())
     .explode("condition")
     .with_columns(
-        pl.col("strain").list.join("_")
+        pl.col("strain").list.sort().list.join("_and_")
     )
 )
 
@@ -236,153 +236,153 @@ structures = base.mark_image(width=50, height=50).encode(
     .configure_view(strokeWidth=0)
 )
 
-################################################################################
-# presence/absence skeleton across strains -------------------------------------
-################################################################################
-# %%
-skeleton_prevalence = (
-    data
-    .join(
-        other=exp_info,
-        on="experiment",
-        how="left"
-    )
-    .filter(
-        # pl.col("source") == "biotransformer",
-        # pl.col("rtime") > 30,
-        # pl.col("sim") > 0.1,
-        # pl.col("sim") != 1,
+# ################################################################################
+# # presence/absence skeleton across strains -------------------------------------
+# ################################################################################
+# # %%
+# skeleton_prevalence = (
+#     data
+#     .join(
+#         other=exp_info,
+#         on="experiment",
+#         how="left"
+#     )
+#     .filter(
+#         # pl.col("source") == "biotransformer",
+#         # pl.col("rtime") > 30,
+#         # pl.col("sim") > 0.1,
+#         # pl.col("sim") != 1,
 
-        pl.col("source") == "biotransformer",
-        pl.col("sim") > 0.1,
-        # pl.col("sim") != 1,
-        # Filter for confidence - if others exists that's fine
-        # but without them having [M-H]- it's almost impossible to know
-        pl.col("adduct") == "[M-H]-",
-    )
-    .group_by("skeleton_key", "condition")
-    .agg(
-        pl.col("experiment").n_unique().alias("n_experiments"),
-        pl.col("smiles").first().alias("smiles"),
-    )
-    .sort("n_experiments", descending=True)
-    # .filter(pl.col("n_experiments") > 2)
-)
+#         pl.col("source") == "biotransformer",
+#         pl.col("sim") > 0.1,
+#         # pl.col("sim") != 1,
+#         # Filter for confidence - if others exists that's fine
+#         # but without them having [M-H]- it's almost impossible to know
+#         pl.col("adduct") == "[M-H]-",
+#     )
+#     .group_by("skeleton_key", "condition")
+#     .agg(
+#         pl.col("experiment").n_unique().alias("n_experiments"),
+#         pl.col("smiles").first().alias("smiles"),
+#     )
+#     .sort("n_experiments", descending=True)
+#     # .filter(pl.col("n_experiments") > 2)
+# )
 
-x_order, y_order = cluster_order(
-    skeleton_prevalence,
-    x="skeleton_key",
-    y="condition",
-    values="n_experiments"
-)
+# x_order, y_order = cluster_order(
+#     skeleton_prevalence,
+#     x="skeleton_key",
+#     y="condition",
+#     values="n_experiments"
+# )
 
-# %%
-skeleton_prevalence_img = skeleton_prevalence.with_columns(
-    pl.col("smiles")
-    .map_elements(smiles_to_data_uri, return_dtype=pl.String)
-    .alias("structure")
-)
+# # %%
+# skeleton_prevalence_img = skeleton_prevalence.with_columns(
+#     pl.col("smiles")
+#     .map_elements(smiles_to_data_uri, return_dtype=pl.String)
+#     .alias("structure")
+# )
 
-base = alt.Chart(skeleton_prevalence_img).encode(
-    x=alt.X("skeleton_key:N", sort=x_order, axis=alt.Axis(labelAngle=-45)),
-).properties(width=alt.Step(50))
+# base = alt.Chart(skeleton_prevalence_img).encode(
+#     x=alt.X("skeleton_key:N", sort=x_order, axis=alt.Axis(labelAngle=-45)),
+# ).properties(width=alt.Step(50))
 
-heatmap = base.mark_rect().encode(
-    y=alt.Y("condition:N", sort=y_order),
-    color=alt.Color(
-        "n_experiments:O",
-        scale=alt.Scale(
-            domain=[1, 2, 3, 4],
-            range=["#86b6ef", "#3987e5", "#1c5cab", "#0d366b"],
-        ),
-        legend=alt.Legend(title="Putative production across strains"),
-    ),
-    tooltip=["skeleton_key", "condition", "n_experiments", "smiles"],
-).properties(height=alt.Step(30))
+# heatmap = base.mark_rect().encode(
+#     y=alt.Y("condition:N", sort=y_order),
+#     color=alt.Color(
+#         "n_experiments:O",
+#         scale=alt.Scale(
+#             domain=[1, 2, 3, 4],
+#             range=["#86b6ef", "#3987e5", "#1c5cab", "#0d366b"],
+#         ),
+#         legend=alt.Legend(title="Putative production across strains"),
+#     ),
+#     tooltip=["skeleton_key", "condition", "n_experiments", "smiles"],
+# ).properties(height=alt.Step(30))
 
-structures = base.mark_image(width=50, height=50).encode(
-    url="structure:N",
-    x=alt.X("skeleton_key:N", sort=x_order, axis=None),
-    y=alt.value(20),
-).properties(height=60)
+# structures = base.mark_image(width=50, height=50).encode(
+#     url="structure:N",
+#     x=alt.X("skeleton_key:N", sort=x_order, axis=None),
+#     y=alt.value(20),
+# ).properties(height=60)
 
-(
-    alt.vconcat(structures, heatmap)
-    .resolve_scale(x="shared")
-    .configure_view(strokeWidth=0)
-)
+# (
+#     alt.vconcat(structures, heatmap)
+#     .resolve_scale(x="shared")
+#     .configure_view(strokeWidth=0)
+# )
 
-################################################################################
-# presence/absence skeleton across glycoside -----------------------------------
-################################################################################
-# %%
-skeleton_prevalence = (
-    data
-    .join(
-        other=exp_info,
-        on="experiment",
-        how="left"
-    )
-    .filter(
-        # pl.col("source") == "biotransformer",
-        # pl.col("rtime") > 30,
-        # pl.col("sim") > 0.1,
-        # pl.col("sim") != 1,
+# ################################################################################
+# # presence/absence skeleton across glycoside -----------------------------------
+# ################################################################################
+# # %%
+# skeleton_prevalence = (
+#     data
+#     .join(
+#         other=exp_info,
+#         on="experiment",
+#         how="left"
+#     )
+#     .filter(
+#         # pl.col("source") == "biotransformer",
+#         # pl.col("rtime") > 30,
+#         # pl.col("sim") > 0.1,
+#         # pl.col("sim") != 1,
 
-        pl.col("source") == "biotransformer",
-        pl.col("sim") > 0.1,
-        # pl.col("sim") != 1,
-        # Filter for confidence - if others exists that's fine
-        # but without them having [M-H]- it's almost impossible to know
-        pl.col("adduct") == "[M-H]-",
-    )
-    .group_by("skeleton_key", "strain")
-    .agg(
-        pl.col("experiment").n_unique().alias("n_experiments"),
-        pl.col("smiles").first().alias("smiles"),
-    )
-    .sort("n_experiments", descending=True)
-    # .filter(pl.col("n_experiments") > 2)
-)
+#         pl.col("source") == "biotransformer",
+#         pl.col("sim") > 0.1,
+#         # pl.col("sim") != 1,
+#         # Filter for confidence - if others exists that's fine
+#         # but without them having [M-H]- it's almost impossible to know
+#         pl.col("adduct") == "[M-H]-",
+#     )
+#     .group_by("skeleton_key", "strain")
+#     .agg(
+#         pl.col("experiment").n_unique().alias("n_experiments"),
+#         pl.col("smiles").first().alias("smiles"),
+#     )
+#     .sort("n_experiments", descending=True)
+#     # .filter(pl.col("n_experiments") > 2)
+# )
 
-skeleton_prevalence_img = skeleton_prevalence.with_columns(
-    pl.col("smiles")
-    .map_elements(smiles_to_data_uri, return_dtype=pl.String)
-    .alias("structure")
-)
+# skeleton_prevalence_img = skeleton_prevalence.with_columns(
+#     pl.col("smiles")
+#     .map_elements(smiles_to_data_uri, return_dtype=pl.String)
+#     .alias("structure")
+# )
 
-x_order, y_order = cluster_order(
-    skeleton_prevalence,
-    x="skeleton_key",
-    y="strain",
-    values="n_experiments"
-)
+# x_order, y_order = cluster_order(
+#     skeleton_prevalence,
+#     x="skeleton_key",
+#     y="strain",
+#     values="n_experiments"
+# )
 
-# %%
-base = alt.Chart(skeleton_prevalence_img).encode(
-    x=alt.X("skeleton_key:N", sort=x_order, axis=alt.Axis(labelAngle=-45)),
-).properties(width=alt.Step(50))
+# # %%
+# base = alt.Chart(skeleton_prevalence_img).encode(
+#     x=alt.X("skeleton_key:N", sort=x_order, axis=alt.Axis(labelAngle=-45)),
+# ).properties(width=alt.Step(50))
 
-heatmap = base.mark_rect().encode(
-    y=alt.Y("strain:N", sort=y_order),
-    color=alt.Color(
-        "n_experiments:Q",
-        legend=alt.Legend(title="Putative production across glycosides"),
-    ),
-    tooltip=["skeleton_key", "strain", "n_experiments", "smiles"],
-).properties(height=alt.Step(30))
+# heatmap = base.mark_rect().encode(
+#     y=alt.Y("strain:N", sort=y_order),
+#     color=alt.Color(
+#         "n_experiments:Q",
+#         legend=alt.Legend(title="Putative production across glycosides"),
+#     ),
+#     tooltip=["skeleton_key", "strain", "n_experiments", "smiles"],
+# ).properties(height=alt.Step(30))
 
-structures = base.mark_image(width=50, height=50).encode(
-    url="structure:N",
-    x=alt.X("skeleton_key:N", sort=x_order, axis=None),
-    y=alt.value(20),
-).properties(height=60)
+# structures = base.mark_image(width=50, height=50).encode(
+#     url="structure:N",
+#     x=alt.X("skeleton_key:N", sort=x_order, axis=None),
+#     y=alt.value(20),
+# ).properties(height=60)
 
-(
-    alt.vconcat(structures, heatmap)
-    .resolve_scale(x="shared")
-    .configure_view(strokeWidth=0)
-)
+# (
+#     alt.vconcat(structures, heatmap)
+#     .resolve_scale(x="shared")
+#     .configure_view(strokeWidth=0)
+# )
 
 ################################################################################
 # Interesting candidate hits ---------------------------------------------------
