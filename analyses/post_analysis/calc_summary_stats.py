@@ -112,21 +112,10 @@ all_hits_points.save(fp=chart_path.joinpath("all_hits.pdf"), format="pdf")
 # FIX SO IT ONLY PLOTS THE ONES IN THE aglycone_exps list!!!!!!!
 
 for i in all_exps[:]:
-    strains_in_condition = (
-        data_with_info
-        .filter(pl.col("condition") == i)
-        .get_column("strain")
-        .unique()
-        .sort()
-        .to_list()
-    )
-
-    for s in strains_in_condition[:]:
         tink = (
             data_with_info
             .filter(
-                pl.col("condition") == i,
-                pl.col("strain") == s,
+                pl.col("experiment") == i,
                 # pl.col("sim") > 0.1
             )
             .with_columns(
@@ -164,6 +153,7 @@ for i in all_exps[:]:
         circle = alt.Chart(tink_img).mark_circle(size = 100).encode(
             x=alt.X(
                 "sim:Q",
+                title = "Tanimoto similarity",
                 sort=alt.EncodingSortField(field="sim", order="descending"),
                 scale=alt.Scale(domain = [0, 1])
             ),
@@ -195,7 +185,7 @@ for i in all_exps[:]:
             .configure_view(strokeWidth=0)
         )
 
-        full_plot.save(fp=chart_path.joinpath(f"{i}_{s}.pdf"), format="pdf")
+        full_plot.save(fp=chart_path.joinpath(f"{i}.pdf"), format="pdf")
 
 # %%
 full_plot
@@ -255,11 +245,4 @@ full_n_plot = (
 )
 
 full_n_plot.save(fp=chart_path.joinpath(f"combined_hits.pdf"), format="pdf")
-
-# %%
-(
-    tink
-    .filter(pl.col("skeleton_key") == "VYFYYTLLBUKUHU")
-)
-
 # %%
