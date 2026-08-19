@@ -8,6 +8,7 @@ library(MsFeatures)
 # add peak-grouping to the data
 # add filtering per peak-group to only the dominant peak in the data
 # Also add analyze_mass_shifts.R
+# Try making my own pickaxe
 
 use_path <- "/Volumes/bluecub/aglycone_release_100um_24h/output/afzelin_b_ovatus_atcc_8483_and_b_ovatus_atcc_8483_d_operon"
 
