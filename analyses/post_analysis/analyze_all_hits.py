@@ -1,5 +1,6 @@
 # %%
 import os
+import re
 from pathlib import Path
 import polars as pl
 import altair as alt
@@ -14,13 +15,26 @@ from scipy.cluster.hierarchy import linkage, leaves_list
 alt.data_transformers.enable("vegafusion")
 
 # %%
+# def smiles_to_data_uri(smiles: str, size: int = 150) -> str:
+#     mol = Chem.MolFromSmiles(smiles)
+#     options = Draw.MolDrawOptions()
+#     options.padding = 0.0
+#     img = Draw.MolToImage(mol, size=(size, size), options=options)
+#     buf = BytesIO()
+#     img.save(buf, format="PNG")
+#     b64 = base64.b64encode(buf.getvalue()).decode()
+#     return f"data:image/png;base64,{b64}"
+
 def smiles_to_data_uri(smiles: str, size: int = 150) -> str:
     mol = Chem.MolFromSmiles(smiles)
-    img = Draw.MolToImage(mol, size=(size, size))
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    b64 = base64.b64encode(buf.getvalue()).decode()
-    return f"data:image/png;base64,{b64}"
+    drawer = Draw.rdMolDraw2D.MolDraw2DSVG(size, size)
+    drawer.drawOptions().padding = 0.01
+    drawer.drawOptions().clearBackground = False
+    drawer.DrawMolecule(mol)
+    drawer.FinishDrawing()
+    svg = drawer.GetDrawingText()
+    b64 = base64.b64encode(svg.encode()).decode()
+    return f"data:image/svg+xml;base64,{b64}"
 
 def get_smiles_from_skeleton(skeleton):
     return Chem.MolToSmiles(
