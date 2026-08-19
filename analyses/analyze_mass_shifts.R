@@ -24,7 +24,7 @@ group_colors <- setup$group_colors
 limma <- readRDS(file.path(exp_path, "snakemake_objects", "10_limma.rds"))
 full_limma <- limma$full_limma
 pot_glycosides <- readr::read_csv(
-  file.path(exp_path, "tables", "gly_agly.csv"),
+  file.path(exp_path, "tables", "metabolite_search.csv"),
   progress = FALSE,
   show_col_types = FALSE
 ) %>%
