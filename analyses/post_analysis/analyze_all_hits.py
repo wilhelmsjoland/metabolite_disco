@@ -11,6 +11,7 @@ from rdkit.Chem import Draw
 import base64
 from io import BytesIO
 from scipy.cluster.hierarchy import linkage, leaves_list
+import cairosvg
 
 alt.data_transformers.enable("vegafusion")
 
