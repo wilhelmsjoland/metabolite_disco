@@ -84,7 +84,6 @@ sim_filter <- opt$similarity_filter
 beta_cor <- opt$beta_cor
 lfc <- opt$lfc
 qval <- opt$qval
-grouping <- unlist(strsplit(x = opt$grouping, split = ","))
 
 input_path <- opt$input
 output_file <- if (is.null(opt$output)) {
@@ -102,6 +101,12 @@ full_limma <- readr::read_csv(
   progress = FALSE,
   show_col_types = FALSE
 )
+
+if (opt$grouping == "all") {
+  grouping <- unique(meta$group)
+} else {
+  grouping <- unlist(strsplit(x = opt$grouping, split = ","))
+}
 
 ################################################################################
 # Wrangling --------------------------------------------------------------------
