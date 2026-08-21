@@ -28,6 +28,11 @@ ranges <- is_data$ranges
 # Generating chromatograms for simulated bandwiths -----------------------------
 # before correspondence for internal standard ----------------------------------
 # ==============================================================================
+if (is.null(ranges)) {
+  cli::cli_alert_info(
+    "No internal standard - skipping simulated bandwidth plots"
+  )
+} else {
 cli::cli_alert_info(
   "Producing simulated bandwidth plots for internal standard"
 )
@@ -114,6 +119,7 @@ cli::cli_alert_success(
     "{.path {is_simul_second_grouping_path}}"
   )
 )
+}
 
 # ==============================================================================
 # Correspondence ---------------------------------------------------------------
@@ -160,6 +166,11 @@ if (interactive() && file.exists(xchr7_path)) {
 # Generating internal standard chromatograms for -------------------------------
 # bandwith checking after correspondence ---------------------------------------
 # ==============================================================================
+if (is.null(ranges)) {
+  cli::cli_alert_info(
+    "No internal standard - skipping post-correspondence bandwidth plots"
+  )
+} else {
 cli::cli_alert_info(
   paste0(
     "Producing bandwidth plot for correspondence parameters",
@@ -222,6 +233,7 @@ cli::cli_alert_success(
     "{.path {is_non_simul_second_group_path}}"
   )
 )
+}
 
 # ==============================================================================
 # Snakesave --------------------------------------------------------------------

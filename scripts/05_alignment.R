@@ -243,6 +243,11 @@ cli::cli_alert_success(
 # ==============================================================================
 # Generating alignment base peak chromatograms for internal standards ----------
 # ==============================================================================
+if (is.null(ranges)) {
+  cli::cli_alert_info(
+    "No internal standard - skipping internal standard drift check plots"
+  )
+} else {
 is_drift_check_before_path <- file.path(
   snakemake@params$output,
   "objects",
@@ -362,6 +367,7 @@ cli::cli_alert_success(
     "{.path {is_before_after_alignment_path}}"
   )
 )
+}
 
 # ==============================================================================
 # Plotting anchor peaks before and after adjustment ----------------------------
