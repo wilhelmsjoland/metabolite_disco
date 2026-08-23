@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# %%
 import subprocess
 import pandas as pd
 
@@ -77,36 +78,37 @@ for idx, row in run_df.iterrows():
     exp_groups = list(filter(lambda x: "ycfa_glucose" not in x, row["group"]))
     # groups = ",".join(exp_groups)
     groups = ",".join(f"{g}" for g in exp_groups)
+    print(groups)
+    # run_subprocess(
+    #     f"python script_tools/calc_similarity.py \
+    #     --input '{input_dir}' \
+    #     --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
+    #     --radius 2 \
+    #     --fpsize 4096"
+    # )
 
-    run_subprocess(
-        f"python script_tools/calc_similarity.py \
-        --input '{input_dir}' \
-        --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
-        --radius 2 \
-        --fpsize 4096"
-    )
+    # run_subprocess(
+    #     f"Rscript script_tools/filter_features.R \
+    #     --input {input_dir} \
+    #     --grouping {groups} \
+    #     --similarity_filter 0.1 \
+    #     --lfc 2 \
+    #     --qval 0.05 \
+    #     --beta_cor 0.65"
+    # )
 
-    run_subprocess(
-        f"Rscript script_tools/filter_features.R \
-        --input {input_dir} \
-        --grouping {groups} \
-        --similarity_filter 0.1 \
-        --lfc 2 \
-        --qval 0.05 \
-        --beta_cor 0.65"
-    )
+    # run_subprocess(
+    #     f"Rscript script_tools/chromatogram_plots.R \
+    #     --input {input_dir} \
+    #     --features {input_dir}/report/retained_features.csv"
+    # )
 
-    run_subprocess(
-        f"Rscript script_tools/chromatogram_plots.R \
-        --input {input_dir} \
-        --features {input_dir}/report/retained_features.csv"
-    )
-
-    run_subprocess(
-        f"python script_tools/create_report.py \
-        --input {input_dir} \
-        --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
-        --chromatogram {input_dir}/report/features.parquet \
-        --similarity_cutoff 0.1 \
-        --mcs_cutoff 0"
-    )
+    # run_subprocess(
+    #     f"python script_tools/create_report.py \
+    #     --input {input_dir} \
+    #     --smiles '{aglycone},{aglycone_smiles};{glycoside},{glycoside_smiles}' \
+    #     --chromatogram {input_dir}/report/features.parquet \
+    #     --similarity_cutoff 0.1 \
+    #     --mcs_cutoff 0"
+    # )
+# %%

@@ -18,9 +18,12 @@ meta %>%
     .f = ~ dplyr::select(
       .x,
       "sample" = "filename",
-      "group" = "ATTRIBUTE_Group"
+      "group" = "ATTRIBUTE_Group",
     ) %>%
-    dplyr::mutate(sample = sub("\\.mzML$", "-MS1.mzML", sample))
+    dplyr::mutate(
+      sample = sub("\\.mzML$", "-MS1.mzML", sample),
+      group = gsub("-", "_", group)
+      )
   ) %>%
   purrr::walk2(
     .x = .,
