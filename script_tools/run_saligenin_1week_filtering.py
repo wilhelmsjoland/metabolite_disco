@@ -29,8 +29,7 @@ metadata_dir = Path(
     )
 unfinished_runs = ["Ser"]
 
-exp_list = sorted(os.listdir(work_dir)[:1])
-
+exp_list = sorted(os.listdir(work_dir))
 for i in exp_list:
     if i not in unfinished_runs:
         # extract grouping metadata
