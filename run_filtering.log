@@ -1,0 +1,12 @@
+ WARN Encountered 1 warning while parsing the manifest:
+  ⚠ the `[system-requirements]` table is deprecated in favor of virtual packages on `platforms`
+    ╭─[/Users/wilhelm/metabolite_disco/pixi.toml:8:1]
+  7 │     
+  8 │ ╭─▶ [system-requirements]
+  9 │ ├─▶ macos = "26"
+    · ╰──── declare these on the `platforms` entries instead
+ 10 │     
+    ╰────
+  help: e.g. platforms = [{ platform = "linux-64", cuda = "12" }]
+
+/Users/wilhelm/metabolite_disco/.pixi/envs/default/bin/python: can't open file '/Users/wilhelm/metabolite_disco/run_saligenin_1week_filtering.py': [Errno 2] No such file or directory

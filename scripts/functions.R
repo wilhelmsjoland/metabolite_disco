@@ -725,6 +725,13 @@ plot_feat_chrom_int <- function(
     }
   }
 
+  # p1 is a base-R plotting function (not a ggplot object) - cowplot needs
+  # gridGraphics to convert it into a grob for plot_grid(). gridGraphics is
+  # only in cowplot's Suggests, never imported, so renv never locks it unless
+  # something in the project references it directly - without it installed,
+  # cowplot silently substitutes an empty plot for p1 instead of erroring.
+  requireNamespace("gridGraphics", quietly = TRUE)
+
   p3 <- cowplot::plot_grid(
     p1,
     p2,

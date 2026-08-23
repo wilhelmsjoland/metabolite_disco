@@ -2,3 +2,5 @@
 caffeinate -i conda run -n psm_chem python run_filtering.py 2>&1 | tee run_filtering.log
 # updated
 caffeinate -i pixi run python run_filtering.py 2>&1 | tee run_filtering.log
+
+pixi run python run_saligenin_1week_filtering.py 2>&1 | tee run_saligenin_1week_filtering.log
