@@ -17,11 +17,16 @@ def run_subprocess(x, cwd=None, check=True, shell=True):
 )
 
 work_dir = Path(
-    f"/Volumes/bluecub/data/260805_saligenin_1week/output/"
-    f"260805_saligenin_1week_ms1"
+    f"/cfs/klemming/projects/supr/sjoland_naiss/data/"
+    f"260805_saligenin_1week/output/260805_saligenin_1week_ms1"
 )
-repo_dir = "/Users/wilhelm/metabolite_disco"
-metadata_dir = Path("/Volumes/bluecub/data/260805_saligenin_1week/metadata")
+repo_dir = Path(
+    "/cfs/klemming/projects/supr/sjoland_naiss/project/psm/metabolite_disco"
+)
+metadata_dir = Path(
+    f"/cfs/klemming/projects/supr/sjoland_naiss/data/"
+    f"260805_saligenin_1week/metadata"
+    )
 unfinished_runs = ["Ser"]
 
 exp_list = sorted(os.listdir(work_dir)[:1])
